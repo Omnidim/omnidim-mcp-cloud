@@ -3,8 +3,12 @@ name: ci
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   test:
@@ -54,7 +58,7 @@ jobs:
         with:
           context: .
           load: true
-          tags: omni-mcp-server:ci
+          tags: omnidim-mcp-cloud:ci
       - name: Smoke test the image
         run: |
           docker run -d --name smoke \
@@ -65,10 +69,17 @@ jobs:
             -e ODOO_INTERNAL_SHARED_SECRET=smoke \
             -e TOKEN_SIGNING_KEY=smoke-signing-key-padded-to-32-bytes \
             -p 8000:8000 \
-            omni-mcp-server:ci
+            omnidim-mcp-cloud:ci
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8000/healthz; then exit 0; fi
             sleep 1
           done
           docker logs smoke
           exit 1
+
+  # Deploy job intentionally absent: production EC2 not yet provisioned.
+  # When ready, add a `deploy` job that:
+  #   - runs on `if: startsWith(github.ref, 'refs/tags/v')`
+  #   - uses `environment: production`
+  #   - SSHes to mcp.omnidim.io, pulls the tagged image, restarts the service
+  # Keep test + docker as required gates ahead of it.
