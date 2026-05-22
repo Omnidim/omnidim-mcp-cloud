@@ -45,7 +45,7 @@ async def authorization_server_metadata(
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": _SCOPES,
         "authorization_response_iss_parameter_supported": True,
-        "service_documentation": "https://docs.omnidim.io/api-reference/authorization",
+        "service_documentation": "https://docs.omnidim.io/docs/get-started/authentication",
     }
 
 
@@ -63,5 +63,5 @@ async def protected_resource_metadata(
         "authorization_servers": [base],
         "scopes_supported": _SCOPES,
         "bearer_methods_supported": ["header"],
-        "resource_documentation": "https://docs.omnidim.io/api-reference/authorization",
+        "resource_documentation": "https://docs.omnidim.io/docs/get-started/authentication",
     }
