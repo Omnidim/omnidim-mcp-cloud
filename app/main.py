@@ -6,9 +6,10 @@ from fastapi import FastAPI
 
 from app.config import get_settings
 from app.db import build_engine, build_session_factory
+from app.errors import install_oauth_error_handler
 from app.logging import configure_logging
 from app.middleware import RequestIdMiddleware
-from app.routes import health, wellknown
+from app.routes import health, register, wellknown
 
 
 @asynccontextmanager
@@ -38,8 +39,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.add_middleware(RequestIdMiddleware)
+    install_oauth_error_handler(app)
     app.include_router(health.router)
     app.include_router(wellknown.router)
+    app.include_router(register.router)
     return app
 
 
