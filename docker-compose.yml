@@ -6,7 +6,9 @@ services:
       POSTGRES_PASSWORD: omni
       POSTGRES_DB: omni_mcp
     ports:
-      - "5432:5432"
+      # Host 5433 so this Postgres coexists with other local Postgres
+      # instances (e.g. Odoo on 5432).
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
