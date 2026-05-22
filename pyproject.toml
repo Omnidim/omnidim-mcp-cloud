@@ -46,6 +46,12 @@ ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/**" = ["E501"]
+# Ruff flags OAuth auth-method literals ("none", "client_secret_basic") as
+# suspected hardcoded passwords. They are spec-defined token_endpoint_auth_method
+# values, not credentials.
+"app/schemas/oauth.py" = ["S105"]
+"app/services/clients.py" = ["S105"]
+"tests/test_register.py" = ["S105", "S106"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
