@@ -1,4 +1,4 @@
-# omni-mcp-server
+# omnidim-mcp-cloud
 
 OAuth 2.1 authorization server and Model Context Protocol transport for OmniDimension.
 
@@ -25,4 +25,4 @@ curl http://localhost:8000/.well-known/oauth-authorization-server
 
 ## License
 
-Apache 2.0
+[Apache 2.0](./LICENSE)
