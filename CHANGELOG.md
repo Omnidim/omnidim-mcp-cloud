@@ -4,10 +4,9 @@
 
 ### Added
 
-- `GET /authorize`. Validates `client_id`, exact `redirect_uri` match, PKCE S256 challenge, and scope, then persists a single-use, hash-stored authorization request with a 10-minute TTL and redirects the browser to the dashboard consent screen. Client/redirect errors return 400 JSON (no redirect, per OAuth 2.1 §4.1.2.1); user-agent-safe errors redirect to the client's `redirect_uri` with `error` + `state`.
-- `POST /token` (authorization code grant). Verifies PKCE, single-use code consumption, redirect-uri match, and client authentication; issues hashed access + refresh tokens that wrap the Odoo `user.api.key` id minted during consent.
-- `POST /internal/issue-code` and `GET /internal/authorization-request/{id}`. Shared-secret-gated endpoints the consent screen uses to fetch a pending request's metadata and to issue the auth code after the user approves.
-- Single coarse scope `omnidim:all`. Treats the grant as binary at consent time; missing `scope` on `/authorize` defaults to it rather than rejecting.
+- `GET /authorize` (OAuth 2.1 authorization endpoint; PKCE S256 required). Per-spec error handling: errors that can be safely reflected go via `redirect_uri` with `error` + `state`; client/redirect failures return JSON 400.
+- `POST /token` (authorization code grant with PKCE verifier). Single-use codes, refresh token issued.
+- `omnidim:all` is the supported scope. Missing `scope` on `/authorize` defaults to it.
 - `python-multipart` runtime dependency for form-encoded `/token` requests.
 - `POST /register` Dynamic Client Registration endpoint (RFC 7591). MCP clients can register themselves to obtain a `client_id` and, for confidential clients, a one-time `client_secret`. Public clients (`token_endpoint_auth_method=none`) are the default and receive no secret.
 - Strict redirect-URI validation: HTTPS only, loopback `http://localhost` and `http://127.0.0.1` allowed. URL fragments and userinfo are rejected.
