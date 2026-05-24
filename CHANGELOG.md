@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-25
+
+### Added
+
+- `POST /api/telemetry/event` for anonymous usage events from the npm package companion. Validated against a strict schema; payload structlog-logged to Loki for observability dashboards.
+
 ### Security
 
 - Upstream credentials stored at rest are now encrypted with Fernet, keyed off `TOKEN_SIGNING_KEY`.
