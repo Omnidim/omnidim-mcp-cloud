@@ -33,9 +33,9 @@ jobs:
       PUBLIC_BASE_URL: http://localhost:8000
       DASHBOARD_BASE_URL: http://localhost:3000
       ODOO_INTERNAL_BASE_URL: http://localhost:8069
-      # ODOO_INTERNAL_SHARED_SECRET intentionally not set here so tests fall
-      # back to the value conftest.py installs ("test-shared-secret"), which
-      # matches the literal headers in the suite.
+      # Must match the literal in tests/conftest.py — alembic loads Settings
+      # before conftest runs, so this can't just be "whatever conftest sets".
+      ODOO_INTERNAL_SHARED_SECRET: test-shared-secret
       TOKEN_SIGNING_KEY: ci-signing-key-padded-to-32-bytes!!
 
     steps:
