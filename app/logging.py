@@ -90,10 +90,10 @@ def configure_logging(level: str = "info") -> None:
             *shared_processors,
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
