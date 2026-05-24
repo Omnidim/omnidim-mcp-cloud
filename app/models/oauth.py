@@ -36,8 +36,31 @@ class AuthorizationCode(Base, TimestampMixin):
         String(64), ForeignKey("oauth_client.client_id"), nullable=False, index=True
     )
     odoo_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    odoo_api_key_id: Mapped[int] = mapped_column(Integer, nullable=False)
     redirect_uri: Mapped[str] = mapped_column(Text, nullable=False)
     scope: Mapped[str] = mapped_column(Text, nullable=False)
+    code_challenge: Mapped[str] = mapped_column(Text, nullable=False)
+    code_challenge_method: Mapped[str] = mapped_column(String(16), nullable=False)
+    resource: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AuthorizationRequest(Base, TimestampMixin):
+    __tablename__ = "oauth_authorization_request"
+    __table_args__ = (
+        CheckConstraint("code_challenge_method = 'S256'", name="ck_authreq_pkce_method"),
+    )
+
+    request_id_hash: Mapped[str] = mapped_column(Text, primary_key=True)
+    client_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("oauth_client.client_id"), nullable=False, index=True
+    )
+    redirect_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    scope: Mapped[str] = mapped_column(Text, nullable=False)
+    state: Mapped[str | None] = mapped_column(Text, nullable=True)
     code_challenge: Mapped[str] = mapped_column(Text, nullable=False)
     code_challenge_method: Mapped[str] = mapped_column(String(16), nullable=False)
     resource: Mapped[str | None] = mapped_column(Text, nullable=True)

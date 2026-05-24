@@ -8,6 +8,7 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "OmniDimension", email = "support@omnidim.io" }]
 dependencies = [
     "fastapi>=0.115",
+    "python-multipart>=0.0.20",
     "uvicorn[standard]>=0.32",
     "gunicorn>=23",
     "pydantic>=2.9",

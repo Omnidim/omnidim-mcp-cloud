@@ -72,6 +72,20 @@ class ClientRegistrationRequest(BaseModel):
         return self
 
 
+class IssueCodeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: str
+    odoo_user_id: int
+    odoo_api_key_id: int
+    approved_scope: str
+
+
+class IssueCodeResponse(BaseModel):
+    code: str
+    redirect_to: str
+
+
 class ClientRegistrationResponse(BaseModel):
     client_id: str
     client_id_issued_at: int

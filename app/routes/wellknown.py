@@ -3,21 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response
 
 from app.config import Settings, get_settings
+from app.scopes import SUPPORTED_SCOPES
 
 router = APIRouter(tags=["discovery"])
 
 _CACHE_HEADERS = {"Cache-Control": "public, max-age=3600"}
 
-_SCOPES = [
-    "agents:read",
-    "agents:write",
-    "calls:read",
-    "calls:dispatch",
-    "phone_numbers:manage",
-    "knowledge_base:manage",
-    "simulations:manage",
-    "integrations:manage",
-]
+_SCOPES = list(SUPPORTED_SCOPES)
 
 
 @router.get("/.well-known/oauth-authorization-server")
