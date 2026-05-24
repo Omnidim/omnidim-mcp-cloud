@@ -114,8 +114,6 @@ async def revoke_endpoint(
     token: Annotated[str, Form()],
     client_id: Annotated[str, Form()],
     client_secret: Annotated[str | None, Form()] = None,
-    # RFC 7009 §2.1 lets the client send a token_type_hint; we don't need
-    # it because we look up by hash in both tables anyway.
     token_type_hint: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
@@ -124,6 +122,4 @@ async def revoke_endpoint(
             await session.commit()
     except TokenError as exc:
         _raise(exc)
-    # RFC 7009 §2.2: success returns 200 with no body, regardless of whether
-    # the token existed (prevents probing).
     return Response(status_code=200)

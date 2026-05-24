@@ -1,11 +1,3 @@
-"""Consume a pending authorization request and mint an auth code.
-
-Called by the dashboard server-side after the user clicks Allow. Bridges the
-pre-consent `oauth_authorization_request` row to the post-consent
-`oauth_authorization_code` row, carrying the PKCE challenge + redirect_uri +
-scope (filtered to what the user approved) + the Odoo api-key id that was
-just minted on the user's behalf.
-"""
 from __future__ import annotations
 
 import hashlib
@@ -21,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AuthorizationCode, AuthorizationRequest
 from app.scopes import parse_scope, unknown_scopes
+from app.security import encrypt_secret
 
 log = structlog.get_logger()
 
@@ -86,12 +79,13 @@ async def issue_code(
         raise IssueCodeError("invalid_scope", f"unknown scope: {unknown[0]}")
 
     code = _generate_code()
+    encrypted_api_key = encrypt_secret(odoo_api_key_value) if odoo_api_key_value else None
     auth_code = AuthorizationCode(
         code_hash=_hash(code),
         client_id=req.client_id,
         odoo_user_id=odoo_user_id,
         odoo_api_key_id=odoo_api_key_id,
-        odoo_api_key_value=odoo_api_key_value,
+        odoo_api_key_value=encrypted_api_key,
         redirect_uri=req.redirect_uri,
         scope=" ".join(approved),
         code_challenge=req.code_challenge,

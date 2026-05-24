@@ -1,9 +1,3 @@
-"""Bearer-token validation for the MCP transport.
-
-`POST /mcp` is gated by `Authorization: Bearer <access_token>`. The token's
-SHA-256 hash is the PK of `oauth_access_token`. Returns the resolved row so
-the dispatcher knows which Odoo user/api-key to proxy as.
-"""
 from __future__ import annotations
 
 import hashlib
@@ -14,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AccessToken
+from app.security import decrypt_secret
 
 
 @dataclass(frozen=True)
@@ -26,8 +21,6 @@ class ResolvedToken:
 
 
 class BearerError(Exception):
-    """Raised when an Authorization header is missing, malformed, or invalid."""
-
     def __init__(self, www_authenticate: str, description: str) -> None:
         super().__init__(description)
         self.www_authenticate = www_authenticate
@@ -79,10 +72,11 @@ async def resolve_bearer(session: AsyncSession, header_value: str | None) -> Res
             ' error_description="token expired"',
             "access token has expired",
         )
+    plaintext = decrypt_secret(row.odoo_api_key_value) if row.odoo_api_key_value else None
     return ResolvedToken(
         odoo_user_id=row.odoo_user_id,
         odoo_api_key_id=row.odoo_api_key_id,
-        odoo_api_key_value=row.odoo_api_key_value,
+        odoo_api_key_value=plaintext,
         client_id=row.client_id,
         scope=row.scope,
     )

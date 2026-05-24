@@ -19,6 +19,7 @@ dependencies = [
     "asyncpg>=0.30",
     "psycopg[binary]>=3.2",
     "alembic>=1.14",
+    "cryptography>=42.0",
     "structlog>=24.4",
 ]
 

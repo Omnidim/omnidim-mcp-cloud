@@ -1,9 +1,3 @@
-"""Auth code → access + refresh exchange.
-
-PKCE S256 verification, single-use code enforcement, refresh token rotation.
-Access + refresh tokens are persisted as SHA-256 hashes; plaintext is
-returned to the client exactly once in the /token response.
-"""
 from __future__ import annotations
 
 import base64
@@ -69,7 +63,7 @@ async def _authenticate_client(
     ).scalar_one_or_none()
     if client is None:
         raise TokenError("invalid_client", "unknown client_id", status_code=401)
-    if client.token_endpoint_auth_method == "none":  # noqa: S105
+    if client.token_endpoint_auth_method == "none":  # noqa: S105 (spec literal, not a credential)
         if client_secret is not None:
             raise TokenError("invalid_client", "public client must not present a secret", 401)
         return client
@@ -89,13 +83,6 @@ async def exchange_refresh_token(
     client_secret: str | None,
     refresh_token: str,
 ) -> IssuedTokens:
-    """OAuth 2.1 refresh-token grant with rotation.
-
-    Consumes the presented refresh token, issues a fresh access + refresh
-    pair under the same grant_id. Detects replay: if the consumed token is
-    presented again, all tokens under that grant_id are revoked (token-
-    family invalidation per RFC 6819 §5.2.2.3).
-    """
     client = await _authenticate_client(session, client_id, client_secret)
 
     now = datetime.now(UTC)
@@ -110,8 +97,6 @@ async def exchange_refresh_token(
     if presented.expires_at <= now:
         raise TokenError("invalid_grant", "refresh token expired")
     if presented.consumed_at is not None:
-        # Replay: revoke the whole grant family so a stolen token can't be
-        # used past its successor's lifetime.
         await session.execute(
             update(AccessToken)
             .where(AccessToken.grant_id == presented.grant_id)
@@ -119,8 +104,6 @@ async def exchange_refresh_token(
         )
         raise TokenError("invalid_grant", "refresh token already used (grant revoked)")
 
-    # Borrow the upstream credential from the original access token in this
-    # grant so the new pair stays bound to the same Odoo user.api.key.
     access_row: AccessToken | None = (
         await session.execute(
             select(AccessToken)
@@ -181,12 +164,6 @@ async def revoke(
     client_secret: str | None,
     token: str,
 ) -> None:
-    """RFC 7009 revoke. Tries access-token hash first, then refresh-token.
-
-    Per spec, the endpoint returns 200 even for unknown tokens (so clients
-    can't probe whether a token exists). Raises TokenError only for client
-    authentication failures.
-    """
     client = await _authenticate_client(session, client_id, client_secret)
     now = datetime.now(UTC)
     token_hash = _hash(token)
@@ -197,8 +174,6 @@ async def revoke(
         )
     ).scalar_one_or_none()
     if access and access.client_id == client.client_id and access.revoked_at is None:
-        # Revoke the entire grant family — invalidate every access token
-        # under this grant_id plus the refresh chain.
         await session.execute(
             update(AccessToken)
             .where(AccessToken.grant_id == access.grant_id)

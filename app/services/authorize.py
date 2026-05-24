@@ -1,9 +1,3 @@
-"""Pending authorization-request handling for the OAuth front-channel.
-
-`GET /authorize` lands here. We validate the request against the registered
-client, persist a single-use, hashed `request_id`, and the route hands the
-plaintext id to the dashboard via the consent-screen redirect.
-"""
 from __future__ import annotations
 
 import hashlib
@@ -27,13 +21,6 @@ PKCE_MAX_LEN: Final = 128
 
 
 class AuthorizeError(Exception):
-    """Base for /authorize validation failures.
-
-    `redirectable` distinguishes errors that may be reported by 302 back to
-    the client (OAuth 2.1 §4.1.2.1) from those that must NOT redirect
-    because the client/redirect_uri couldn't be authenticated.
-    """
-
     def __init__(self, code: str, description: str, *, redirectable: bool) -> None:
         super().__init__(description)
         self.code = code

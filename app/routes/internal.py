@@ -1,9 +1,3 @@
-"""Internal endpoints called by the dashboard during the consent flow.
-
-These are not part of the public OAuth surface. They're gated by a shared
-secret carried in the `X-Internal-Secret` header. The dashboard fetches
-pending request metadata to render the consent screen.
-"""
 from __future__ import annotations
 
 import hashlib

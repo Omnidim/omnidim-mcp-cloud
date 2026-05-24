@@ -12,3 +12,4 @@ dist/
 build/
 *.log
 .DS_Store
+*.local.md

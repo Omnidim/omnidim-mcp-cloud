@@ -1,10 +1,3 @@
-"""Tool dispatcher: MCP tools/call → upstream REST.
-
-Resolves the requested tool against the auto-generated registry, builds an
-HTTP call to backend.omnidim.io with the user's wrapped api_key as Bearer,
-returns the response as MCP content blocks. Trim + redact behavior mirrors
-the npm package's helpers.ts so both servers behave identically.
-"""
 from __future__ import annotations
 
 import json
@@ -21,12 +14,10 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://backend.omnidim.io/api/v1"
-USER_AGENT: Final = "omni-mcp-cloud/0.2.0"
+USER_AGENT: Final = "omni-mcp-cloud/0.2.1"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
-# Match the npm package's helpers.LIST_KEYS so cloud and stdio trim the
-# same way. Keep in sync.
 LIST_KEYS: Final = (
     "bots",
     "call_log_data",
@@ -51,26 +42,20 @@ def _default_client_factory() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=TIMEOUT_SECONDS)
 
 
-# Indirected so tests can swap the factory (respx ASGI test setups don't
-# always intercept clients created inside the request handler chain).
 _client_factory: Callable[[], httpx.AsyncClient] = _default_client_factory
 
 
 def set_client_factory(factory: Callable[[], httpx.AsyncClient]) -> None:
-    """Replace the HTTP client factory used by `dispatch_tool` (tests only)."""
     global _client_factory
     _client_factory = factory
 
 
 def reset_client_factory() -> None:
-    """Restore the default factory after a test override."""
     global _client_factory
     _client_factory = _default_client_factory
 
 
 class DispatchError(Exception):
-    """Raised when a tool call can't be served (auth, validation, upstream)."""
-
     def __init__(self, code: int, message: str, data: Any = None) -> None:
         super().__init__(message)
         self.code = code
@@ -85,7 +70,6 @@ class ToolResult:
 
 
 def _redact(value: Any) -> Any:
-    """Strip `api_key` fields from reseller responses before they reach the model."""
     if isinstance(value, list):
         return [_redact(v) for v in value]
     if isinstance(value, dict):
@@ -133,7 +117,6 @@ def _trim(data: Any) -> ToolResult:
 
 
 def _substitute_path(template: str, args: dict[str, Any], path_params: list[str]) -> str:
-    """Replace {param} segments with values from the arguments dict."""
     path = template
     for p in path_params:
         if p not in args:
@@ -145,8 +128,6 @@ def _substitute_path(template: str, args: dict[str, Any], path_params: list[str]
 def _split_args(
     args: dict[str, Any], path_params: list[str], query_params: list[str]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Partition the arguments into (query, body) — path params are extracted
-    separately. Anything not declared as path or query goes in the JSON body."""
     query = {p: args[p] for p in query_params if p in args}
     body = {k: v for k, v in args.items() if k not in path_params and k not in query_params}
     return query, body
@@ -163,11 +144,7 @@ async def dispatch_tool(
         raise DispatchError(-32602, f"unknown tool: {name}")
 
     if not token.odoo_api_key_value:
-        raise DispatchError(
-            -32000,
-            "missing upstream credential",
-            {"hint": "this access token was issued before the api-key column existed; reauthorize"},
-        )
+        raise DispatchError(-32000, "missing upstream credential")
 
     path = _substitute_path(tool["path"], arguments, tool["path_params"])
     query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
@@ -202,8 +179,6 @@ async def dispatch_tool(
 
     ctype = res.headers.get("content-type", "")
     if "application/json" not in ctype:
-        # Backend sometimes serves an HTML 404 from its frontend tier if the
-        # path is wrong. Surface that cleanly rather than dumping HTML.
         snippet = res.text[:200].strip().replace("\n", " ")
         raise DispatchError(
             -32000,
@@ -217,9 +192,6 @@ async def dispatch_tool(
         raise DispatchError(-32000, "upstream JSON parse error") from exc
 
     if res.status_code >= 400:
-        # 4xx and 5xx come back as a ToolResult with is_error=true so the
-        # model sees the error message and can react, rather than the
-        # whole MCP call failing as a transport-level fault.
         text = json.dumps(payload, indent=2, ensure_ascii=False)
         return ToolResult(text=text, is_error=True)
 

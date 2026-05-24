@@ -4,6 +4,36 @@ from typing import Any
 
 import structlog
 
+SENSITIVE_LOG_KEYS = frozenset(
+    {
+        "odoo_api_key_value",
+        "api_key",
+        "access_token",
+        "refresh_token",
+        "client_secret",
+        "code_verifier",
+        "Authorization",
+        "authorization",
+        "X-Internal-Secret",
+        "x-internal-secret",
+    }
+)
+
+
+def _scrub(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            k: ("[redacted]" if k in SENSITIVE_LOG_KEYS else _scrub(v))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_scrub(v) for v in value]
+    return value
+
+
+def _scrub_processor(_logger: Any, _method: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    return _scrub(event_dict)  # type: ignore[no-any-return]
+
 
 def configure_logging(level: str = "info") -> None:
     log_level = getattr(logging, level.upper(), logging.INFO)
@@ -12,6 +42,7 @@ def configure_logging(level: str = "info") -> None:
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
+        _scrub_processor,
     ]
 
     structlog.configure(

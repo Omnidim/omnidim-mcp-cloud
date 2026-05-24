@@ -1,9 +1,3 @@
-"""MCP Streamable HTTP transport.
-
-Speaks JSON-RPC 2.0 over POST /mcp per the Streamable HTTP transport in
-the MCP spec. Bearer-token gated; tool registry generated from the
-OmniDimension OpenAPI spec at build time.
-"""
 from __future__ import annotations
 
 from typing import Annotated, Any
@@ -22,7 +16,7 @@ router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
 
 PROTOCOL_VERSION = "2025-11-25"
-SERVER_INFO = {"name": "OmniDimension", "version": "0.2.0"}
+SERVER_INFO = {"name": "OmniDimension", "version": "0.2.1"}
 INSTRUCTIONS = (
     "OmniDimension voice AI platform. Tools cover agents, calls, bulk calls, "
     "phone numbers, knowledge base, simulations, providers, and reseller "
@@ -67,9 +61,6 @@ async def mcp_endpoint(
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> JSONResponse:
-    # Authenticate before doing anything else; an MCP client without a valid
-    # access token gets a clean 401 + WWW-Authenticate challenge so it knows
-    # to run the OAuth flow.
     try:
         async with factory() as session:
             token: ResolvedToken = await resolve_bearer(session, authorization)
@@ -115,8 +106,6 @@ async def mcp_endpoint(
         )
 
     if method == "notifications/initialized":
-        # Notifications have no `id` and expect no response body. Returning
-        # 202 with empty body matches what the spec describes.
         return JSONResponse(status_code=202, content={})
 
     if method == "tools/list":

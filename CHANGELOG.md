@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Security
+
+- Upstream credentials stored at rest are now encrypted with Fernet, keyed off `TOKEN_SIGNING_KEY`.
+- Structured log processor strips known-sensitive keys from every emitted event.
+
 ### Added
 
 - `POST /mcp` Streamable HTTP transport (JSON-RPC 2.0). Bearer-token gated; supports `initialize`, `notifications/initialized`, `tools/list`, `tools/call`. WWW-Authenticate challenge on 401.
