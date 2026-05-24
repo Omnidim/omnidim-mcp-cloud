@@ -99,6 +99,7 @@ async def post_issue_code(
                 request_id=body.request_id,
                 odoo_user_id=body.odoo_user_id,
                 odoo_api_key_id=body.odoo_api_key_id,
+                odoo_api_key_value=body.odoo_api_key_value,
                 approved_scope=body.approved_scope,
             )
             await session.commit()

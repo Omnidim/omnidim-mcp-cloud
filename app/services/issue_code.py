@@ -55,6 +55,7 @@ async def issue_code(
     request_id: str,
     odoo_user_id: int,
     odoo_api_key_id: int,
+    odoo_api_key_value: str | None,
     approved_scope: str,
 ) -> IssuedCode:
     now = datetime.now(UTC)
@@ -90,6 +91,7 @@ async def issue_code(
         client_id=req.client_id,
         odoo_user_id=odoo_user_id,
         odoo_api_key_id=odoo_api_key_id,
+        odoo_api_key_value=odoo_api_key_value,
         redirect_uri=req.redirect_uri,
         scope=" ".join(approved),
         code_challenge=req.code_challenge,

@@ -4,6 +4,10 @@
 
 ### Added
 
+- `POST /mcp` Streamable HTTP transport (JSON-RPC 2.0). Bearer-token gated; supports `initialize`, `notifications/initialized`, `tools/list`, `tools/call`. WWW-Authenticate challenge on 401.
+- Auto-generated tool registry from `omnidim-docs/openapi/omnidim.yaml` + shared `mcp-config.yaml` exclude list. 49 tools today. Drift-check via `app/_generated/.spec.yml`.
+- `POST /revoke` (RFC 7009) — revokes the entire grant family.
+- `refresh_token` grant on `POST /token` with one-time-use rotation + token-family revocation on replay.
 - `GET /authorize` (OAuth 2.1 authorization endpoint; PKCE S256 required). Per-spec error handling: errors that can be safely reflected go via `redirect_uri` with `error` + `state`; client/redirect failures return JSON 400.
 - `POST /token` (authorization code grant with PKCE verifier). Single-use codes, refresh token issued.
 - `omnidim:all` is the supported scope. Missing `scope` on `/authorize` defaults to it.

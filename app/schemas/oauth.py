@@ -78,6 +78,7 @@ class IssueCodeRequest(BaseModel):
     request_id: str
     odoo_user_id: int
     odoo_api_key_id: int
+    odoo_api_key_value: str | None = None
     approved_scope: str
 
 

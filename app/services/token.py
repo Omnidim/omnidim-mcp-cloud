@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Final
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
@@ -82,6 +82,157 @@ async def _authenticate_client(
     return client
 
 
+async def exchange_refresh_token(
+    session: AsyncSession,
+    *,
+    client_id: str,
+    client_secret: str | None,
+    refresh_token: str,
+) -> IssuedTokens:
+    """OAuth 2.1 refresh-token grant with rotation.
+
+    Consumes the presented refresh token, issues a fresh access + refresh
+    pair under the same grant_id. Detects replay: if the consumed token is
+    presented again, all tokens under that grant_id are revoked (token-
+    family invalidation per RFC 6819 §5.2.2.3).
+    """
+    client = await _authenticate_client(session, client_id, client_secret)
+
+    now = datetime.now(UTC)
+    presented = (
+        await session.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == _hash(refresh_token))
+        )
+    ).scalar_one_or_none()
+
+    if presented is None or presented.client_id != client.client_id:
+        raise TokenError("invalid_grant", "refresh token not recognised")
+    if presented.expires_at <= now:
+        raise TokenError("invalid_grant", "refresh token expired")
+    if presented.consumed_at is not None:
+        # Replay: revoke the whole grant family so a stolen token can't be
+        # used past its successor's lifetime.
+        await session.execute(
+            update(AccessToken)
+            .where(AccessToken.grant_id == presented.grant_id)
+            .values(revoked_at=now)
+        )
+        raise TokenError("invalid_grant", "refresh token already used (grant revoked)")
+
+    # Borrow the upstream credential from the original access token in this
+    # grant so the new pair stays bound to the same Odoo user.api.key.
+    access_row: AccessToken | None = (
+        await session.execute(
+            select(AccessToken)
+            .where(AccessToken.grant_id == presented.grant_id)
+            .order_by(AccessToken.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if access_row is None:
+        raise TokenError("invalid_grant", "grant has no access token on file")
+
+    new_access = _generate_token()
+    new_refresh = _generate_token()
+
+    session.add(
+        AccessToken(
+            token_hash=_hash(new_access),
+            client_id=client.client_id,
+            odoo_user_id=presented.odoo_user_id,
+            odoo_api_key_id=access_row.odoo_api_key_id,
+            odoo_api_key_value=access_row.odoo_api_key_value,
+            grant_id=presented.grant_id,
+            scope=presented.scope,
+            expires_at=now + ACCESS_TOKEN_TTL,
+        )
+    )
+    new_refresh_row = RefreshToken(
+        token_hash=_hash(new_refresh),
+        client_id=client.client_id,
+        odoo_user_id=presented.odoo_user_id,
+        grant_id=presented.grant_id,
+        scope=presented.scope,
+        expires_at=now + REFRESH_TOKEN_TTL,
+    )
+    session.add(new_refresh_row)
+    presented.consumed_at = now
+    presented.replaced_by_hash = _hash(new_refresh)
+
+    log.info(
+        "tokens_refreshed",
+        client_id=client.client_id,
+        odoo_user_id=presented.odoo_user_id,
+        grant_id=presented.grant_id,
+    )
+
+    return IssuedTokens(
+        access_token=new_access,
+        refresh_token=new_refresh,
+        expires_in=int(ACCESS_TOKEN_TTL.total_seconds()),
+        scope=presented.scope,
+    )
+
+
+async def revoke(
+    session: AsyncSession,
+    *,
+    client_id: str,
+    client_secret: str | None,
+    token: str,
+) -> None:
+    """RFC 7009 revoke. Tries access-token hash first, then refresh-token.
+
+    Per spec, the endpoint returns 200 even for unknown tokens (so clients
+    can't probe whether a token exists). Raises TokenError only for client
+    authentication failures.
+    """
+    client = await _authenticate_client(session, client_id, client_secret)
+    now = datetime.now(UTC)
+    token_hash = _hash(token)
+
+    access = (
+        await session.execute(
+            select(AccessToken).where(AccessToken.token_hash == token_hash)
+        )
+    ).scalar_one_or_none()
+    if access and access.client_id == client.client_id and access.revoked_at is None:
+        # Revoke the entire grant family — invalidate every access token
+        # under this grant_id plus the refresh chain.
+        await session.execute(
+            update(AccessToken)
+            .where(AccessToken.grant_id == access.grant_id)
+            .values(revoked_at=now)
+        )
+        await session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.grant_id == access.grant_id)
+            .where(RefreshToken.consumed_at.is_(None))
+            .values(consumed_at=now)
+        )
+        log.info("token_revoked", client_id=client.client_id, grant_id=access.grant_id)
+        return
+
+    refresh = (
+        await session.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+        )
+    ).scalar_one_or_none()
+    if refresh and refresh.client_id == client.client_id:
+        await session.execute(
+            update(AccessToken)
+            .where(AccessToken.grant_id == refresh.grant_id)
+            .values(revoked_at=now)
+        )
+        await session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.grant_id == refresh.grant_id)
+            .where(RefreshToken.consumed_at.is_(None))
+            .values(consumed_at=now)
+        )
+        log.info("token_revoked", client_id=client.client_id, grant_id=refresh.grant_id)
+
+
 async def exchange_authorization_code(
     session: AsyncSession,
     *,
@@ -125,6 +276,7 @@ async def exchange_authorization_code(
             client_id=client.client_id,
             odoo_user_id=auth_code.odoo_user_id,
             odoo_api_key_id=auth_code.odoo_api_key_id,
+            odoo_api_key_value=auth_code.odoo_api_key_value,
             grant_id=grant_id,
             scope=auth_code.scope,
             expires_at=now + ACCESS_TOKEN_TTL,

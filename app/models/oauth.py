@@ -37,6 +37,7 @@ class AuthorizationCode(Base, TimestampMixin):
     )
     odoo_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     odoo_api_key_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    odoo_api_key_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     redirect_uri: Mapped[str] = mapped_column(Text, nullable=False)
     scope: Mapped[str] = mapped_column(Text, nullable=False)
     code_challenge: Mapped[str] = mapped_column(Text, nullable=False)
@@ -79,6 +80,7 @@ class AccessToken(Base, TimestampMixin):
     )
     odoo_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     odoo_api_key_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    odoo_api_key_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     grant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     scope: Mapped[str] = mapped_column(Text, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(

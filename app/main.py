@@ -9,7 +9,7 @@ from app.db import build_engine, build_session_factory
 from app.errors import install_oauth_error_handler
 from app.logging import configure_logging
 from app.middleware import RequestIdMiddleware
-from app.routes import authorize, health, internal, register, token, wellknown
+from app.routes import authorize, health, internal, mcp, register, token, wellknown
 
 
 @asynccontextmanager
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(authorize.router)
     app.include_router(internal.router)
     app.include_router(token.router)
+    app.include_router(mcp.router)
     return app
 
 
