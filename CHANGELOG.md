@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-05-27
+
+### Changed
+
+- Telemetry receiver now accepts setup-step and crash events, including per-tool success and error counts, so install and runtime failures are diagnosable. Older clients keep working unchanged.
+
 ## [0.2.4] - 2026-05-25
 
 ### Added
