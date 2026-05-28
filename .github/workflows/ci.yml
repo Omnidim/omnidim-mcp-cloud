@@ -113,7 +113,7 @@ jobs:
           script_stop: true
           script: |
             set -e
-            cd /root/omni-mcp-cloud
+            cd "${{ secrets.MCP_DEPLOY_PATH }}"
             PREV=$(grep '^MCP_IMAGE=' .env 2>/dev/null | cut -d= -f2- || echo "")
             NEW="ghcr.io/omnidim/omnidim-mcp-cloud:${{ github.ref_name }}"
             echo "Deploying $NEW (previous: ${PREV:-unset})"

@@ -4,7 +4,7 @@ Repo-specific rules for working on the hosted OmniDimension MCP service. Global 
 
 ## What this repo is
 
-The hosted FastAPI service at `mcp.omnidim.io`. Provides an OAuth 2.1 authorization server (for Claude.ai, ChatGPT, and other consumer-app MCP directories) and a Streamable HTTP MCP transport. State lives in a dedicated Postgres. Talks to Odoo over a small internal HTTP contract (`POST /api/internal/mint-scoped-key`, `POST /api/internal/revoke-key`).
+The hosted FastAPI service behind `mcp.omnidim.io`. Provides an OAuth 2.1 authorization server (for Claude.ai, ChatGPT, and other consumer-app MCP directories) and a Streamable HTTP MCP transport.
 
 Sibling repo `omnidim-mcp-server` is the npm-distributed local stdio variant; do not conflate the two.
 
