@@ -49,6 +49,34 @@ def slug(s: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_]", "_", s)
 
 
+def resolve_refs(node: Any, spec: dict[str, Any], _seen: frozenset[str] = frozenset()) -> Any:
+    """Recursively inline local `$ref` pointers against the spec.
+
+    Without this, a requestBody whose schema is a bare `$ref`
+    collapses to an empty property set, leaving the tool with no
+    documented input fields. Cyclic refs are broken by returning
+    an empty object on re-entry.
+    """
+    if isinstance(node, list):
+        return [resolve_refs(v, spec, _seen) for v in node]
+    if not isinstance(node, dict):
+        return node
+    ref = node.get("$ref")
+    if isinstance(ref, str) and ref.startswith("#/"):
+        if ref in _seen:
+            return {"type": "object"}
+        target: Any = spec
+        for part in ref[2:].split("/"):
+            target = target.get(part, {}) if isinstance(target, dict) else {}
+        resolved = resolve_refs(target, spec, _seen | {ref})
+        # Merge any sibling keys alongside the $ref (description, etc.).
+        siblings = {k: resolve_refs(v, spec, _seen) for k, v in node.items() if k != "$ref"}
+        if isinstance(resolved, dict):
+            return {**resolved, **siblings}
+        return resolved
+    return {k: resolve_refs(v, spec, _seen) for k, v in node.items()}
+
+
 def merge_schema(
     parameters: Iterable[dict[str, Any]],
     request_body: dict[str, Any] | None,
@@ -87,7 +115,32 @@ def merge_schema(
     }
 
 
-def build_tool(path: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
+def effective_parameters(
+    path_item_params: Iterable[dict[str, Any]],
+    op_params: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge path-item-level and operation-level parameters.
+
+    OpenAPI applies path-item parameters to every operation under that path.
+    An operation-level parameter overrides a path-item one with the same
+    (name, in). Without this, path params declared at the path-item level
+    (e.g. agent_id on /agents/{agent_id}) are dropped and never substituted.
+    """
+    merged: dict[tuple[str, str], dict[str, Any]] = {}
+    for p in path_item_params:
+        merged[(p["name"], p.get("in", "query"))] = p
+    for p in op_params:
+        merged[(p["name"], p.get("in", "query"))] = p
+    return list(merged.values())
+
+
+def build_tool(
+    path: str,
+    method: str,
+    op: dict[str, Any],
+    path_item_params: Iterable[dict[str, Any]] = (),
+    spec: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     op_id = op.get("operationId") or slug(f"{method}_{path}")
     summary = op.get("summary", "").strip()
     description = op.get("description", "").strip()
@@ -96,14 +149,14 @@ def build_tool(path: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
     else:
         full_desc = summary or description
 
-    schema = merge_schema(op.get("parameters", []), op.get("requestBody"))
+    params = effective_parameters(path_item_params, op.get("parameters", []))
+    request_body = op.get("requestBody")
+    if request_body is not None and spec is not None:
+        request_body = resolve_refs(request_body, spec)
+    schema = merge_schema(params, request_body)
     # Mark which inputs go in the path so the dispatcher can substitute them.
-    path_param_names = [
-        p["name"] for p in op.get("parameters", []) if p.get("in") == "path"
-    ]
-    query_param_names = [
-        p["name"] for p in op.get("parameters", []) if p.get("in") == "query"
-    ]
+    path_param_names = [p["name"] for p in params if p.get("in") == "path"]
+    query_param_names = [p["name"] for p in params if p.get("in") == "query"]
     return {
         "name": op_id,
         "description": full_desc,
@@ -132,6 +185,7 @@ def main() -> int:
     skipped: list[str] = []
 
     for path, methods in spec.get("paths", {}).items():
+        path_item_params = methods.get("parameters", []) or []
         for method, op in methods.items():
             if method not in {"get", "post", "put", "patch", "delete"}:
                 continue
@@ -139,7 +193,7 @@ def main() -> int:
             if is_excluded(path, op_id, exclude):
                 skipped.append(f"{method.upper()} {path}")
                 continue
-            tools.append(build_tool(path, method, op))
+            tools.append(build_tool(path, method, op, path_item_params, spec))
 
     tools.sort(key=lambda t: t["name"])
 
@@ -177,9 +231,9 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
     OUT_TOOLS.write_text(body)
 
     OUT_HASH.write_text(
-        f"openapi_spec_path: {SPEC_PATH}\n"
+        f"openapi_spec: {SPEC_PATH.name}\n"
         f"openapi_spec_sha256: {spec_hash}\n"
-        f"mcp_config_path: {CONFIG_PATH}\n"
+        f"mcp_config: {CONFIG_PATH.name}\n"
         f"mcp_config_sha256: {config_hash}\n"
         f"tool_count: {len(tools)}\n"
     )

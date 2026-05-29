@@ -523,13 +523,22 @@ _TOOLS_JSON = r"""[
         "description": "Delete agent. Permanently delete an agent.",
         "input_schema": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
             "additionalProperties": true
         },
         "method": "DELETE",
         "path": "/agents/{agent_id}",
-        "path_params": [],
+        "path_params": [
+            "agent_id"
+        ],
         "query_params": []
     },
     {
@@ -559,13 +568,21 @@ _TOOLS_JSON = r"""[
         "description": "Delete simulation. Permanently delete a simulation.",
         "input_schema": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "simulation_id": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "simulation_id"
+            ],
             "additionalProperties": true
         },
         "method": "DELETE",
         "path": "/simulations/{simulation_id}",
-        "path_params": [],
+        "path_params": [
+            "simulation_id"
+        ],
         "query_params": []
     },
     {
@@ -727,13 +744,22 @@ _TOOLS_JSON = r"""[
         "description": "Get agent. Get details of a specific agent by ID.",
         "input_schema": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/agents/{agent_id}",
-        "path_params": [],
+        "path_params": [
+            "agent_id"
+        ],
         "query_params": []
     },
     {
@@ -847,13 +873,21 @@ _TOOLS_JSON = r"""[
         "description": "Get simulation. Detailed simulation information.",
         "input_schema": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "simulation_id": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "simulation_id"
+            ],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/simulations/{simulation_id}",
-        "path_params": [],
+        "path_params": [
+            "simulation_id"
+        ],
         "query_params": []
     },
     {
@@ -1375,7 +1409,61 @@ _TOOLS_JSON = r"""[
                 "dashboard_menu_access": {
                     "allOf": [
                         {
-                            "$ref": "#/components/schemas/ResellerDashboardMenuAccess"
+                            "type": "object",
+                            "description": "Reseller-managed dashboard menu access flags. Each property is\na boolean toggle for a feature area in the child user's\ndashboard. On read endpoints, only flags the reseller\nthemselves has enabled are returned (so a child cannot have a\nflag the reseller doesn't have).\n",
+                            "properties": {
+                                "is_bots_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_leads_access": {
+                                    "type": "boolean"
+                                },
+                                "is_voice_cloning_access": {
+                                    "type": "boolean"
+                                },
+                                "is_workflow_access": {
+                                    "type": "boolean"
+                                },
+                                "is_asr_evaluation_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_train_with_call_recording_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_call_logs_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_call_simulation_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_omni_crm_access": {
+                                    "type": "boolean"
+                                },
+                                "access_to_monitor_live_call": {
+                                    "type": "boolean"
+                                },
+                                "is_whatsapp_flow_enabled": {
+                                    "type": "boolean"
+                                },
+                                "is_billing_menu_access": {
+                                    "type": "boolean"
+                                },
+                                "is_knowledge_base_access": {
+                                    "type": "boolean"
+                                },
+                                "is_integration_access": {
+                                    "type": "boolean"
+                                },
+                                "is_phone_number_access": {
+                                    "type": "boolean"
+                                },
+                                "is_bulk_call_access": {
+                                    "type": "boolean"
+                                },
+                                "is_analytics_access": {
+                                    "type": "boolean"
+                                }
+                            }
                         }
                     ],
                     "description": "Flags to update. Only pass the flags you want to\nchange. Others are left untouched. Flags outside\nyour reseller's permissions are silently dropped.\n"
@@ -1556,13 +1644,581 @@ _TOOLS_JSON = r"""[
         "description": "Update agent. Update an existing agent. Send only the fields you want to change.",
         "input_schema": {
             "type": "object",
-            "properties": {},
-            "required": [],
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name for the agent.",
+                    "example": "Customer Support Agent"
+                },
+                "welcome_message": {
+                    "type": "string",
+                    "description": "Initial message the agent will say when answering a call.",
+                    "example": "Hello! How can I help you today?"
+                },
+                "is_welcome_message_interruption": {
+                    "type": "boolean",
+                    "description": "Allow the caller to interrupt the welcome message. When false, the agent finishes speaking the welcome before listening."
+                },
+                "is_interruption_allowed": {
+                    "type": "boolean",
+                    "description": "Global toggle for whether the caller can interrupt the agent mid-sentence at any point in the call."
+                },
+                "dynamic_variables": {
+                    "type": "object",
+                    "description": "Key/value map used to substitute placeholders in the agent's\nprompt and welcome message at call time. Reference a variable\nin your prompt with `{{variable_name}}`. Useful for\npersonalising the same agent across many calls.\n",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "customer_name": "Jane Doe",
+                        "order_id": "ORD-12345"
+                    }
+                },
+                "context_breakdown": {
+                    "type": "array",
+                    "description": "List of context breakdowns, each containing `title`, `body`, and optional `is_enabled`.",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "title",
+                            "body"
+                        ],
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "description": "Title of the breakdown.",
+                                "example": "Purpose"
+                            },
+                            "body": {
+                                "type": "string",
+                                "description": "Body of the breakdown — the detailed prompt content.",
+                                "example": "This agent helps customers with product inquiries and support issues."
+                            },
+                            "is_enabled": {
+                                "type": "boolean",
+                                "default": true,
+                                "description": "Whether this section is included in the prompt."
+                            }
+                        }
+                    }
+                },
+                "call_type": {
+                    "type": "string",
+                    "enum": [
+                        "Incoming",
+                        "Outgoing"
+                    ],
+                    "description": "Call type of the assistant."
+                },
+                "transcriber": {
+                    "type": "object",
+                    "description": "Configuration for the speech-to-text transcriber.",
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "deepgram_stream",
+                                "cartesia",
+                                "sarvam",
+                                "azure_stream",
+                                "soniox"
+                            ],
+                            "description": "The speech-to-text provider to use.",
+                            "example": "deepgram_stream"
+                        },
+                        "model": {
+                            "type": "string",
+                            "enum": [
+                                "nova-3",
+                                "nova-2"
+                            ],
+                            "description": "The model to use for transcription (required when provider is `deepgram_stream`).",
+                            "example": "nova-3"
+                        },
+                        "language": {
+                            "type": "string",
+                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). Applies regardless of which\n`provider` is selected.\n",
+                            "example": "en-US"
+                        },
+                        "silence_timeout_ms": {
+                            "type": "integer",
+                            "description": "Silence timeout in milliseconds.",
+                            "example": 400
+                        },
+                        "should_apply_noise_reduction": {
+                            "type": "boolean",
+                            "description": "Reduce background noise on the inbound audio stream before transcription."
+                        },
+                        "interruption_min_words": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Minimum number of words the caller must say before their speech is treated as an interruption.",
+                            "example": 2
+                        },
+                        "max_call_duration_in_sec": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Hard upper bound on call length in seconds. The agent will end the call once this is reached.",
+                            "example": 600
+                        },
+                        "first_ideal_message": {
+                            "type": "string",
+                            "description": "First nudge spoken when the caller goes silent past the\nidle threshold. Set `is_first_ideal_message_dynamic` to\n`true` to have the LLM regenerate this each time.\n"
+                        },
+                        "is_first_ideal_message_dynamic": {
+                            "type": "boolean",
+                            "description": "When true, `first_ideal_message` is treated as a prompt and the LLM generates a fresh nudge each call."
+                        },
+                        "second_ideal_message": {
+                            "type": "string",
+                            "description": "Second nudge spoken if silence continues after the first."
+                        },
+                        "is_second_ideal_message_dynamic": {
+                            "type": "boolean",
+                            "description": "When true, `second_ideal_message` is treated as a prompt and the LLM generates a fresh nudge each call."
+                        },
+                        "numerals": {
+                            "type": "boolean",
+                            "description": "Convert numbers from words to digits."
+                        },
+                        "punctuate": {
+                            "type": "boolean",
+                            "description": "Add punctuation to the transcript."
+                        },
+                        "smart_format": {
+                            "type": "boolean",
+                            "description": "Apply smart formatting to the transcript."
+                        },
+                        "diarize": {
+                            "type": "boolean",
+                            "description": "Identify different speakers in the transcript."
+                        }
+                    }
+                },
+                "model": {
+                    "type": "object",
+                    "description": "Configuration for the language model.",
+                    "properties": {
+                        "model": {
+                            "type": "string",
+                            "enum": [
+                                "azure-gpt-4.1-mini",
+                                "azure-gpt-4.1-nano",
+                                "azure-gpt-4o",
+                                "azure-gpt-4o-mini",
+                                "claude-3-5-haiku-latest",
+                                "claude-3-5-sonnet-latest",
+                                "claude-3-7-sonnet-latest",
+                                "claude-3-opus-latest",
+                                "claude-opus-4-0",
+                                "claude-sonnet-4-0",
+                                "gemini-1.5-pro",
+                                "gemini-2.0-flash",
+                                "gemini-2.5-flash",
+                                "gemini-2.5-flash-lite",
+                                "gemini-2.5-pro",
+                                "gemini-3-flash-preview",
+                                "gemini-3-pro-preview",
+                                "gemma2-9b-it",
+                                "gpt-3.5-turbo",
+                                "gpt-4o",
+                                "gpt-4o-mini",
+                                "gpt-5.4",
+                                "llama-3.3-70b-versatile",
+                                "llama3-70b-8192",
+                                "llama3-8b-8192"
+                            ],
+                            "description": "The language model to use.",
+                            "example": "gpt-4o-mini"
+                        },
+                        "temperature": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "description": "Controls randomness in the model's output (0.0 to 1.0).",
+                            "example": 0.7
+                        }
+                    }
+                },
+                "voice": {
+                    "type": "object",
+                    "description": "Configuration for the text-to-speech voice.",
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "eleven_labs",
+                                "deepgram",
+                                "google",
+                                "cartesia",
+                                "rime"
+                            ],
+                            "description": "The voice provider to use.",
+                            "example": "eleven_labs"
+                        },
+                        "voice_id": {
+                            "type": "string",
+                            "description": "The specific external voice identifier from the provider.",
+                            "example": "JBFqnCBsd6RMkjVDRZzb"
+                        },
+                        "model": {
+                            "type": "string",
+                            "description": "TTS model identifier. Only consumed when `provider` is\n`cartesia` (e.g. `sonic-3.5`). For ElevenLabs and other\nproviders the model is implied by `voice_id` and this\nfield is ignored.\n",
+                            "example": "sonic-3.5"
+                        },
+                        "speech_speed": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 2.0,
+                            "default": 1.0,
+                            "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
+                        }
+                    }
+                },
+                "web_search": {
+                    "type": "object",
+                    "description": "Configuration for web search capabilities.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable or disable web search functionality."
+                        },
+                        "provider": {
+                            "type": "string",
+                            "enum": [
+                                "DuckDuckGo"
+                            ],
+                            "description": "The search provider to use.",
+                            "example": "DuckDuckGo"
+                        }
+                    }
+                },
+                "post_call_actions": {
+                    "type": "object",
+                    "description": "Side effects that fire once the call ends. Configure email, webhook, or both.",
+                    "properties": {
+                        "email": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "recipients": {
+                                    "type": "array",
+                                    "description": "Email addresses that should receive the notification.",
+                                    "items": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "example": [
+                                        "support@example.com"
+                                    ]
+                                },
+                                "include": {
+                                    "type": "array",
+                                    "description": "Which sections to include in the email body.",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "summary",
+                                            "extracted_variables",
+                                            "fullConversation",
+                                            "sentiment"
+                                        ]
+                                    }
+                                },
+                                "extracted_variables": {
+                                    "type": "array",
+                                    "description": "Variables the model should pull out of the conversation for the email.",
+                                    "items": {
+                                        "type": "object",
+                                        "required": [
+                                            "key",
+                                            "prompt"
+                                        ],
+                                        "properties": {
+                                            "key": {
+                                                "type": "string",
+                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                "example": "customer_issue"
+                                            },
+                                            "prompt": {
+                                                "type": "string",
+                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                "example": "Identify the main issue the customer is experiencing."
+                                            }
+                                        }
+                                    }
+                                },
+                                "trigger_call_statuses": {
+                                    "type": "array",
+                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "completed",
+                                            "voicemail_detected",
+                                            "failed",
+                                            "no_answer",
+                                            "busy",
+                                            "cancelled"
+                                        ]
+                                    },
+                                    "example": [
+                                        "completed",
+                                        "voicemail_detected"
+                                    ]
+                                }
+                            }
+                        },
+                        "webhook": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "url": {
+                                    "type": "string",
+                                    "format": "uri",
+                                    "description": "Endpoint that receives a POST with the call payload.",
+                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
+                                },
+                                "include": {
+                                    "type": "array",
+                                    "description": "Which sections to include in the webhook body.",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "summary",
+                                            "extracted_variables",
+                                            "fullConversation",
+                                            "sentiment"
+                                        ]
+                                    }
+                                },
+                                "extracted_variables": {
+                                    "type": "array",
+                                    "description": "Variables the model should pull out of the conversation for the webhook.",
+                                    "items": {
+                                        "type": "object",
+                                        "required": [
+                                            "key",
+                                            "prompt"
+                                        ],
+                                        "properties": {
+                                            "key": {
+                                                "type": "string",
+                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                "example": "customer_issue"
+                                            },
+                                            "prompt": {
+                                                "type": "string",
+                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                "example": "Identify the main issue the customer is experiencing."
+                                            }
+                                        }
+                                    }
+                                },
+                                "trigger_call_statuses": {
+                                    "type": "array",
+                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "completed",
+                                            "voicemail_detected",
+                                            "failed",
+                                            "no_answer",
+                                            "busy",
+                                            "cancelled"
+                                        ]
+                                    },
+                                    "example": [
+                                        "completed",
+                                        "failed"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "transfer": {
+                    "type": "object",
+                    "description": "Conditional call transfer to a human agent or another number.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "transfer_options": {
+                            "type": "array",
+                            "description": "Where to transfer the call and under what condition. The first matching condition wins.",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "number",
+                                    "transfer_condition",
+                                    "transfer_message"
+                                ],
+                                "properties": {
+                                    "number": {
+                                        "type": "string",
+                                        "description": "Primary phone number to transfer to. Include country code with leading `+`.",
+                                        "example": "+15551234567"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "static",
+                                            "dynamic"
+                                        ],
+                                        "default": "static",
+                                        "description": "`static` transfers to `number`. `dynamic` lets the agent\npick a number at runtime based on the conversation.\n"
+                                    },
+                                    "backup_numbers": {
+                                        "type": "array",
+                                        "description": "Fallback numbers tried if the primary is unreachable.",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "transfer_condition": {
+                                        "type": "string",
+                                        "description": "Natural-language condition that triggers this transfer option.",
+                                        "example": "Transfer if the customer asks to speak with a human."
+                                    },
+                                    "transfer_message": {
+                                        "type": "string",
+                                        "description": "Message the agent says to the caller before executing the transfer.",
+                                        "example": "Please hold while I connect you to one of our agents."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "end_call": {
+                    "type": "object",
+                    "description": "Hang up automatically when a condition is met.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "condition": {
+                            "type": "string",
+                            "description": "Natural-language condition that triggers ending the call. Only evaluated when `enabled` is true.",
+                            "example": "End the call once the customer's issue is resolved."
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "What the agent says before hanging up.",
+                            "example": "Thank you for contacting us. Have a great day!"
+                        },
+                        "message_type": {
+                            "type": "string",
+                            "enum": [
+                                "static",
+                                "prompt"
+                            ],
+                            "description": "`static` speaks `message` verbatim. `prompt` treats\n`message_prompt` as an LLM instruction and generates a\nfresh closing line each call (useful for matching the\ncaller's language and tone).\n"
+                        },
+                        "message_prompt": {
+                            "type": "string",
+                            "description": "LLM prompt used to generate the closing line when `message_type` is `prompt`.",
+                            "example": "End the call politely in the same language the user is speaking."
+                        }
+                    }
+                },
+                "background_track": {
+                    "type": "object",
+                    "description": "Ambient background noise that plays under the agent's voice.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Whether to mix the ambient track under the agent's audio."
+                        },
+                        "name": {
+                            "type": "string",
+                            "enum": [
+                                "call_center",
+                                "filler",
+                                "office",
+                                "office_1",
+                                "restaurant"
+                            ],
+                            "description": "Ambient track to mix under the agent."
+                        },
+                        "volume": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "default": 0.2,
+                            "description": "Volume level on a 0–1 scale. Default 0.2."
+                        },
+                        "tts_volume_reduction": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "description": "Amount to drop the agent's TTS volume while the ambient track plays, on a 0–1 scale. Helps the voice cut through without raising the overall mix."
+                        }
+                    }
+                },
+                "initial_ringing_sound_enabled": {
+                    "type": "boolean",
+                    "description": "Plays a ringing tone after the call is picked up, until the agent starts speaking."
+                },
+                "voicemail": {
+                    "type": "object",
+                    "description": "Voicemail / answering-machine handling for outbound calls.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Detect voicemail and react instead of speaking to a machine."
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "Message to leave when voicemail is detected."
+                        }
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "description": "Languages the agent should support. Pass each language as a display-name string.",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "English",
+                            "English (India)",
+                            "English (US)",
+                            "Hindi",
+                            "Bengali",
+                            "Spanish",
+                            "Tamil",
+                            "Marathi",
+                            "Telugu",
+                            "Gujarati",
+                            "French"
+                        ]
+                    },
+                    "example": [
+                        "English",
+                        "Hindi"
+                    ]
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
             "additionalProperties": true
         },
         "method": "PUT",
         "path": "/agents/{agent_id}",
-        "path_params": [],
+        "path_params": [
+            "agent_id"
+        ],
         "query_params": []
     },
     {
@@ -1571,6 +2227,9 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
+                "simulation_id": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string",
                     "description": "Name of the simulation for identification."
@@ -1655,12 +2314,16 @@ _TOOLS_JSON = r"""[
                     }
                 }
             },
-            "required": [],
+            "required": [
+                "simulation_id"
+            ],
             "additionalProperties": true
         },
         "method": "PUT",
         "path": "/simulations/{simulation_id}",
-        "path_params": [],
+        "path_params": [
+            "simulation_id"
+        ],
         "query_params": []
     },
     {

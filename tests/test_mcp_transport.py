@@ -5,6 +5,7 @@ so no real upstream traffic is generated.
 """
 import base64
 import hashlib
+import json
 import secrets
 from collections.abc import Callable
 
@@ -187,6 +188,57 @@ async def test_mcp_tools_call_proxies_to_backend(client: AsyncClient, mock_backe
     body = res.json()
     assert body["result"]["isError"] is False
     assert "Test Agent" in body["result"]["content"][0]["text"]
+
+
+def test_path_item_params_and_ref_body_resolved() -> None:
+    """Regression: path-item-level params (agent_id) and $ref request
+    bodies were both dropped by the generator, so updateAgent hit a
+    literal /agents/{agent_id} and documented no fields.
+    """
+    by_name = {t["name"]: t for t in TOOLS}
+    for name in ("getAgent", "updateAgent", "deleteAgent"):
+        assert by_name[name]["path_params"] == ["agent_id"], name
+    update = by_name["updateAgent"]
+    props = update["input_schema"]["properties"]
+    assert "agent_id" in props
+    assert "voice" in props
+    assert set(props["voice"]["properties"]) >= {"provider", "voice_id"}
+
+
+async def test_mcp_tools_call_substitutes_path_param(
+    client: AsyncClient, mock_backend
+) -> None:
+    """updateAgent must PUT to /agents/<id> with agent_id removed from the
+    body and the nested voice object forwarded."""
+    agent_id = 158910
+    token = await _mint_access_token(client)
+    captured = mock_backend(
+        lambda req: httpx.Response(200, json={"id": agent_id, "voice_provider": "cartesia"})
+    )
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "updateAgent",
+                "arguments": {
+                    "agent_id": agent_id,
+                    "voice": {"provider": "cartesia", "voice_id": "abc-123"},
+                },
+            },
+        },
+    )
+    assert len(captured) == 1
+    sent = captured[0]
+    assert sent.method == "PUT"
+    assert sent.url.path == f"/api/v1/agents/{agent_id}"
+    sent_body = json.loads(sent.content)
+    assert "agent_id" not in sent_body
+    assert sent_body["voice"] == {"provider": "cartesia", "voice_id": "abc-123"}
+    assert res.json()["result"]["isError"] is False
 
 
 async def test_mcp_tools_call_unknown_tool(client: AsyncClient) -> None:

@@ -4,6 +4,13 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-05-29
+
+### Fixed
+
+- Agent and simulation tools that take an id in the path (`getAgent`, `updateAgent`, `deleteAgent`, `getSimulation`, `updateSimulation`, `deleteSimulation`) now reach the backend. The id was declared at the path-item level in the spec and the generator dropped it, so requests went to a literal `/agents/{agent_id}` and returned 404.
+- `updateAgent` now documents its full input, including the nested `voice` object. Its request body was a schema reference the generator left unresolved, so the tool exposed no fields to set.
+
 ## [0.2.6] - 2026-05-27
 
 ### Changed
