@@ -19,9 +19,13 @@ PROTOCOL_VERSION = "2025-11-25"
 SERVER_INFO = {"name": "OmniDimension", "version": "0.2.6"}
 INSTRUCTIONS = (
     "OmniDimension voice AI platform. Tools cover agents, calls, bulk calls, "
-    "phone numbers, knowledge base, simulations, providers, and reseller "
+    "phone numbers, knowledge base, providers, and reseller "
     "operations. Pagination uses `pageno` (>=1) and `pagesize` (1-150) on list "
-    "endpoints. All requests run as the user who authorized the OAuth grant."
+    "endpoints. All requests run as the user who authorized the OAuth grant. "
+    "Dispatching calls: before dispatchCall, run listPhoneNumbers. If the "
+    "account has numbers, pass the chosen one as from_number_id. If it has "
+    "none, omit from_number_id and the platform's default number is used. "
+    "Never guess a from_number_id."
 )
 
 
