@@ -205,6 +205,25 @@ def test_path_item_params_and_ref_body_resolved() -> None:
     assert set(props["voice"]["properties"]) >= {"provider", "voice_id"}
 
 
+def test_all_of_request_body_flattened() -> None:
+    """Regression: createAgent's body is `allOf: [$ref, {required}]`.
+    The generator read `properties` off the allOf wrapper and published
+    an empty input schema, leaving clients without type information for
+    the nested fields.
+    """
+    by_name = {t["name"]: t for t in TOOLS}
+    create = by_name["createAgent"]
+    schema = create["input_schema"]
+    assert set(schema["required"]) == {"name", "welcome_message", "context_breakdown"}
+    cb = schema["properties"]["context_breakdown"]
+    assert cb["type"] == "array"
+    assert set(cb["items"]["required"]) == {"title", "body"}
+    # No body-bearing tool may publish an empty schema.
+    for tool in TOOLS:
+        if tool["method"] in ("POST", "PUT"):
+            assert tool["input_schema"]["properties"], tool["name"]
+
+
 async def test_mcp_tools_call_substitutes_path_param(
     client: AsyncClient, mock_backend
 ) -> None:
@@ -285,6 +304,129 @@ async def test_mcp_tools_call_redacts_api_key_in_response(
     text = res.json()["result"]["content"][0]["text"]
     assert "sk_super_secret" not in text
     assert "[redacted]" in text
+
+
+async def test_mcp_tools_call_redacts_credentials_in_response(
+    client: AsyncClient, mock_backend
+) -> None:
+    """Regression: redaction must cover credential-bearing keys beyond
+    the exact key `api_key`, without touching numeric counters or
+    boolean placeholders.
+    """
+    token = await _mint_access_token(client)
+    mock_backend(
+        lambda req: httpx.Response(
+            200,
+            json={
+                "bots": [
+                    {
+                        "id": 1,
+                        "secret_key": "widget-secret-hex",
+                        "total_tokens": 4044,
+                        "prompt_tokens": 4005,
+                        "widget_config": {
+                            "iframeUrl": "https://x.io/chat-widget?secret=widget-secret-hex"
+                        },
+                        "integrations": [
+                            {
+                                "google_calendar_access_token": "ya29.live-token",
+                                "google_calendar_refresh_token": "1//refresh-token",
+                            }
+                        ],
+                        "sip_password": "sip-pass-1234",
+                        "wa_access_token": "EAAG-wa-token",
+                        "exotel_api_key": False,
+                    }
+                ]
+            },
+        )
+    )
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "listAgents", "arguments": {}},
+        },
+    )
+    text = res.json()["result"]["content"][0]["text"]
+    for leaked in (
+        "ya29.live-token",
+        "1//refresh-token",
+        "sip-pass-1234",
+        "EAAG-wa-token",
+        "widget-secret-hex",
+    ):
+        assert leaked not in text, leaked
+    # Numeric token counters and boolean placeholders stay intact.
+    assert '"total_tokens": 4044' in text
+    assert '"prompt_tokens": 4005' in text
+    assert '"exotel_api_key": false' in text
+
+
+async def test_mcp_tools_call_coerces_stringified_structured_args(
+    client: AsyncClient, mock_backend
+) -> None:
+    """A JSON-encoded string for an object/array-typed argument is decoded
+    before forwarding, instead of being passed upstream as a string.
+    """
+    token = await _mint_access_token(client)
+    captured = mock_backend(lambda req: httpx.Response(200, json={"id": 1}))
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "createAgent",
+                "arguments": {
+                    "name": "Test",
+                    "welcome_message": "Hi",
+                    "context_breakdown": '[{"title": "Purpose", "body": "Test."}]',
+                    "voice": '{"provider": "cartesia", "voice_id": "abc"}',
+                },
+            },
+        },
+    )
+    assert res.json()["result"]["isError"] is False
+    sent = json.loads(captured[0].content)
+    assert sent["context_breakdown"] == [{"title": "Purpose", "body": "Test."}]
+    assert sent["voice"] == {"provider": "cartesia", "voice_id": "abc"}
+
+
+async def test_mcp_tools_call_upstream_5xx_returns_calm_envelope(
+    client: AsyncClient, mock_backend
+) -> None:
+    token = await _mint_access_token(client)
+    mock_backend(
+        lambda req: httpx.Response(
+            500,
+            json={
+                "error": "server_error",
+                "error_description": "'str' object has no attribute 'get'",
+            },
+        )
+    )
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "listAgents", "arguments": {}},
+        },
+    )
+    body = res.json()
+    assert body["result"]["isError"] is True
+    text = body["result"]["content"][0]["text"]
+    assert "'str' object has no attribute 'get'" not in text
+    assert '"status": 500' in text
+    assert "hint" in text
 
 
 async def test_mcp_tools_call_upstream_4xx_returns_is_error(

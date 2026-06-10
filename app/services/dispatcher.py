@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Final
@@ -69,11 +70,27 @@ class ToolResult:
     is_error: bool = False
 
 
+# Credential-bearing keys are redacted from tool output.
+_SENSITIVE_KEY_RE = re.compile(
+    r"api_key|api_token|access_token|refresh_token|password|secret", re.IGNORECASE
+)
+_SECRET_QUERY_RE = re.compile(r"(secret=)[^&\s\"]+")
+
+
 def _redact(value: Any) -> Any:
     if isinstance(value, list):
         return [_redact(v) for v in value]
     if isinstance(value, dict):
-        return {k: ("[redacted]" if k == "api_key" else _redact(v)) for k, v in value.items()}
+        return {
+            k: (
+                "[redacted]"
+                if _SENSITIVE_KEY_RE.search(k) and isinstance(v, str) and v
+                else _redact(v)
+            )
+            for k, v in value.items()
+        }
+    if isinstance(value, str):
+        return _SECRET_QUERY_RE.sub(r"\1[redacted]", value)
     return value
 
 
@@ -133,6 +150,30 @@ def _split_args(
     return query, body
 
 
+def _coerce_args(args: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Parse JSON-encoded strings for arguments declared as object or array.
+
+    Some clients serialize nested values as JSON strings even when the
+    schema declares structured types. Forwarding those strings upstream
+    fails, so decode them when the parsed value matches the declared type.
+    """
+    props = schema.get("properties", {})
+    out = dict(args)
+    for k, v in args.items():
+        declared = props.get(k, {}).get("type")
+        if declared not in ("object", "array") or not isinstance(v, str):
+            continue
+        try:
+            parsed = json.loads(v)
+        except ValueError:
+            continue
+        if (declared == "object" and isinstance(parsed, dict)) or (
+            declared == "array" and isinstance(parsed, list)
+        ):
+            out[k] = parsed
+    return out
+
+
 async def dispatch_tool(
     *,
     name: str,
@@ -146,6 +187,7 @@ async def dispatch_tool(
     if not token.odoo_api_key_value:
         raise DispatchError(-32000, "missing upstream credential")
 
+    arguments = _coerce_args(arguments, tool["input_schema"])
     path = _substitute_path(tool["path"], arguments, tool["path_params"])
     query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
 
@@ -190,6 +232,27 @@ async def dispatch_tool(
         payload = res.json()
     except ValueError as exc:
         raise DispatchError(-32000, "upstream JSON parse error") from exc
+
+    if res.status_code >= 500:
+        # The raw body often carries upstream stack-trace strings; keep
+        # those in our logs and hand the client something actionable.
+        log.warning(
+            "tool_upstream_5xx",
+            tool=name,
+            status=res.status_code,
+            body=json.dumps(payload)[:500],
+        )
+        envelope = {
+            "error": "The OmniDimension API could not process this request.",
+            "status": res.status_code,
+            "hint": (
+                "Check that nested fields match the tool's input schema "
+                "and retry once. If the error persists, try a smaller request."
+            ),
+        }
+        return ToolResult(
+            text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
+        )
 
     if res.status_code >= 400:
         text = json.dumps(payload, indent=2, ensure_ascii=False)
