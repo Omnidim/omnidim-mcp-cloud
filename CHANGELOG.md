@@ -4,6 +4,21 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-06-11
+
+### Fixed
+
+- `createAgent` now documents its full input. Its request body composes a schema reference with a required-fields clause, and the generator read neither, so the tool exposed no fields and clients had to guess the structure.
+- Arguments sent as JSON-encoded strings for object or array fields are decoded before forwarding, so requests from clients that serialize nested values still succeed.
+- Model and voice provider choices on `createAgent`/`updateAgent` now match the live catalog. The previous lists offered unavailable models and omitted current ones.
+
+### Changed
+
+- Server errors from the API now return a short, actionable message instead of the raw upstream response body.
+- Responses redact credential-bearing fields (tokens, passwords, secrets) instead of only the exact key `api_key`.
+- Simulation tools are no longer exposed.
+- Connect-time instructions explain how to pick the number a call is placed from.
+
 ## [0.2.7] - 2026-05-29
 
 ### Fixed
