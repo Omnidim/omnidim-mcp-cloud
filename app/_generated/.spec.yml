@@ -1,5 +1,5 @@
 openapi_spec: omnidim.yaml
-openapi_spec_sha256: 9a177b03630f750598016b92680223ba7ab6d661bd1a3c0ccb4175a334c23b2d
+openapi_spec_sha256: ef7073810fdc65adc555c32600cccf94fe730054f37cdfc32034262236b7d536
 mcp_config: mcp-config.yaml
-mcp_config_sha256: 0e541ad6a7d7b41b9b41e72009517bcce477f327ca0c7fd86826fec4969829ad
-tool_count: 49
+mcp_config_sha256: edfa3645c16f0e63a55d7b8413763c71c0f04d3f0c3c0f0b9182927f2eb18d19
+tool_count: 42

@@ -77,6 +77,31 @@ def resolve_refs(node: Any, spec: dict[str, Any], _seen: frozenset[str] = frozen
     return {k: resolve_refs(v, spec, _seen) for k, v in node.items()}
 
 
+def flatten_all_of(schema: dict[str, Any]) -> dict[str, Any]:
+    """Collapse a top-level `allOf` into a single object schema.
+
+    The spec composes some request bodies as
+    `allOf: [$ref Schema, {required: [...]}]`. After ref resolution the
+    properties live inside the allOf members, so reading `properties`
+    off the wrapper yields nothing and the tool publishes an empty
+    input schema with no documented fields.
+    """
+    if "allOf" not in schema:
+        return schema
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+    for member in schema["allOf"]:
+        if not isinstance(member, dict):
+            continue
+        flat = flatten_all_of(member)
+        properties.update(flat.get("properties", {}))
+        required.extend(flat.get("required", []))
+    merged = {k: v for k, v in schema.items() if k != "allOf"}
+    merged["properties"] = {**properties, **merged.get("properties", {})}
+    merged["required"] = [*required, *schema.get("required", [])]
+    return merged
+
+
 def merge_schema(
     parameters: Iterable[dict[str, Any]],
     request_body: dict[str, Any] | None,
@@ -103,6 +128,7 @@ def merge_schema(
         json_body = content.get("application/json", {})
         body_schema = json_body.get("schema")
         if body_schema:
+            body_schema = flatten_all_of(body_schema)
             body_props = body_schema.get("properties", {})
             properties.update(body_props)
             required.extend(body_schema.get("required", []))
