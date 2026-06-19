@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Regenerate app/_generated/tools.py from the OmniDimension OpenAPI spec.
 
+By default the spec is fetched from the published docs site, so this runs
+from a clean checkout. Set $SPEC to a local file path (or another https URL
+on an allowed host) to override.
+
 Reads:
-  ../omnidim-docs/openapi/omnidim.yaml         (or $SPEC override)
-  ../omnidim-docs/openapi/mcp-config.yaml      (shared exclude list)
+  https://docs.omnidim.io/openapi.yaml          (spec; or $SPEC override)
+  mcp-config.yaml                               (which operations to exclude)
 
 Writes:
   app/_generated/tools.py                       (Python tool registry)
   app/_generated/.spec.yml                      (sha256 of spec + config)
 
-Run after pulling new spec changes:
+Run after the upstream spec or mcp-config.yaml changes:
   ./.venv/bin/python scripts/regen.py
-CI fails if the artifact is out of date.
 """
 from __future__ import annotations
 
@@ -20,18 +23,22 @@ import json
 import os
 import re
 import sys
+import urllib.request
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SPEC = ROOT.parent / "omnidim-docs" / "openapi" / "omnidim.yaml"
-DEFAULT_CONFIG = ROOT.parent / "omnidim-docs" / "openapi" / "mcp-config.yaml"
 
-SPEC_PATH = Path(os.environ.get("SPEC", DEFAULT_SPEC))
-CONFIG_PATH = Path(os.environ.get("MCP_CONFIG", DEFAULT_CONFIG))
+DEFAULT_SPEC_URL = "https://docs.omnidim.io/openapi.yaml"
+ALLOWED_SPEC_HOSTS = {"docs.omnidim.io"}
+MAX_SPEC_BYTES = 8 * 1024 * 1024
+
+SPEC_SOURCE = os.environ.get("SPEC", DEFAULT_SPEC_URL)
+CONFIG_PATH = Path(os.environ.get("MCP_CONFIG", ROOT / "mcp-config.yaml"))
 
 OUT_TOOLS = ROOT / "app" / "_generated" / "tools.py"
 OUT_HASH = ROOT / "app" / "_generated" / ".spec.yml"
@@ -42,6 +49,40 @@ def load_yaml(path: Path) -> dict[str, Any]:
         sys.stderr.write(f"missing file: {path}\n")
         sys.exit(1)
     return yaml.safe_load(path.read_text())
+
+
+def _checked_url(raw: str) -> str:
+    """Pin the spec fetch to https on an allowed host.
+
+    A value read from the environment must not become an arbitrary
+    outbound request, so the scheme and host are constrained here.
+    """
+    parsed = urlparse(raw)
+    if parsed.scheme != "https":
+        sys.stderr.write(f"spec URL must use https: {raw}\n")
+        sys.exit(1)
+    if parsed.hostname not in ALLOWED_SPEC_HOSTS:
+        allowed = ", ".join(sorted(ALLOWED_SPEC_HOSTS))
+        sys.stderr.write(f"spec host {parsed.hostname} not allowed (expected: {allowed})\n")
+        sys.exit(1)
+    return raw
+
+
+def load_spec_bytes(source: str) -> tuple[bytes, str]:
+    """Return the raw spec bytes and a label (URL or path) for provenance."""
+    if re.match(r"^https?://", source):
+        url = _checked_url(source)
+        with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310 - host pinned by _checked_url
+            data: bytes = resp.read(MAX_SPEC_BYTES + 1)
+        if len(data) > MAX_SPEC_BYTES:
+            sys.stderr.write("spec is unexpectedly large\n")
+            sys.exit(1)
+        return data, url
+    path = Path(source)
+    if not path.exists():
+        sys.stderr.write(f"missing spec file: {path}\n")
+        sys.exit(1)
+    return path.read_bytes(), str(path)
 
 
 def slug(s: str) -> str:
@@ -203,7 +244,10 @@ def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
 
 
 def main() -> int:
-    spec = load_yaml(SPEC_PATH)
+    spec_bytes, spec_source = load_spec_bytes(SPEC_SOURCE)
+    spec = yaml.safe_load(spec_bytes)
+    spec_name = spec_source.rsplit("/", 1)[-1]
+    spec_is_url = spec_source.startswith("http")
     config = load_yaml(CONFIG_PATH)
     exclude = config.get("exclude", {}) or {}
 
@@ -223,9 +267,9 @@ def main() -> int:
 
     tools.sort(key=lambda t: t["name"])
 
-    # Drift sentinel: hash the spec + config so CI can verify tools.py is
-    # in sync with the source of truth.
-    spec_hash = hashlib.sha256(SPEC_PATH.read_bytes()).hexdigest()
+    # Drift sentinel: hash the spec + config so a checkout can verify
+    # tools.py is in sync with the source of truth.
+    spec_hash = hashlib.sha256(spec_bytes).hexdigest()
     config_hash = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
 
     # Embed the registry as a JSON string and load it at import time so the
@@ -234,11 +278,11 @@ def main() -> int:
     tools_json = json.dumps(tools, indent=4, ensure_ascii=False)
     body = f'''"""Auto-generated MCP tool registry. Do not edit by hand.
 
-Run `./.venv/bin/python scripts/regen.py` after editing the upstream
-OpenAPI spec or the shared mcp-config.yaml.
+Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
+or mcp-config.yaml changes.
 
-Source spec:   {SPEC_PATH.name}   sha256={spec_hash[:12]}
-Shared config: {CONFIG_PATH.name}  sha256={config_hash[:12]}
+Source spec:   {spec_name}   sha256={spec_hash[:12]}
+Config:        {CONFIG_PATH.name}  sha256={config_hash[:12]}
 """
 from __future__ import annotations
 
@@ -256,13 +300,16 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
     OUT_TOOLS.parent.mkdir(parents=True, exist_ok=True)
     OUT_TOOLS.write_text(body)
 
-    OUT_HASH.write_text(
-        f"openapi_spec: {SPEC_PATH.name}\n"
-        f"openapi_spec_sha256: {spec_hash}\n"
-        f"mcp_config: {CONFIG_PATH.name}\n"
-        f"mcp_config_sha256: {config_hash}\n"
-        f"tool_count: {len(tools)}\n"
-    )
+    meta_lines = [f"openapi_spec: {spec_name}"]
+    if spec_is_url:
+        meta_lines.append(f"openapi_spec_url: {spec_source}")
+    meta_lines += [
+        f"openapi_spec_sha256: {spec_hash}",
+        f"mcp_config: {CONFIG_PATH.name}",
+        f"mcp_config_sha256: {config_hash}",
+        f"tool_count: {len(tools)}",
+    ]
+    OUT_HASH.write_text("\n".join(meta_lines) + "\n")
 
     print(f"done. {len(tools)} tools, {len(skipped)} skipped.")
     if skipped:

@@ -1,5 +1,6 @@
-openapi_spec: omnidim.yaml
+openapi_spec: openapi.yaml
+openapi_spec_url: https://docs.omnidim.io/openapi.yaml
 openapi_spec_sha256: ef7073810fdc65adc555c32600cccf94fe730054f37cdfc32034262236b7d536
 mcp_config: mcp-config.yaml
-mcp_config_sha256: edfa3645c16f0e63a55d7b8413763c71c0f04d3f0c3c0f0b9182927f2eb18d19
+mcp_config_sha256: a9b46dc8496ee6e13f4f98cfd0db85dcf45176805b10b16f4bb8e26dc977ede7
 tool_count: 42
