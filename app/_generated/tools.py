@@ -1,10 +1,10 @@
 """Auto-generated MCP tool registry. Do not edit by hand.
 
-Run `./.venv/bin/python scripts/regen.py` after editing the upstream
-OpenAPI spec or the shared mcp-config.yaml.
+Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
+or mcp-config.yaml changes.
 
-Source spec:   omnidim.yaml   sha256=ef7073810fdc
-Shared config: mcp-config.yaml  sha256=edfa3645c16f
+Source spec:   openapi.yaml   sha256=ef7073810fdc
+Config:        mcp-config.yaml  sha256=a9b46dc8496e
 """
 from __future__ import annotations
 
