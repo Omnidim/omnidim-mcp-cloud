@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-21
+
+### Changed
+
+- No functional change. Re-releases 0.3.0 through the corrected deploy pipeline.
+
 ## [0.3.0] - 2026-06-21
 
 ### Added
