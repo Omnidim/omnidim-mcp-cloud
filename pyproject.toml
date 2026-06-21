@@ -1,6 +1,6 @@
 [project]
 name = "omnidim-mcp-cloud"
-version = "0.2.8"
+version = "0.3.0"
 description = "OAuth 2.1 authorization server and MCP transport for OmniDimension."
 readme = "README.md"
 requires-python = ">=3.12"

@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="OmniDimension MCP",
-        version="0.2.8",
+        version="0.3.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
