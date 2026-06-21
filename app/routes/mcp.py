@@ -9,6 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app._generated.tools import TOOLS
 from app.dependencies import get_session_factory
+from app.procedures import (
+    build_prompt,
+    prompts_for_listing,
+    read_resource,
+    resources_for_listing,
+)
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
 
@@ -103,7 +109,11 @@ async def mcp_endpoint(
                 {
                     "protocolVersion": PROTOCOL_VERSION,
                     "serverInfo": SERVER_INFO,
-                    "capabilities": {"tools": {"listChanged": False}},
+                    "capabilities": {
+                        "tools": {"listChanged": False},
+                        "prompts": {"listChanged": False},
+                        "resources": {"listChanged": False},
+                    },
                     "instructions": INSTRUCTIONS,
                 },
             )
@@ -138,6 +148,35 @@ async def mcp_endpoint(
                 },
             )
         )
+
+    if method == "prompts/list":
+        return JSONResponse(content=_result(req_id, {"prompts": prompts_for_listing()}))
+
+    if method == "prompts/get":
+        prompt_name = params.get("name")
+        arguments = params.get("arguments") or {}
+        if not isinstance(prompt_name, str) or not isinstance(arguments, dict):
+            return JSONResponse(
+                content=_error(
+                    req_id, -32602, "prompts/get requires name (str) + arguments (object)",
+                ),
+            )
+        prompt = build_prompt(prompt_name, arguments)
+        if prompt is None:
+            return JSONResponse(content=_error(req_id, -32602, f"unknown prompt: {prompt_name}"))
+        return JSONResponse(content=_result(req_id, prompt))
+
+    if method == "resources/list":
+        return JSONResponse(content=_result(req_id, {"resources": resources_for_listing()}))
+
+    if method == "resources/read":
+        uri = params.get("uri")
+        if not isinstance(uri, str):
+            return JSONResponse(content=_error(req_id, -32602, "resources/read requires uri (str)"))
+        resource = read_resource(uri)
+        if resource is None:
+            return JSONResponse(content=_error(req_id, -32602, f"unknown resource: {uri}"))
+        return JSONResponse(content=_result(req_id, resource))
 
     return JSONResponse(
         status_code=400,

@@ -59,6 +59,10 @@ ignore = ["S101"]
 # Ruff flags OAuth auth-method literals ("none", "client_secret_basic") as
 # suspected hardcoded passwords. They are spec-defined token_endpoint_auth_method
 # values, not credentials.
+# Prose: a markdown routing guide and prompt templates with embedded JSON
+# examples. Wrapping the content lines would corrupt the examples and the
+# rendered text, so line length is not enforced here.
+"app/procedures.py" = ["E501"]
 "app/schemas/oauth.py" = ["S105"]
 "app/services/clients.py" = ["S105"]
 "tests/test_register.py" = ["S105", "S106"]
