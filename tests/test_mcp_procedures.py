@@ -83,7 +83,8 @@ async def test_resources_list_and_read(client: AsyncClient) -> None:
         },
     )
     text = res.json()["result"]["contents"][0]["text"]
-    assert "requestBody" in text
+    # The cloud server uses flat args; the guide must say so (not requestBody wrapping).
+    assert "flat top-level arguments" in text
 
 
 async def test_resources_read_unknown(client: AsyncClient) -> None:

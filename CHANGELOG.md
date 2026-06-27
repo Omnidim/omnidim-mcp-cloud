@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- The `provision_agent` prompt and `omnidim://guide/routing` resource now describe the correct argument shape. They told clients to wrap write-tool payloads in a `requestBody` object, but this server takes flat top-level arguments, so a client that followed the guidance built calls the backend rejected.
+
 ## [0.3.1] - 2026-06-21
 
 ### Changed

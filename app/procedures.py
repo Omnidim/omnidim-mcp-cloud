@@ -28,9 +28,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
 
 ## Rules that are easy to get wrong (proven against the live API)
 
-1. **Write tools wrap their payload in `requestBody`.** `createAgent`,
-   `updateAgent`, `attachPhoneNumber`, `dispatchCall`, etc. all take
-   `{ "requestBody": { ... } }`. Flat arguments fail validation.
+1. **Write tools take flat top-level arguments.** `createAgent`,
+   `updateAgent`, `attachPhoneNumber`, `dispatchCall`, etc. take their fields
+   directly (e.g. `{ "agent_id": 1, "to_number": "+1..." }`). Do NOT wrap them
+   in a `requestBody` object.
 2. **Voices: use the `name` string as `voice_id`.** `listVoices` returns
    `id: null` for most voices; the usable identifier is the `name` field.
    Not every listed voice is synthesizable: an arbitrary one can produce a
@@ -58,23 +59,21 @@ give it a **phone number** and optionally a **knowledge base**, then place
 10. **Phone numbers are E.164 with a leading `+`** everywhere.
 """
 
-_CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent`:
+_CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
    {
-     "requestBody": {
-       "name": "<short name>",
-       "welcome_message": "<first line the agent speaks>",
-       "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
-       "call_type": "Outgoing",
-       "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
-       "voice": { "provider": "eleven_labs", "voice_id": "<voice name>" },
-       "transcriber": { "provider": "deepgram_stream", "model": "nova-3", "language": "en-US" }
-     }
+     "name": "<short name>",
+     "welcome_message": "<first line the agent speaks>",
+     "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
+     "call_type": "Outgoing",
+     "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
+     "voice": { "provider": "eleven_labs", "voice_id": "<voice name>" },
+     "transcriber": { "provider": "deepgram_stream", "model": "nova-3", "language": "en-US" }
    }
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
 3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
-   `attachPhoneNumber` { requestBody: { phone_number_id, agent_id } }. If no
-   number exists, import one first (importTwilioNumber / importExotelNumber / importSipTrunk).
-4. Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { requestBody: { file_ids, agent_id } }."""
+   `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
+   import one first (importTwilioNumber / importExotelNumber / importSipTrunk).
+4. Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }."""
 
 
 def _provision_agent(args: dict[str, Any]) -> str:
@@ -91,7 +90,7 @@ def _provision_agent(args: dict[str, Any]) -> str:
     )
     if test_number:
         test_line = (
-            f'5. Place a verification call with `dispatchCall` {{ requestBody: {{ agent_id, to_number: "{test_number}" }} }} '
+            f'5. Place a verification call with `dispatchCall` {{ agent_id, to_number: "{test_number}" }} '
             "(omit from_number_id to use the default outbound number). Capture the returned requestId.\n"
             f"6. Poll `listCallLogs` {{ pagesize: 1 }} until a new row appears for {test_number}, then `getCallLog` on "
             "its id. The call is verified ONLY if `call_conversation` is non-empty (the agent actually spoke). A "
@@ -105,7 +104,7 @@ def _provision_agent(args: dict[str, Any]) -> str:
         )
     return (
         f'Provision a working OmniDimension voice agent for this purpose:\n\n"{purpose}"\n\n'
-        "Follow these steps in order. Each write tool wraps its payload in `requestBody`.\n\n"
+        "Follow these steps in order. Write tools take flat top-level arguments (no `requestBody` wrapper).\n\n"
         f"1. Voice + models: {voice_line} A good default model is gpt-4.1-mini.\n"
         f"{_CREATE_AGENT_BLOCK}\n"
         f"{test_line}\n\n"
