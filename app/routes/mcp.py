@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app._generated.tools import TOOLS
+from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
 from app.procedures import (
     build_prompt,
@@ -52,6 +53,7 @@ def _tools_for_listing() -> list[dict[str, Any]]:
             "name": t["name"],
             "description": t["description"],
             "inputSchema": t["input_schema"],
+            "annotations": tool_annotations(t["name"], t["method"]),
         }
         for t in TOOLS
     ]
