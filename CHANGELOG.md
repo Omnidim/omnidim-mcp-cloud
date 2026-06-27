@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- Tool annotations. `tools/list` now reports a display title and read-only / destructive / open-world hints per tool. Clients can run read-only tools (listing, fetching) in parallel and prompt for confirmation before destructive actions (deletes) or actions that place real outbound calls (dispatch and bulk campaigns).
+
 ### Fixed
 
 - The `provision_agent` prompt and `omnidim://guide/routing` resource now describe the correct argument shape. They told clients to wrap write-tool payloads in a `requestBody` object, but this server takes flat top-level arguments, so a client that followed the guidance built calls the backend rejected.
