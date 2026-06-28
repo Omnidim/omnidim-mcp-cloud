@@ -95,3 +95,57 @@ async def test_resources_read_unknown(client: AsyncClient) -> None:
         json={"jsonrpc": "2.0", "id": 7, "method": "resources/read", "params": {"uri": "omnidim://nope"}},
     )
     assert res.json()["error"]["code"] == -32602
+
+
+async def _read_resource(client: AsyncClient, token: str, uri: str) -> str:
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 8, "method": "resources/read", "params": {"uri": uri}},
+    )
+    return str(res.json()["result"]["contents"][0]["text"])
+
+
+async def test_reference_resources_listed(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 8, "method": "resources/list"},
+    )
+    uris = {r["uri"] for r in res.json()["result"]["resources"]}
+    assert {
+        "omnidim://reference/recommended-stack",
+        "omnidim://reference/voices",
+        "omnidim://reference/agent-config",
+    } <= uris
+
+
+async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    text = await _read_resource(client, token, "omnidim://reference/recommended-stack")
+    for token_str in ("azure_stream", "soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
+        assert token_str in text
+
+
+async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
+    # The cloud server takes flat args, so the example must NOT wrap in a
+    # requestBody object (the prose may still mention the word to say "no wrapper").
+    token = await _mint_access_token(client)
+    text = await _read_resource(client, token, "omnidim://reference/agent-config")
+    assert '"requestBody": {' not in text
+    assert '"transcriber": { "provider": "azure_stream" }' in text
+
+
+async def test_resources_never_expose_internal_infra(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 8, "method": "resources/list"},
+    )
+    uris = [r["uri"] for r in res.json()["result"]["resources"]]
+    for uri in uris:
+        text = (await _read_resource(client, token, uri)).lower()
+        assert "failover" not in text, uri
+        assert "gpt-5.4" not in text, uri
