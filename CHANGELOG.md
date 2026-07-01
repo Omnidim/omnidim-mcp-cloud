@@ -4,6 +4,22 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-28
+
+### Added
+
+- Reference resources for building agents: `omnidim://reference/recommended-stack` (which transcriber, voice, and model to choose by caller language), `omnidim://reference/voices` (choosing and verifying a voice), and `omnidim://reference/agent-config` (the createAgent field shape with copy-ready examples).
+
+## [0.4.0] - 2026-06-27
+
+### Added
+
+- Tool annotations. `tools/list` now reports a display title and read-only / destructive / open-world hints per tool. Clients can run read-only tools (listing, fetching) in parallel and prompt for confirmation before destructive actions (deletes) or actions that place real outbound calls (dispatch and bulk campaigns).
+
+### Fixed
+
+- The `provision_agent` prompt and `omnidim://guide/routing` resource now describe the correct argument shape. They told clients to wrap write-tool payloads in a `requestBody` object, but this server takes flat top-level arguments, so a client that followed the guidance built calls the backend rejected.
+
 ## [0.3.1] - 2026-06-21
 
 ### Changed
