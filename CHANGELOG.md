@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-12
+
 ### Changed
 
 - The `provision_agent` prompt, `omnidim://guide/routing`, and `omnidim://reference/agent-config` now document the playable `speech_speed` range per voice provider. A speed outside the range silently produces no audio (ElevenLabs plays only within 0.7-1.2), so agents created through the API could end up with a mute voice; the guidance steers clients to a safe value.
