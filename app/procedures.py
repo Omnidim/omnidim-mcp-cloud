@@ -57,6 +57,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
    everywhere downstream); `listPhoneNumbers` -> `id` (used as
    `phone_number_id` to attach and as `from_number_id` to dispatch).
 10. **Phone numbers are E.164 with a leading `+`** everywhere.
+11. **`voice.speech_speed` has a playable range per provider.** Default is
+    `1.0`; only set it when the user wants faster/slower speech. For
+    `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
+    silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
@@ -241,8 +245,13 @@ wrapper; see the routing guide). The fields:
   agent's instructions.
 - `call_type` -- "Incoming" or "Outgoing".
 - `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
-- `voice` -- `{ provider, voice_id, model? }`. `model` (e.g. `sonic-3.5`) is
-  only needed for `cartesia`.
+- `voice` -- `{ provider, voice_id, model?, speech_speed? }`. `model` (e.g.
+  `sonic-3.5`) is only needed for `cartesia`. `speech_speed` is a playback
+  multiplier (default `1.0`); leave it out unless the user asks for faster or
+  slower speech. If you do set it, stay in the provider's playable range or the
+  call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
+  0.9-1.1) -- a value outside 0.7-1.2 produces no audio at all. `cartesia`
+  accepts 0.6-1.5 and `smallest-tts` 0.5-2.0.
 - `transcriber` -- `{ provider, model?, language? }`. `model` (`nova-3` /
   `nova-2`) is only needed for `deepgram_stream`.
 

@@ -137,6 +137,18 @@ async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
     assert '"transcriber": { "provider": "azure_stream" }' in text
 
 
+async def test_speech_speed_range_is_documented(client: AsyncClient) -> None:
+    # A speech_speed outside the provider's playable range silently mutes the
+    # call (ElevenLabs: no audio outside 0.7-1.2), so the guidance must state it.
+    token = await _mint_access_token(client)
+    cfg = await _read_resource(client, token, "omnidim://reference/agent-config")
+    assert "speech_speed" in cfg
+    assert "0.7-1.2" in cfg
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    assert "speech_speed" in routing
+    assert "0.7-1.2" in routing
+
+
 async def test_resources_never_expose_internal_infra(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     res = await client.post(
