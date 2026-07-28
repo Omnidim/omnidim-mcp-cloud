@@ -97,6 +97,47 @@ async def test_resources_read_unknown(client: AsyncClient) -> None:
     assert res.json()["error"]["code"] == -32602
 
 
+async def test_versioning_prompt_and_resource(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    # The restore prompt is advertised.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 20, "method": "prompts/list"},
+    )
+    names = {p["name"] for p in res.json()["result"]["prompts"]}
+    assert "restore_agent_version" in names
+    # It weaves in the agent id and steers to preview-before-restore.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "prompts/get",
+            "params": {"name": "restore_agent_version", "arguments": {"agent_id": "6391"}},
+        },
+    )
+    text = res.json()["result"]["messages"][0]["content"]["text"]
+    assert "6391" in text
+    assert "restoreAgentVersion" in text
+    assert 'against: "current"' in text
+    # The versioning guide resource explains the diff modes and the gotchas.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 22,
+            "method": "resources/read",
+            "params": {"uri": "omnidim://guide/agent-versioning"},
+        },
+    )
+    guide = res.json()["result"]["contents"][0]["text"]
+    assert "against=current" in guide
+    assert "feature_disabled" in guide
+
+
 async def _read_resource(client: AsyncClient, token: str, uri: str) -> str:
     res = await client.post(
         "/mcp",
