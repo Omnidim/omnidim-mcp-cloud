@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=ef7073810fdc
+Source spec:   openapi.yaml   sha256=ad479bf0043a
 Config:        mcp-config.yaml  sha256=a9b46dc8496e
 """
 from __future__ import annotations
@@ -324,7 +324,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createAgent",
-        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email + webhook),\nambient background track, initial ringing sound, and multilingual support.",
+        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email + webhook),\nambient background track, initial ringing sound, and multilingual support.\n\n> **Voicemail detection is an access-gated feature** that we turn on per\naccount. If it isn't enabled for yours yet,\n[request access](https://omnidim.io/contact-us?reason=product&lock=1)\nbefore configuring the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -337,6 +337,10 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "Initial message the agent will say when answering a call.",
                     "example": "Hello! How can I help you today?"
+                },
+                "is_welcome_message_dynamic": {
+                    "type": "boolean",
+                    "description": "When true, the welcome message is treated as a directive the agent uses to generate a tailored greeting for each call, rather than being spoken word for word. When false, the welcome message is spoken exactly as written."
                 },
                 "is_welcome_message_interruption": {
                     "type": "boolean",
@@ -838,11 +842,11 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls.",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "description": "Detect voicemail and react instead of speaking to a machine."
+                            "description": "Detect voicemail and leave your message instead of speaking to a machine."
                         },
                         "message": {
                             "type": "string",
@@ -872,6 +876,38 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/agents/create",
         "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "createAgentVersion",
+        "description": "Save an agent version. Save the agent's current configuration as a named version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Display name for the version."
+                },
+                "note": {
+                    "type": "string",
+                    "description": "Optional note describing the version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "name"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/versions",
+        "path_params": [
+            "agent_id"
+        ],
         "query_params": []
     },
     {
@@ -1003,6 +1039,44 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "createSession",
+        "description": "Create session. Create a voice Session: a short-lived, single-conversation\nreservation that lets a client hold a live voice chat with your\nagent. This is step 1 of 2. Creating the Session does not start any\naudio on its own; it returns a `ws_url` that a client then connects\nto over WebSocket to actually talk.\n\nCall this endpoint from your server with your API key, and return\nonly the `ws_url` to your client. The API key must never reach the\nbrowser. The `ws_url` is the only thing the client needs, and it is\nsafe to hand out because it is single-use and expires. For how to\nconnect and talk, see \"Connect the client and talk\" below the\nrequest details.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "ID of the agent the session talks to.",
+                    "example": 158910
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "voice"
+                    ],
+                    "description": "The session type. Only `voice` is supported."
+                },
+                "custom_variables": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\n",
+                    "example": {
+                        "name": "Demo User"
+                    }
+                }
+            },
+            "required": [
+                "agent_id",
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/sessions/create",
+        "path_params": [],
+        "query_params": []
+    },
+    {
         "name": "deleteAgent",
         "description": "Delete agent. Permanently delete an agent.",
         "input_schema": {
@@ -1022,6 +1096,35 @@ _TOOLS_JSON = r"""[
         "path": "/agents/{agent_id}",
         "path_params": [
             "agent_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "deleteAgentVersion",
+        "description": "Delete an agent version. Delete a saved version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/agents/{agent_id}/versions/{version_number}",
+        "path_params": [
+            "agent_id",
+            "version_number"
         ],
         "query_params": []
     },
@@ -1104,6 +1207,41 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "diffAgentVersion",
+        "description": "Diff an agent version. Get a record-level diff for this version. By default it shows what changed in this version compared with the version before it. Use `against=current` to compare with the agent's live config (what restoring this version would change), or `against=<number>` to compare with another version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                },
+                "against": {
+                    "type": "string",
+                    "description": "What to compare against. Omit or `previous` for the version before this one (the default). `current` for the agent's live config. A version number to compare with that version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/versions/{version_number}/diff",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": [
+            "against"
+        ]
+    },
+    {
         "name": "dispatchCall",
         "description": "Dispatch call. Initiate a call to a phone number using a specified agent. The\nphone number must include a country code with a leading plus.",
         "input_schema": {
@@ -1182,7 +1320,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID.",
+        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `version_history_enabled` boolean showing whether [version history](/docs/api-reference/agent-versions) is turned on for the agent's organization.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1482,6 +1620,58 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "listAgentVersions",
+        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions, automatic versions, and system backups taken before a restore.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Page number for pagination."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 30,
+                    "maximum": 150,
+                    "description": "Number of items per page (max 150)."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Filter versions whose name matches this substring (case-insensitive)."
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "auto",
+                        "system"
+                    ],
+                    "description": "Filter versions by kind."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/versions",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": [
+            "pageno",
+            "pagesize",
+            "search",
+            "kind"
+        ]
+    },
+    {
         "name": "listAgents",
         "description": "List agents. Retrieve all agents for the authenticated user with pagination support.",
         "input_schema": {
@@ -1744,6 +1934,72 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
+        "name": "renameAgentVersion",
+        "description": "Rename an agent version. Rename a saved version or edit its note. Version history is immutable otherwise; only the name and note can change.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "New display name for the version."
+                },
+                "note": {
+                    "type": "string",
+                    "description": "New note for the version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PATCH",
+        "path": "/agents/{agent_id}/versions/{version_number}",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "restoreAgentVersion",
+        "description": "Restore an agent version. Restore a version onto the live agent. Your current setup is saved first as a backup version, so restoring is undoable. Configuration is brought back; any knowledge files or integrations that were deleted since this version was saved can't be re-linked, and are reported in `skipped`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/versions/{version_number}/restore",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": []
+    },
+    {
         "name": "revertCreditsFromChild",
         "description": "Revert credits. Take back unused minutes from a child organization to the\nreseller balance. The refund is calculated at the child's\ncurrent rate, so you don't pass one. This matches exactly\nwhat was originally charged. Use the calculate endpoint\nfirst to preview the refund.",
         "input_schema": {
@@ -1940,7 +2196,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "updateAgent",
-        "description": "Update agent. Update an existing agent. Send only the fields you want to change.",
+        "description": "Update agent. Update an existing agent. Send only the fields you want to change.\n\n> **Voicemail detection is an access-gated feature** that we turn on per account. If it isn't enabled for yours yet, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before configuring the `voicemail` object below.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1957,6 +2213,10 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "Initial message the agent will say when answering a call.",
                     "example": "Hello! How can I help you today?"
+                },
+                "is_welcome_message_dynamic": {
+                    "type": "boolean",
+                    "description": "When true, the welcome message is treated as a directive the agent uses to generate a tailored greeting for each call, rather than being spoken word for word. When false, the welcome message is spoken exactly as written."
                 },
                 "is_welcome_message_interruption": {
                     "type": "boolean",
@@ -2458,11 +2718,11 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls.",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "description": "Detect voicemail and react instead of speaking to a machine."
+                            "description": "Detect voicemail and leave your message instead of speaking to a machine."
                         },
                         "message": {
                             "type": "string",
