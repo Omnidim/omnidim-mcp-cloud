@@ -8,6 +8,13 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 - Agent version-history tools: list, save, diff, restore, rename, and delete an agent's configuration snapshots (generated from the OpenAPI spec).
 - `omnidim://guide/agent-versioning` resource and `restore_agent_version` prompt: when to snapshot, how to read a version diff (the `against` modes), and how to safely preview-then-restore an earlier version.
 
+### Fixed
+- The agent-version tools and `createSession` now report a display title, and restoring or deleting a version is flagged as destructive so clients confirm before overwriting or removing a saved configuration.
+- `restore_agent_version` prompt and the versioning guide describe `createAgentVersion`'s flat argument shape; they showed a `requestBody` wrapper this server rejects.
+
+### Security
+- Tool arguments that fill a URL path are percent-encoded. A crafted path argument could previously redirect a tool call to an API endpoint outside the exposed tool set.
+
 ## [0.5.1] - 2026-07-12
 
 ### Changed
