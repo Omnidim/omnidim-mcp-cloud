@@ -14,6 +14,13 @@ _TITLES: dict[str, str] = {
     "getAgent": "Get agent",
     "updateAgent": "Update agent",
     "deleteAgent": "Delete agent",
+    "listAgentVersions": "List agent versions",
+    "createAgentVersion": "Save agent version",
+    "diffAgentVersion": "Diff agent version",
+    "restoreAgentVersion": "Restore agent version",
+    "renameAgentVersion": "Rename agent version",
+    "deleteAgentVersion": "Delete agent version",
+    "createSession": "Create voice session",
     "dispatchCall": "Dispatch call",
     "listCallLogs": "List call logs",
     "getCallLog": "Get call log",
@@ -56,10 +63,13 @@ _TITLES: dict[str, str] = {
 # POST tools that only validate or preview, with no state change.
 _READ_ONLY: frozenset[str] = frozenset({"canUploadFile", "calculateCreditOperation"})
 
-# Irreversible removals plus tools that place real outbound calls.
+# Irreversible removals, overwrites of live config, plus tools that place
+# real outbound calls.
 _DESTRUCTIVE: frozenset[str] = frozenset(
     {
         "deleteAgent",
+        "deleteAgentVersion",
+        "restoreAgentVersion",
         "deleteKnowledgeBaseFile",
         "detachKnowledgeBaseFiles",
         "detachPhoneNumber",

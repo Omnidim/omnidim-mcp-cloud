@@ -1,9 +1,25 @@
 """MCP tool annotations: unit logic + tools/list wiring."""
 from httpx import AsyncClient
 
+from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 
 from .test_mcp_transport import _mint_access_token
+
+
+def test_every_generated_tool_has_a_title() -> None:
+    """Regen adds tools; titles are hand-authored. Without this guard a new
+    tool ships with no display name (the version-history tools did).
+    """
+    missing = [t["name"] for t in TOOLS if "title" not in tool_annotations(t["name"], t["method"])]
+    assert missing == []
+
+
+def test_version_overwrite_and_removal_are_destructive() -> None:
+    for name in ("deleteAgentVersion", "restoreAgentVersion"):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is False, name
 
 
 def test_get_tools_are_read_only() -> None:
