@@ -335,8 +335,8 @@ if a change makes the agent worse.
 - `listAgentVersions` { agent_id } - the timeline, newest first. Each entry has a
   `version_number`, a `kind`, who saved it, and a `change_summary` (a one-line
   "what changed in this version vs the one before it").
-- `createAgentVersion` { agent_id, requestBody: { name, note? } } - save the
-  agent's CURRENT config as a named version.
+- `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
+  config as a named version.
 - `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
 - `restoreAgentVersion` { agent_id, version_number } - write a version back onto
   the live agent.
