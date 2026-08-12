@@ -1,0 +1,22 @@
+name: spec-drift
+
+# The tool registry is generated from the published OpenAPI spec. Nothing in
+# the PR gate notices when that spec moves upstream, so check on a schedule
+# instead: an added endpoint means a missing tool, a removed one means a tool
+# that 404s. Kept out of ci.yml so PR runs stay offline.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install --upgrade pip && pip install -e .
+      - run: python scripts/regen.py --check

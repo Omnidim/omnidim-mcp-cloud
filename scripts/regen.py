@@ -15,6 +15,10 @@ Writes:
 
 Run after the upstream spec or mcp-config.yaml changes:
   ./.venv/bin/python scripts/regen.py
+
+Pass --check to compare against the committed output instead of writing it.
+Exits non-zero when the upstream spec has moved on, which is how CI notices
+that the exposed tool surface no longer matches the API.
 """
 from __future__ import annotations
 
@@ -243,6 +247,41 @@ def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
     return False
 
 
+def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
+    """Compare a fresh generation against the committed sentinel + registry."""
+    # Imported here so a plain regen never depends on the committed output.
+    from app._generated.tools import TOOLS as committed
+
+    problems: list[str] = []
+    sentinel = dict(
+        line.split(": ", 1)  # type: ignore[misc]
+        for line in OUT_HASH.read_text().splitlines()
+        if ": " in line
+    )
+    if sentinel.get("openapi_spec_sha256") != spec_hash:
+        problems.append(
+            f"spec moved: committed {sentinel.get('openapi_spec_sha256', '?')[:12]}, "
+            f"upstream {spec_hash[:12]}"
+        )
+    if sentinel.get("mcp_config_sha256") != config_hash:
+        problems.append("mcp-config.yaml changed since the last regen")
+
+    fresh_names = {t["name"] for t in tools}
+    committed_names = {t["name"] for t in committed}
+    if added := sorted(fresh_names - committed_names):
+        problems.append(f"upstream added tools not exposed: {', '.join(added)}")
+    if gone := sorted(committed_names - fresh_names):
+        problems.append(f"exposed tools no longer in the spec: {', '.join(gone)}")
+
+    if problems:
+        for p in problems:
+            sys.stderr.write(f"drift: {p}\n")
+        sys.stderr.write("run scripts/regen.py and commit the result\n")
+        return 1
+    print(f"in sync. {len(tools)} tools, spec {spec_hash[:12]}.")
+    return 0
+
+
 def main() -> int:
     spec_bytes, spec_source = load_spec_bytes(SPEC_SOURCE)
     spec = yaml.safe_load(spec_bytes)
@@ -271,6 +310,9 @@ def main() -> int:
     # tools.py is in sync with the source of truth.
     spec_hash = hashlib.sha256(spec_bytes).hexdigest()
     config_hash = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
+
+    if "--check" in sys.argv[1:]:
+        return check(spec_hash, config_hash, tools)
 
     # Embed the registry as a JSON string and load it at import time so the
     # generated module stays valid Python regardless of whether descriptions
