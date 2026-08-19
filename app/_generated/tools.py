@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=ad479bf0043a
+Source spec:   openapi.yaml   sha256=1b80d871b214
 Config:        mcp-config.yaml  sha256=a9b46dc8496e
 """
 from __future__ import annotations
@@ -517,7 +517,12 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "dependentRequired": {
+                        "provider": [
+                            "voice_id"
+                        ]
+                    },
                     "properties": {
                         "provider": {
                             "type": "string",
@@ -527,12 +532,12 @@ _TOOLS_JSON = r"""[
                                 "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list.",
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
                             "example": "eleven_labs"
                         },
                         "voice_id": {
                             "type": "string",
-                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`).",
+                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
                         "model": {
@@ -725,7 +730,7 @@ _TOOLS_JSON = r"""[
                         },
                         "transfer_options": {
                             "type": "array",
-                            "description": "Where to transfer the call and under what condition. The first matching condition wins.",
+                            "description": "Where to transfer the call and under what condition. The first matching condition wins. In an agent update, sending this list replaces all saved options. Omit it to keep them unchanged, or send an empty array to clear them.",
                             "items": {
                                 "type": "object",
                                 "required": [
@@ -2393,7 +2398,12 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "dependentRequired": {
+                        "provider": [
+                            "voice_id"
+                        ]
+                    },
                     "properties": {
                         "provider": {
                             "type": "string",
@@ -2403,12 +2413,12 @@ _TOOLS_JSON = r"""[
                                 "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list.",
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
                             "example": "eleven_labs"
                         },
                         "voice_id": {
                             "type": "string",
-                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`).",
+                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
                         "model": {
@@ -2601,7 +2611,7 @@ _TOOLS_JSON = r"""[
                         },
                         "transfer_options": {
                             "type": "array",
-                            "description": "Where to transfer the call and under what condition. The first matching condition wins.",
+                            "description": "Where to transfer the call and under what condition. The first matching condition wins. In an agent update, sending this list replaces all saved options. Omit it to keep them unchanged, or send an empty array to clear them.",
                             "items": {
                                 "type": "object",
                                 "required": [
