@@ -3,8 +3,8 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=1b80d871b214
-Config:        mcp-config.yaml  sha256=a9b46dc8496e
+Source spec:   public_spec.yaml   sha256=153081209963
+Config:        mcp-config.yaml  sha256=37d44f56233c
 """
 from __future__ import annotations
 
@@ -61,68 +61,6 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
-    },
-    {
-        "name": "addUser",
-        "description": "Add user. Create a new child user and organization under the reseller.\nThe new organization is linked to your reseller account\nautomatically.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Full name of the new user."
-                },
-                "email": {
-                    "type": "string",
-                    "format": "email",
-                    "description": "Email address. Also used as the login."
-                },
-                "phone": {
-                    "type": "string",
-                    "description": "Phone number including country code (e.g. `+15551234567`).",
-                    "example": "+15551234567"
-                },
-                "password": {
-                    "type": "string",
-                    "format": "password",
-                    "description": "Account password for the new user."
-                },
-                "welcome_minutes_to_credit": {
-                    "type": "integer",
-                    "description": "Minutes to credit to the new account on signup."
-                },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Cost per minute charged to this user (e.g. `0.20`). Must be at least the reseller's premium model rate.",
-                    "example": 0.2
-                },
-                "concurrent_call_limit": {
-                    "type": "integer",
-                    "description": "Maximum number of concurrent calls allowed for this account."
-                },
-                "expiry_date": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Account expiry date in `YYYY-MM-DD` format (e.g. `2026-12-31`)."
-                },
-                "user_currency": {
-                    "type": "string",
-                    "description": "ISO 4217 currency code for the account (e.g. `USD`, `INR`). Defaults to the reseller's currency.",
-                    "example": "USD"
-                }
-            },
-            "required": [
-                "email",
-                "name",
-                "password",
-                "phone"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/users/add",
-        "path_params": [],
         "query_params": []
     },
     {
@@ -233,41 +171,6 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
-    },
-    {
-        "name": "calculateCreditOperation",
-        "description": "Calculate credit operation. Preview the cost of a transfer or revert without moving any\ncredits. Use this to confirm amounts before calling the\ntransfer or revert endpoints. The response shape differs\nbetween forward transfers and reverts. See the examples.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to calculate for."
-                },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Rate per minute for a forward transfer (e.g. `0.20`). Not required when `is_revert` is `true`.",
-                    "example": 0.2
-                },
-                "is_revert": {
-                    "type": "boolean",
-                    "description": "Set to `true` to calculate a revert instead of a forward transfer.",
-                    "default": false
-                },
-                "child_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to revert credits from. Required when `is_revert` is `true`."
-                }
-            },
-            "required": [
-                "minutes"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/credits/calculate",
-        "path_params": [],
         "query_params": []
     },
     {
@@ -1068,6 +971,15 @@ _TOOLS_JSON = r"""[
                     "example": {
                         "name": "Demo User"
                     }
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Key-value pairs stored on the session for your own\ntracking (e.g. CRM or lead IDs). Not shared with the\nagent; echoed back as `metadata` in the post-call\nwebhook so you can correlate results with your records.\n",
+                    "example": {
+                        "crm_lead_id": "lead_9876",
+                        "source": "website_form"
+                    }
                 }
             },
             "required": [
@@ -1276,6 +1188,15 @@ _TOOLS_JSON = r"""[
                         "account_id": "A-2031",
                         "last_order": "2026-04-15"
                     }
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Key-value pairs stored on the call for your own tracking\n(e.g. CRM or lead IDs). Not shared with the agent; echoed\nback as `metadata` in the post-call webhook so you can\ncorrelate results with your records.\n",
+                    "example": {
+                        "crm_lead_id": "lead_9876",
+                        "source": "website_form"
+                    }
                 }
             },
             "required": [
@@ -1325,7 +1246,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `version_history_enabled` boolean showing whether [version history](/docs/api-reference/agent-versions) is turned on for the agent's organization.",
+        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `version_history_enabled` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1414,46 +1335,6 @@ _TOOLS_JSON = r"""[
             "call_log_id"
         ],
         "query_params": []
-    },
-    {
-        "name": "getResellerCreditLogs",
-        "description": "Credit transfer logs. Paginated history of all credit transfers and reverts for the\nreseller account. Returns reverse-chronological order by\ndefault. Date filters are inclusive.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "page": {
-                    "type": "integer",
-                    "default": 1,
-                    "description": "Page number for pagination."
-                },
-                "page_size": {
-                    "type": "integer",
-                    "default": 20,
-                    "description": "Number of records per page (max 100)."
-                },
-                "date_from": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Filter logs from this date in `YYYY-MM-DD` format (e.g. `2026-01-01`)."
-                },
-                "date_to": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Filter logs up to and including this date in `YYYY-MM-DD` format (e.g. `2026-03-31`)."
-                }
-            },
-            "required": [],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/reseller/credits/logs",
-        "path_params": [],
-        "query_params": [
-            "page",
-            "page_size",
-            "date_from",
-            "date_to"
-        ]
     },
     {
         "name": "getVoice",
@@ -1775,20 +1656,6 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
-        "name": "listChildOrganizations",
-        "description": "List child organizations. List all child organizations and their users under the reseller\naccount. Returns each organization's balance, cost-per-minute\nrate, and concurrency limit, plus the dashboard menu access\nflags scoped to your reseller's permissions for every user.",
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/reseller/organizations",
-        "path_params": [],
-        "query_params": []
-    },
-    {
         "name": "listKnowledgeBaseFiles",
         "description": "List knowledge base files. List all knowledge-base files for the authenticated user.",
         "input_schema": {
@@ -1818,7 +1685,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listPhoneNumbers",
-        "description": "List phone numbers. Retrieve all phone numbers associated with your account.",
+        "description": "List phone numbers. Retrieve the phone numbers on your account, whether you bought them\nfrom the OmniDimension number shop or imported your own.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1832,6 +1699,10 @@ _TOOLS_JSON = r"""[
                     "default": 30,
                     "maximum": 150,
                     "description": "Items per page (max 150)."
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [],
@@ -1842,7 +1713,8 @@ _TOOLS_JSON = r"""[
         "path_params": [],
         "query_params": [
             "pageno",
-            "pagesize"
+            "pagesize",
+            "user_id"
         ]
     },
     {
@@ -1939,6 +1811,71 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
+        "name": "purchasePhoneNumber",
+        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop. The monthly\nrental comes out of your wallet and the number is added to your\naccount, ready to attach to an agent.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "Idempotency-Key": {
+                    "type": "string",
+                    "description": "Your own unique key for this purchase, for example a\nfresh UUID. Strongly recommended: it is what makes a\nretry safe.\n"
+                },
+                "region": {
+                    "type": "string",
+                    "enum": [
+                        "IN",
+                        "US"
+                    ],
+                    "description": "Region the number belongs to."
+                },
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to buy, as returned by the search operation.",
+                    "example": "+15551234567"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
+                }
+            },
+            "required": [
+                "phone_number",
+                "region"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/phone_number/purchase",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "releasePhoneNumber",
+        "description": "Release a phone number. Give up a phone number and stop its rental, so it is not charged at the\nnext renewal. Only a number currently allocated to the account can be\nreleased.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to release.",
+                    "example": "+15551234567"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
+                }
+            },
+            "required": [
+                "phone_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/phone_number/release",
+        "path_params": [],
+        "query_params": []
+    },
+    {
         "name": "renameAgentVersion",
         "description": "Rename an agent version. Rename a saved version or edit its note. Version history is immutable otherwise; only the name and note can change.",
         "input_schema": {
@@ -2005,199 +1942,56 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
-        "name": "revertCreditsFromChild",
-        "description": "Revert credits. Take back unused minutes from a child organization to the\nreseller balance. The refund is calculated at the child's\ncurrent rate, so you don't pass one. This matches exactly\nwhat was originally charged. Use the calculate endpoint\nfirst to preview the refund.",
+        "name": "searchPhoneNumbers",
+        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "from_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to revert credits from."
-                },
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to revert."
-                }
-            },
-            "required": [
-                "from_organization_id",
-                "minutes"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/credits/revert",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setChildConcurrency",
-        "description": "Set child concurrency limit. Set the maximum number of simultaneous calls a child\norganization can run. Slots come from the reseller's shared\npool. Increasing the limit deducts the delta from your pool\nand fails if you don't have enough slots. Decreasing the\nlimit returns the delta to your pool immediately.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "child_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to update."
-                },
-                "new_limit": {
-                    "type": "integer",
-                    "description": "The desired absolute concurrent call limit (must be `>= 0`)."
-                }
-            },
-            "required": [
-                "child_organization_id",
-                "new_limit"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/concurrency",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setUserAccessControl",
-        "description": "Update user access control. Enable or disable dashboard menu access flags for a child user.\nOnly the flags you pass are changed. Flags outside your\nreseller's permissions are silently ignored.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "ID of the child user to update."
-                },
-                "dashboard_menu_access": {
-                    "allOf": [
-                        {
-                            "type": "object",
-                            "description": "Reseller-managed dashboard menu access flags. Each property is\na boolean toggle for a feature area in the child user's\ndashboard. On read endpoints, only flags the reseller\nthemselves has enabled are returned (so a child cannot have a\nflag the reseller doesn't have).\n",
-                            "properties": {
-                                "is_bots_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_leads_access": {
-                                    "type": "boolean"
-                                },
-                                "is_voice_cloning_access": {
-                                    "type": "boolean"
-                                },
-                                "is_workflow_access": {
-                                    "type": "boolean"
-                                },
-                                "is_asr_evaluation_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_train_with_call_recording_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_call_logs_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_call_simulation_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_omni_crm_access": {
-                                    "type": "boolean"
-                                },
-                                "access_to_monitor_live_call": {
-                                    "type": "boolean"
-                                },
-                                "is_whatsapp_flow_enabled": {
-                                    "type": "boolean"
-                                },
-                                "is_billing_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_knowledge_base_access": {
-                                    "type": "boolean"
-                                },
-                                "is_integration_access": {
-                                    "type": "boolean"
-                                },
-                                "is_phone_number_access": {
-                                    "type": "boolean"
-                                },
-                                "is_bulk_call_access": {
-                                    "type": "boolean"
-                                },
-                                "is_analytics_access": {
-                                    "type": "boolean"
-                                }
-                            }
-                        }
-                    ],
-                    "description": "Flags to update. Only pass the flags you want to\nchange. Others are left untouched. Flags outside\nyour reseller's permissions are silently dropped.\n"
-                }
-            },
-            "required": [
-                "dashboard_menu_access",
-                "user_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/users/access-control",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setUserExpiry",
-        "description": "Update user expiry. Set or remove the expiry date on a child user. The user must\nbelong to a child organization of your reseller.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "ID of the child user to update."
-                },
-                "expiry_date": {
+                "region": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true,
-                    "description": "Expiry date in `YYYY-MM-DD` format. Omit or pass `null` to remove the expiry."
+                    "enum": [
+                        "IN",
+                        "US"
+                    ],
+                    "description": "Region to search in."
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Digits or prefix to match within the number."
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1,
+                    "description": "Page of results to return."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 150,
+                    "default": 20,
+                    "description": "Results per page."
+                },
+                "user_id": {
+                    "type": "integer",
+                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [
-                "user_id"
+                "region"
             ],
             "additionalProperties": true
         },
-        "method": "POST",
-        "path": "/reseller/users/expiry",
+        "method": "GET",
+        "path": "/phone_number/search",
         "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "transferCreditsToChild",
-        "description": "Transfer credits to a child. Transfer minutes from the reseller balance to a child\norganization. Credits are deducted from your balance\nimmediately on success. The target organization must be a\ndirect child of your reseller. Use the calculate endpoint\nfirst to preview the cost.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "to_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to transfer credits to."
-                },
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to transfer."
-                },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Rate per minute to charge the child organization (e.g. `0.20`).",
-                    "example": 0.2
-                }
-            },
-            "required": [
-                "cost_per_min",
-                "minutes",
-                "to_organization_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/credits/transfer",
-        "path_params": [],
-        "query_params": []
+        "query_params": [
+            "region",
+            "pattern",
+            "page",
+            "limit",
+            "user_id"
+        ]
     },
     {
         "name": "updateAgent",
