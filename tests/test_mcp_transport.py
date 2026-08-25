@@ -366,7 +366,7 @@ async def test_mcp_tools_call_redacts_api_key_in_response(
         lambda req: httpx.Response(
             200,
             json={
-                "organizations": [
+                "agents": [
                     {"id": 1, "name": "Acme", "api_key": "sk_super_secret"},
                 ]
             },
@@ -379,7 +379,7 @@ async def test_mcp_tools_call_redacts_api_key_in_response(
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": {"name": "listChildOrganizations", "arguments": {}},
+            "params": {"name": "listAgents", "arguments": {}},
         },
     )
     text = res.json()["result"]["content"][0]["text"]

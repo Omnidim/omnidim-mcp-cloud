@@ -32,7 +32,6 @@ def test_get_tools_are_read_only() -> None:
 
 def test_preview_posts_are_read_only() -> None:
     assert tool_annotations("canUploadFile", "POST")["readOnlyHint"] is True
-    assert tool_annotations("calculateCreditOperation", "POST")["readOnlyHint"] is True
 
 
 def test_plain_writes_are_not_destructive() -> None:
@@ -43,7 +42,7 @@ def test_plain_writes_are_not_destructive() -> None:
 
 
 def test_removals_are_destructive_not_open_world() -> None:
-    for name in ("deleteAgent", "cancelBulkCall", "detachPhoneNumber", "revertCreditsFromChild"):
+    for name in ("deleteAgent", "cancelBulkCall", "detachPhoneNumber"):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is False, name
@@ -54,6 +53,20 @@ def test_call_placing_tools_are_destructive_and_open_world() -> None:
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is True, name
+
+
+def test_phone_number_purchase_and_release_are_destructive_and_open_world() -> None:
+    for name in ("purchasePhoneNumber", "releasePhoneNumber"):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is True, name
+
+
+def test_phone_number_search_is_read_only() -> None:
+    a = tool_annotations("searchPhoneNumbers", "GET")
+    assert a["readOnlyHint"] is True
+    assert a["openWorldHint"] is False
+    assert a["title"] == "Search available phone numbers"
 
 
 async def test_tools_list_includes_annotations(client: AsyncClient) -> None:
