@@ -49,19 +49,13 @@ _TITLES: dict[str, str] = {
     "listTTSProviders": "List text-to-speech providers",
     "listAllProviders": "List all providers",
     "getVoice": "Get voice",
-    "listChildOrganizations": "List child organizations",
-    "addUser": "Add child user",
-    "setUserAccessControl": "Set user access control",
-    "setUserExpiry": "Set user expiry",
-    "setChildConcurrency": "Set child concurrency limit",
-    "calculateCreditOperation": "Preview credit operation",
-    "transferCreditsToChild": "Transfer credits to child",
-    "revertCreditsFromChild": "Revert credits from child",
-    "getResellerCreditLogs": "Get reseller credit logs",
+    "searchPhoneNumbers": "Search available phone numbers",
+    "purchasePhoneNumber": "Buy phone number",
+    "releasePhoneNumber": "Release phone number",
 }
 
 # POST tools that only validate or preview, with no state change.
-_READ_ONLY: frozenset[str] = frozenset({"canUploadFile", "calculateCreditOperation"})
+_READ_ONLY: frozenset[str] = frozenset({"canUploadFile"})
 
 # Irreversible removals, overwrites of live config, plus tools that place
 # real outbound calls.
@@ -74,15 +68,24 @@ _DESTRUCTIVE: frozenset[str] = frozenset(
         "detachKnowledgeBaseFiles",
         "detachPhoneNumber",
         "cancelBulkCall",
-        "revertCreditsFromChild",
         "dispatchCall",
         "createBulkCall",
         "addBulkCallContact",
+        "purchasePhoneNumber",
+        "releasePhoneNumber",
     }
 )
 
-# Tools that reach the external phone network.
-_OPEN_WORLD: frozenset[str] = frozenset({"dispatchCall", "createBulkCall", "addBulkCallContact"})
+# Tools that reach the external phone network (a carrier, not just our API).
+_OPEN_WORLD: frozenset[str] = frozenset(
+    {
+        "dispatchCall",
+        "createBulkCall",
+        "addBulkCallContact",
+        "purchasePhoneNumber",
+        "releasePhoneNumber",
+    }
+)
 
 
 def tool_annotations(name: str, method: str) -> dict[str, Any]:
