@@ -239,6 +239,37 @@ def build_tool(
     }
 
 
+def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
+    """Drop named parameters from an operation that is otherwise exposed.
+
+    Done on the spec object before build_tool sees it, so the field leaves the
+    input schema and the execution parameters together.
+    """
+    names = (exclude.get("parameters") or {}).get(op.get("operationId")) or []
+    if not names:
+        return 0
+    dropped = 0
+    params = op.get("parameters")
+    if isinstance(params, list):
+        before = len(params)
+        op["parameters"] = [p for p in params if p.get("name") not in names]
+        dropped += before - len(op["parameters"])
+    schema = (
+        (op.get("requestBody") or {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema")
+    )
+    if isinstance(schema, dict) and isinstance(schema.get("properties"), dict):
+        for name in names:
+            if name in schema["properties"]:
+                del schema["properties"][name]
+                dropped += 1
+            if isinstance(schema.get("required"), list):
+                schema["required"] = [r for r in schema["required"] if r != name]
+    return dropped
+
+
 def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
     if path in (exclude.get("paths") or []):
         return True
@@ -293,6 +324,7 @@ def main() -> int:
     tools: list[dict[str, Any]] = []
     skipped: list[str] = []
 
+    stripped = 0
     for path, methods in spec.get("paths", {}).items():
         path_item_params = methods.get("parameters", []) or []
         for method, op in methods.items():
@@ -302,6 +334,7 @@ def main() -> int:
             if is_excluded(path, op_id, exclude):
                 skipped.append(f"{method.upper()} {path}")
                 continue
+            stripped += strip_params(op, exclude)
             tools.append(build_tool(path, method, op, path_item_params, spec))
 
     tools.sort(key=lambda t: t["name"])

@@ -4,7 +4,7 @@ Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
 Source spec:   public_spec.yaml   sha256=153081209963
-Config:        mcp-config.yaml  sha256=37d44f56233c
+Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
 
@@ -1699,10 +1699,6 @@ _TOOLS_JSON = r"""[
                     "default": 30,
                     "maximum": 150,
                     "description": "Items per page (max 150)."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [],
@@ -1713,8 +1709,7 @@ _TOOLS_JSON = r"""[
         "path_params": [],
         "query_params": [
             "pageno",
-            "pagesize",
-            "user_id"
+            "pagesize"
         ]
     },
     {
@@ -1832,10 +1827,6 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "The number to buy, as returned by the search operation.",
                     "example": "+15551234567"
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [
@@ -1859,10 +1850,6 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "The number to release.",
                     "example": "+15551234567"
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [
@@ -1971,10 +1958,6 @@ _TOOLS_JSON = r"""[
                     "maximum": 150,
                     "default": 20,
                     "description": "Results per page."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account."
                 }
             },
             "required": [
@@ -1989,8 +1972,7 @@ _TOOLS_JSON = r"""[
             "region",
             "pattern",
             "page",
-            "limit",
-            "user_id"
+            "limit"
         ]
     },
     {
