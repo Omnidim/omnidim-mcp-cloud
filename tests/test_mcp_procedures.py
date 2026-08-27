@@ -202,3 +202,42 @@ async def test_resources_never_expose_internal_infra(client: AsyncClient) -> Non
         text = (await _read_resource(client, token, uri)).lower()
         assert "failover" not in text, uri
         assert "gpt-5.4" not in text, uri
+
+
+async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "prompts/get",
+            "params": {
+                "name": "build_outbound_campaign",
+                "arguments": {"goal": "call 8,000 renewal leads today", "phone_number_id": "177"},
+            },
+        },
+    )
+    text = res.json()["result"]["messages"][0]["content"]["text"]
+    assert "call 8,000 renewal leads today" in text
+    assert 'phone_number_id "177"' in text
+    assert "save_as_draft: true" in text
+    assert "never start one they have not approved" in text
+    assert "3600 / average call seconds" in text
+    assert "no `requestBody` wrapper" in text
+
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "resources/read",
+            "params": {"uri": "omnidim://guide/bulk-campaigns"},
+        },
+    )
+    guide = res.json()["result"]["contents"][0]["text"]
+    assert "to_number" in guide
+    assert "next_cursor" in guide
+    assert "AGENT's timezone" in guide
