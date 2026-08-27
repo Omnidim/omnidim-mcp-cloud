@@ -4,6 +4,13 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-28
+
+### Added
+- Campaign lifecycle tools: startBulkCall, setBulkCallConcurrency, retryBulkCall, addBulkCallContacts (up to 1000 contacts per request), listBulkCallLines (per-contact results with cursor paging), listBulkCallNumbers, addBulkCallNumber, setBulkCallNumberActive (rotation pool), and setBulkCallDailyTimeControl (calling hours). Start, retry, and batch add place real calls and are marked destructive and open-world.
+- createBulkCall now supports bot_id, save_as_draft, call_conditions, and rotation.
+- A build_outbound_campaign prompt and an omnidim://guide/bulk-campaigns resource covering the campaign rules: the two contact shapes, draft-first building, concurrency arithmetic, rotation, calling hours, and cursor-paged results.
+
 ## [0.7.0] - 2026-08-26
 
 ### Removed
