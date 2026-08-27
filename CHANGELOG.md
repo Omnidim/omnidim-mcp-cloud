@@ -4,6 +4,11 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-08-28
+
+### Changed
+- The campaign prompt sticks to the common flow: contact filtering is no longer suggested in the step list (it stays available on createBulkCall for the rare list that needs it).
+
 ## [0.8.0] - 2026-08-28
 
 ### Added
