@@ -1,5 +1,5 @@
-openapi_spec: public_spec.yaml
-openapi_spec_sha256: 153081209963d62c1ac308ab49139dd7aef018758d4fd68b9dff9e2e094549f2
+openapi_spec: omnidim.yaml
+openapi_spec_sha256: 0fe03d109b8057b5e0c12ea3049d7eee0bf913dd227b7b97c3f433c96cea3562
 mcp_config: mcp-config.yaml
 mcp_config_sha256: 0d075000b9689f145765d5265b1ed409a974f051fffb9e651e85c8fe8b813735
-tool_count: 43
+tool_count: 52

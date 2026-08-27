@@ -49,10 +49,37 @@ def test_removals_are_destructive_not_open_world() -> None:
 
 
 def test_call_placing_tools_are_destructive_and_open_world() -> None:
-    for name in ("dispatchCall", "createBulkCall", "addBulkCallContact"):
+    for name in (
+        "dispatchCall",
+        "createBulkCall",
+        "addBulkCallContact",
+        "addBulkCallContacts",
+        "startBulkCall",
+        "retryBulkCall",
+    ):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is True, name
+
+
+def test_campaign_config_writes_are_not_destructive() -> None:
+    for name, method in (
+        ("setBulkCallConcurrency", "PUT"),
+        ("setBulkCallDailyTimeControl", "PUT"),
+        ("addBulkCallNumber", "POST"),
+        ("setBulkCallNumberActive", "PUT"),
+    ):
+        a = tool_annotations(name, method)
+        assert a["readOnlyHint"] is False, name
+        assert a["destructiveHint"] is False, name
+        assert a["openWorldHint"] is False, name
+
+
+def test_campaign_reads_are_read_only() -> None:
+    for name in ("listBulkCallLines", "listBulkCallNumbers"):
+        a = tool_annotations(name, "GET")
+        assert a["readOnlyHint"] is True, name
+        assert a["openWorldHint"] is False, name
 
 
 def test_phone_number_purchase_and_release_are_destructive_and_open_world() -> None:
