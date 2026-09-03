@@ -4,6 +4,14 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- `createAgent` and `updateAgent` accept a `timezone` field (IANA name, e.g. `Asia/Kolkata`) that sets the local date and time the agent works with during calls. Unset, the account timezone applies.
+
+### Fixed
+
+- The campaign prompt and bulk-campaigns guide described daily calling windows as following the agent's timezone; they follow the window's own `daily_stop_timezone`/`daily_start_timezone`, falling back to the campaign timezone. Both now say so and point at the agent's new `timezone` field for on-call local time.
+
 ## [0.8.1] - 2026-08-28
 
 ### Changed
