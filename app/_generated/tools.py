@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   omnidim.yaml   sha256=0fe03d109b80
+Source spec:   omnidim.yaml   sha256=0f95090dbe18
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -384,6 +384,11 @@ _TOOLS_JSON = r"""[
                         "Outgoing"
                     ],
                     "description": "Call type of the assistant."
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone for this agent, for example `Asia/Kolkata`. Sets the local date and time the agent works with during calls. If not set, the account timezone is used as fallback. Pass an empty string to clear it.",
+                    "example": "America/New_York"
                 },
                 "transcriber": {
                     "type": "object",
@@ -2528,6 +2533,11 @@ _TOOLS_JSON = r"""[
                         "Outgoing"
                     ],
                     "description": "Call type of the assistant."
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone for this agent, for example `Asia/Kolkata`. Sets the local date and time the agent works with during calls. If not set, the account timezone is used as fallback. Pass an empty string to clear it.",
+                    "example": "America/New_York"
                 },
                 "transcriber": {
                     "type": "object",
