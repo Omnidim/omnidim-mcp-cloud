@@ -240,4 +240,5 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     guide = res.json()["result"]["contents"][0]["text"]
     assert "to_number" in guide
     assert "next_cursor" in guide
-    assert "AGENT's timezone" in guide
+    assert "daily_stop_timezone" in guide
+    assert "agent has its own `timezone` field" in guide

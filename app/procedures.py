@@ -211,9 +211,10 @@ def _build_outbound_campaign(args: dict[str, Any]) -> str:
         "   This shape differs from create's contact_list on purpose; do not mix them. Report anything\n"
         "   that comes back in `rejected` with its row index.\n"
         "6. Calling hours: if the goal names a time window, set it with `setBulkCallDailyTimeControl`\n"
-        "   (both the stop and start blocks are required) and FIRST verify the agent's timezone matches\n"
-        "   the customers' region; those times follow the agent's timezone, and a mismatch dials people\n"
-        "   at night.\n"
+        "   (both the stop and start blocks are required) and pass `daily_stop_timezone`/\n"
+        "   `daily_start_timezone` for the customers' region; left out they fall back to the campaign's\n"
+        "   timezone, and a mismatch dials people at night. Also set the agent's own `timezone` field\n"
+        "   (`updateAgent`) so it works with the customers' local time on calls.\n"
         "7. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
         "   their explicit go-ahead. Then `startBulkCall`.\n"
         "8. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
@@ -507,9 +508,12 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 ## Calling hours and the timezone trap
 - `setBulkCallDailyTimeControl` sets a hard stop and an auto start; the API requires
   both blocks together.
-- Those times follow the AGENT's timezone, not the operator's. A wrong timezone
-  dials people at 11 PM, which is a compliance problem. Set the agent's timezone to
-  the customers' region before launching.
+- Each block carries its own timezone (`daily_stop_timezone`, `daily_start_timezone`);
+  left out, it falls back to the campaign's `timezone`, not the operator's. A wrong
+  timezone dials people at 11 PM, which is a compliance problem. Set both to the
+  customers' region.
+- The agent has its own `timezone` field (`createAgent`/`updateAgent`) that sets the
+  local date and time it works with during calls. Set that to the customers' region too.
 
 ## Watching a campaign and reading results
 - `getBulkCallLiveStatus` for progress counts while it runs.
