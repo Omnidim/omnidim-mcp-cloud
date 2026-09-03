@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-03
+
 ### Added
 
 - `createAgent` and `updateAgent` accept a `timezone` field (IANA name, e.g. `Asia/Kolkata`) that sets the local date and time the agent works with during calls. Unset, the account timezone applies.
