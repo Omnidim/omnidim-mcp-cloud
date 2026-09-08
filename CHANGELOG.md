@@ -4,6 +4,9 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+- `searchPhoneNumbers` and `purchasePhoneNumber` accept a `carrier` field, matching the upstream API which now requires it in any region with more than one carrier. A region with one carrier still works without it. The refusal response lists the valid carriers for that region, so a client does not need a separate lookup.
+
 ## [0.9.0] - 2026-09-03
 
 ### Added

@@ -27,6 +27,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
   `purchasePhoneNumber`. This spends the account's balance, so confirm the
   exact number and price with the user before buying. `releasePhoneNumber`
   gives one up and cannot be undone.
+  A region with more than one carrier requires `carrier` on both calls; a
+  `409 carrier_required` response lists the valid names for that region, and
+  `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
 - "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
   call tools.
 
@@ -82,8 +85,9 @@ _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level 
    `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
    either buy one (`searchPhoneNumbers` { region } then `purchasePhoneNumber`,
    which charges the account, so confirm with the user first and never pick for
-   them) or import one you already own (importTwilioNumber / importExotelNumber
-   / importSipTrunk).
+   them; a region with more than one carrier needs `carrier` on both calls,
+   and a `409 carrier_required` response lists the valid names) or import one
+   you already own (importTwilioNumber / importExotelNumber / importSipTrunk).
 4. Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }."""
 
 
