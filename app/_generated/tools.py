@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   omnidim.yaml   sha256=0f95090dbe18
+Source spec:   openapi.yaml   sha256=abffa72c3332
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -2123,6 +2123,11 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "The number to buy, as returned by the search operation.",
                     "example": "+15551234567"
+                },
+                "carrier": {
+                    "type": "string",
+                    "description": "The carrier to buy from, as named by the search response.\nOptional while a region has one, required once it has two.\n",
+                    "example": "carrier-1"
                 }
             },
             "required": [
@@ -2267,7 +2272,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "searchPhoneNumbers",
-        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.",
+        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.\n\nA region can have more than one carrier, each stocking different\nnumber series. Pass the `carrier` you want; the response names the\ncarrier its results came from, and that is the carrier a purchase has\nto pass.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2277,7 +2282,11 @@ _TOOLS_JSON = r"""[
                         "IN",
                         "US"
                     ],
-                    "description": "Region to search in."
+                    "description": "Region to search in. `IN` and `US` both serve numbers. Which\nregions answer is configuration, so a region with no carrier\nenabled returns `404 not_available` rather than an empty list.\n"
+                },
+                "carrier": {
+                    "type": "string",
+                    "description": "Which carrier to search. Optional while a region has one,\nrequired once it has two, and the refusal lists the names.\n"
                 },
                 "pattern": {
                     "type": "string",
@@ -2307,6 +2316,7 @@ _TOOLS_JSON = r"""[
         "path_params": [],
         "query_params": [
             "region",
+            "carrier",
             "pattern",
             "page",
             "limit"
