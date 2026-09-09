@@ -40,7 +40,12 @@ jobs:
           PY
 
       - run: python scripts/regen.py
-      - run: python -m pytest -q
+
+      # No test step. The suite needs a Postgres service for the token flow,
+      # and duplicating that here buys nothing: the PR this opens is authored
+      # by the app, so ci.yml runs on it with the services it declares. A
+      # regen that breaks something should arrive as a PR with red checks,
+      # not as no PR at all.
 
       - name: Compare the tool list
         id: tools
