@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=abffa72c3332
+Source spec:   openapi.yaml   sha256=659842e58108
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -2126,11 +2126,12 @@ _TOOLS_JSON = r"""[
                 },
                 "carrier": {
                     "type": "string",
-                    "description": "The carrier to buy from, as named by the search response.\nOptional while a region has one, required once it has two.\n",
+                    "description": "The carrier to buy from: pass the `carrier` the search\nresponse named, so you buy from the inventory you searched.\nAlways required. Region `IN` has `carrier-1` (landline) and\n`carrier-2-new` (mobile); region `US` has `carrier-us`.\nOmitting it returns `409 carrier_required` listing them.\n",
                     "example": "carrier-1"
                 }
             },
             "required": [
+                "carrier",
                 "phone_number",
                 "region"
             ],
@@ -2286,7 +2287,7 @@ _TOOLS_JSON = r"""[
                 },
                 "carrier": {
                     "type": "string",
-                    "description": "Which carrier to search. Optional while a region has one,\nrequired once it has two, and the refusal lists the names.\n"
+                    "description": "Which carrier to use. **Always required** in a region that has\none, however few it holds, so that adding a carrier is never a\nbreaking change.\n\nRegion `IN` has two: `carrier-1` stocks landline numbers (city\ncodes 11, 12 and 80), `carrier-2-new` stocks mobile numbers (94\nand 79 series). Region `US` has one: `carrier-us`, US local\nnumbers by area code.\n\nOmitting it returns `409 carrier_required` listing the carriers\nwith what each one stocks, so an integration can discover them at\nruntime rather than hard-coding this list.\n"
                 },
                 "pattern": {
                     "type": "string",
@@ -2307,6 +2308,7 @@ _TOOLS_JSON = r"""[
                 }
             },
             "required": [
+                "carrier",
                 "region"
             ],
             "additionalProperties": true
