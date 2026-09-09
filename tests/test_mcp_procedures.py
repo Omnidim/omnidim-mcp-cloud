@@ -242,3 +242,37 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     assert "next_cursor" in guide
     assert "daily_stop_timezone" in guide
     assert "agent has its own `timezone` field" in guide
+
+
+def test_every_resource_a_prompt_points_at_actually_exists():
+    """A guide that names a resource URI has to be able to hand it over.
+
+    The prompts tell the agent to go read `omnidim://...` for the detail. A
+    rename on one side and not the other leaves the agent chasing a URI the
+    server will not serve, and nothing else catches that.
+    """
+    import re
+
+    from app.procedures import _RESOURCES, _PROMPTS, ROUTING_GUIDE, read_resource
+
+    served = {r["uri"] for r in _RESOURCES}
+    text = ROUTING_GUIDE + "".join(r["text"] for r in _RESOURCES)
+    text += "".join(p["build"]({}) for p in _PROMPTS)
+
+    for uri in set(re.findall(r"omnidim://[a-z0-9/\-]+", text)):
+        assert uri in served, f"{uri} is referenced but not served"
+        assert read_resource(uri) is not None
+
+
+def test_the_carriers_resource_answers_which_carrier_to_buy_from():
+    """carrier is required on search and purchase, and an MCP client will not
+    let the agent omit it to discover the names from the 409. This resource is
+    the only place it can learn them."""
+    from app.procedures import read_resource
+
+    guide = read_resource("omnidim://reference/carriers")["contents"][0]["text"]
+    for carrier in ("carrier-1", "carrier-2-new", "carrier-us"):
+        assert carrier in guide
+    assert "Ask, do not pick" in guide
+    assert "Buy from the carrier you searched" in guide
+    assert "per carrier" in guide
