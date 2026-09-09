@@ -29,7 +29,13 @@ jobs:
       - run: pip install --upgrade pip && pip install -e .
 
       - name: Note which tools exist today
-        run: python -c "import json,re,pathlib; s=pathlib.Path('app/_generated/tools.py').read_text(); pathlib.Path('/tmp/before.json').write_text(json.dumps(sorted(set(re.findall(r'\"name\": \"(\w+)\"', s)))))"
+        run: |
+          python - <<'PY'
+          import json, pathlib, re
+          source = pathlib.Path('app/_generated/tools.py').read_text()
+          names = sorted(set(re.findall(r'"name": "(\w+)"', source)))
+          pathlib.Path('/tmp/before.json').write_text(json.dumps(names))
+          PY
 
       - run: python scripts/regen.py
       - run: python -m pytest -q
