@@ -253,7 +253,7 @@ def test_every_resource_a_prompt_points_at_actually_exists():
     """
     import re
 
-    from app.procedures import _RESOURCES, _PROMPTS, ROUTING_GUIDE, read_resource
+    from app.procedures import _PROMPTS, _RESOURCES, ROUTING_GUIDE, read_resource
 
     served = {r["uri"] for r in _RESOURCES}
     text = ROUTING_GUIDE + "".join(r["text"] for r in _RESOURCES)
