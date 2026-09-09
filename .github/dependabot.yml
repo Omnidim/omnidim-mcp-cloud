@@ -8,10 +8,18 @@ updates:
     labels:
       - dependencies
     groups:
+      # One PR per week, not one per package. Packages that have to move
+      # together fail by construction when split. Majors are grouped too but
+      # kept apart, so one major cannot hold the routine bumps back.
       python-minor-and-patch:
+        patterns: ["*"]
         update-types:
           - minor
           - patch
+      python-major:
+        patterns: ["*"]
+        update-types:
+          - major
 
   - package-ecosystem: github-actions
     directory: /
@@ -21,6 +29,9 @@ updates:
     labels:
       - dependencies
       - github-actions
+    groups:
+      github-actions:
+        patterns: ["*"]
 
   - package-ecosystem: docker
     directory: /
@@ -30,3 +41,6 @@ updates:
     labels:
       - dependencies
       - docker
+    groups:
+      docker:
+        patterns: ["*"]
