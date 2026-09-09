@@ -1,0 +1,86 @@
+# Regenerates the tool registry when the published spec moves.
+#
+# The spec repo dispatches here on merge. spec-drift.yml still runs weekly as
+# a backstop, because GitHub disables a scheduled workflow after 60 days
+# without repo activity.
+#
+# This opens a pull request and stops. For this repo that is the exposure
+# boundary rather than caution: a new operation in the spec becomes a tool
+# every agent can call. Adding a capability to an agent surface is a decision,
+# so the PR says when the regen adds or removes one.
+
+name: spec-regen
+
+on:
+  repository_dispatch:
+    types: [spec-changed]
+  workflow_dispatch:
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install --upgrade pip && pip install -e .
+
+      - name: Note which tools exist today
+        run: python -c "import json,re,pathlib; s=pathlib.Path('app/_generated/tools.py').read_text(); pathlib.Path('/tmp/before.json').write_text(json.dumps(sorted(set(re.findall(r'\"name\": \"(\w+)\"', s)))))"
+
+      - run: python scripts/regen.py
+      - run: python -m pytest -q
+
+      - name: Compare the tool list
+        id: tools
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, re
+          before = set(json.loads(pathlib.Path('/tmp/before.json').read_text()))
+          after = set(re.findall(r'"name": "(\w+)"',
+                                 pathlib.Path('app/_generated/tools.py').read_text()))
+          added, gone = sorted(after - before), sorted(before - after)
+          title = (f"chore: regenerate tools (EXPOSURE CHANGE: +{len(added)} -{len(gone)})"
+                   if added or gone else
+                   "chore: regenerate the tool registry from the updated spec")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"added={','.join(added)}\n")
+              out.write(f"gone={','.join(gone)}\n")
+              out.write(f"title={title}\n")
+          PY
+
+      - name: Mint an installation token
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          # Public identifier, useless without the key.
+          app-id: "4881703"
+          private-key: ${{ secrets.SPEC_BOT_PRIVATE_KEY }}
+
+      # Opened as the app, not GITHUB_TOKEN, or the PR arrives with no checks.
+      - name: Open a PR if the registry changed
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.token.outputs.token }}
+          branch: chore/spec-regen
+          delete-branch: true
+          commit-message: "chore: regenerate the tool registry from the updated spec"
+          title: ${{ steps.tools.outputs.title }}
+          body: |
+            The published OpenAPI spec changed and this regenerates the tool
+            registry from it.
+
+            **Tools added:** ${{ steps.tools.outputs.added || 'none' }}
+            **Tools removed:** ${{ steps.tools.outputs.gone || 'none' }}
+
+            If either list is non-empty this changes what agents can do, not
+            just how it reads. Anything added is callable by every agent on the
+            hosted server once this deploys, so check it belongs on this
+            surface before merging. To keep an operation off, add its
+            `operationId` to `exclude.operation_ids` in `mcp-config.yaml` with
+            a reason and regenerate.
+
+            Deploying is still a `v*` tag by hand.
