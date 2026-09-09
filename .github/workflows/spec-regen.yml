@@ -1,0 +1,142 @@
+# Regenerates the tool registry when the published spec moves.
+#
+# The spec repo dispatches here on merge. spec-drift.yml still runs weekly as
+# a backstop, because GitHub disables a scheduled workflow after 60 days
+# without repo activity.
+#
+# This opens a pull request and stops. For this repo that is the exposure
+# boundary rather than caution: a new operation in the spec becomes a tool
+# every agent can call. Adding a capability to an agent surface is a decision,
+# so the PR says when the regen adds or removes one.
+
+name: spec-regen
+
+on:
+  repository_dispatch:
+    types: [spec-changed]
+  workflow_dispatch:
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+      # ".[dev]" not ".", or pytest is not installed and the test step dies.
+      # Same install ci.yml uses.
+      - run: pip install --upgrade pip && pip install -e ".[dev]"
+
+      - name: Note which tools exist today
+        run: |
+          python - <<'PY'
+          import json, pathlib, re
+          source = pathlib.Path('app/_generated/tools.py').read_text()
+          names = sorted(set(re.findall(r'"name": "(\w+)"', source)))
+          pathlib.Path('/tmp/before.json').write_text(json.dumps(names))
+          PY
+
+      - run: python scripts/regen.py
+
+      # No test step. The suite needs a Postgres service for the token flow,
+      # and duplicating that here buys nothing: the PR this opens is authored
+      # by the app, so ci.yml runs on it with the services it declares. A
+      # regen that breaks something should arrive as a PR with red checks,
+      # not as no PR at all.
+
+      - name: Compare the tool list
+        id: tools
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, re
+          before = set(json.loads(pathlib.Path('/tmp/before.json').read_text()))
+          after = set(re.findall(r'"name": "(\w+)"',
+                                 pathlib.Path('app/_generated/tools.py').read_text()))
+          added, gone = sorted(after - before), sorted(before - after)
+          title = (f"chore: regenerate tools (EXPOSURE CHANGE: +{len(added)} -{len(gone)})"
+                   if added or gone else
+                   "chore: regenerate the tool registry from the updated spec")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"added={','.join(added)}\n")
+              out.write(f"gone={','.join(gone)}\n")
+              out.write(f"title={title}\n")
+          PY
+
+      - name: Mint an installation token
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          # Public identifier, useless without the key.
+          app-id: "4881703"
+          private-key: ${{ secrets.SPEC_BOT_PRIVATE_KEY }}
+
+      # Opened as the app, not GITHUB_TOKEN, or the PR arrives with no checks.
+      - name: Open a PR if the registry changed
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.token.outputs.token }}
+          branch: chore/spec-regen
+          delete-branch: true
+          commit-message: "chore: regenerate the tool registry from the updated spec"
+          title: ${{ steps.tools.outputs.title }}
+          body: |
+            The published OpenAPI spec changed and this regenerates the tool
+            registry from it.
+
+            **Tools added:** ${{ steps.tools.outputs.added || 'none' }}
+            **Tools removed:** ${{ steps.tools.outputs.gone || 'none' }}
+
+            If either list is non-empty this changes what agents can do, not
+            just how it reads. Anything added is callable by every agent on the
+            hosted server once this deploys, so check it belongs on this
+            surface before merging. To keep an operation off, add its
+            `operationId` to `exclude.operation_ids` in `mcp-config.yaml` with
+            a reason and regenerate.
+
+            Deploying is still a `v*` tag by hand.
+
+            With no exposure change this PR sets itself to auto-merge and
+            lands once the required checks pass. An exposure change stays open
+            for a person. Either way, publishing is still a `v*` tag by hand.
+
+      # No EXPOSURE CHANGE in the title means no operation appeared or
+      # vanished, so no agent gained or lost a capability and there is nothing
+      # for a person to decide. An exposure change is left open on purpose.
+      # Auto-merge still waits on the required checks and will not override a
+      # red one; branch protection is what makes this safe.
+      - name: Auto-merge a pure refresh once its checks pass
+        if: steps.pr.outputs.pull-request-number != '' && !contains(steps.tools.outputs.title, 'EXPOSURE CHANGE')
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto --squash --delete-branch
+
+      # A regen that dies before opening a PR leaves nothing behind, and a red
+      # run in a tab nobody has open is how the spec drifted in the first
+      # place. One issue, reused until it is closed.
+      - name: Open an issue if the regen never produced a PR
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'spec-drift',
+            });
+            if (existing.data.length) return;
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Spec regen failed: this surface is still on the old spec',
+              labels: ['spec-drift'],
+              body: `\`spec-regen\` failed on ${context.sha}. Either no PR was `
+                + `opened, or one was opened and could not be set to auto-merge.\n\n`
+                + `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`
+                + `/actions/runs/${context.runId}`,
+            });

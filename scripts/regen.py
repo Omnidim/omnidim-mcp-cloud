@@ -15,6 +15,10 @@ Writes:
 
 Run after the upstream spec or mcp-config.yaml changes:
   ./.venv/bin/python scripts/regen.py
+
+Pass --check to compare against the committed output instead of writing it.
+Exits non-zero when the upstream spec has moved on, which is how CI notices
+that the exposed tool surface no longer matches the API.
 """
 from __future__ import annotations
 
@@ -235,12 +239,78 @@ def build_tool(
     }
 
 
+def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
+    """Drop named parameters from an operation that is otherwise exposed.
+
+    Done on the spec object before build_tool sees it, so the field leaves the
+    input schema and the execution parameters together.
+    """
+    names = (exclude.get("parameters") or {}).get(op.get("operationId")) or []
+    if not names:
+        return 0
+    dropped = 0
+    params = op.get("parameters")
+    if isinstance(params, list):
+        before = len(params)
+        op["parameters"] = [p for p in params if p.get("name") not in names]
+        dropped += before - len(op["parameters"])
+    schema = (
+        (op.get("requestBody") or {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema")
+    )
+    if isinstance(schema, dict) and isinstance(schema.get("properties"), dict):
+        for name in names:
+            if name in schema["properties"]:
+                del schema["properties"][name]
+                dropped += 1
+            if isinstance(schema.get("required"), list):
+                schema["required"] = [r for r in schema["required"] if r != name]
+    return dropped
+
+
 def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
     if path in (exclude.get("paths") or []):
         return True
     if op_id in (exclude.get("operation_ids") or []):
         return True
     return False
+
+
+def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
+    """Compare a fresh generation against the committed sentinel + registry."""
+    # Imported here so a plain regen never depends on the committed output.
+    from app._generated.tools import TOOLS as committed
+
+    problems: list[str] = []
+    sentinel = dict(
+        line.split(": ", 1)  # type: ignore[misc]
+        for line in OUT_HASH.read_text().splitlines()
+        if ": " in line
+    )
+    if sentinel.get("openapi_spec_sha256") != spec_hash:
+        problems.append(
+            f"spec moved: committed {sentinel.get('openapi_spec_sha256', '?')[:12]}, "
+            f"upstream {spec_hash[:12]}"
+        )
+    if sentinel.get("mcp_config_sha256") != config_hash:
+        problems.append("mcp-config.yaml changed since the last regen")
+
+    fresh_names = {t["name"] for t in tools}
+    committed_names = {t["name"] for t in committed}
+    if added := sorted(fresh_names - committed_names):
+        problems.append(f"upstream added tools not exposed: {', '.join(added)}")
+    if gone := sorted(committed_names - fresh_names):
+        problems.append(f"exposed tools no longer in the spec: {', '.join(gone)}")
+
+    if problems:
+        for p in problems:
+            sys.stderr.write(f"drift: {p}\n")
+        sys.stderr.write("run scripts/regen.py and commit the result\n")
+        return 1
+    print(f"in sync. {len(tools)} tools, spec {spec_hash[:12]}.")
+    return 0
 
 
 def main() -> int:
@@ -254,6 +324,7 @@ def main() -> int:
     tools: list[dict[str, Any]] = []
     skipped: list[str] = []
 
+    stripped = 0
     for path, methods in spec.get("paths", {}).items():
         path_item_params = methods.get("parameters", []) or []
         for method, op in methods.items():
@@ -263,6 +334,7 @@ def main() -> int:
             if is_excluded(path, op_id, exclude):
                 skipped.append(f"{method.upper()} {path}")
                 continue
+            stripped += strip_params(op, exclude)
             tools.append(build_tool(path, method, op, path_item_params, spec))
 
     tools.sort(key=lambda t: t["name"])
@@ -271,6 +343,9 @@ def main() -> int:
     # tools.py is in sync with the source of truth.
     spec_hash = hashlib.sha256(spec_bytes).hexdigest()
     config_hash = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
+
+    if "--check" in sys.argv[1:]:
+        return check(spec_hash, config_hash, tools)
 
     # Embed the registry as a JSON string and load it at import time so the
     # generated module stays valid Python regardless of whether descriptions

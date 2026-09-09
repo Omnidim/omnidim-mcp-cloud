@@ -5,6 +5,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Final
+from urllib.parse import quote
 
 import httpx
 import structlog
@@ -15,7 +16,7 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://backend.omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.5.0"
+USER_AGENT: Final = "omnidim-mcp-cloud/0.9.0"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
@@ -138,7 +139,10 @@ def _substitute_path(template: str, args: dict[str, Any], path_params: list[str]
     for p in path_params:
         if p not in args:
             raise DispatchError(-32602, f"missing required path parameter: {p}")
-        path = path.replace(f"{{{p}}}", str(args[p]))
+        # Percent-encode the whole value: an unencoded `../` or `?` in a path
+        # argument would rewrite the upstream URL and reach endpoints outside
+        # the generated tool surface.
+        path = path.replace(f"{{{p}}}", quote(str(args[p]), safe=""))
     return path
 
 

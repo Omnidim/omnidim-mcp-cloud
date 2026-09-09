@@ -8,12 +8,14 @@ import hashlib
 import json
 import secrets
 from collections.abc import Callable
+from pathlib import Path
 
 import httpx
 import pytest
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
+from app.routes.mcp import SERVER_INFO
 from app.services import dispatcher
 
 
@@ -260,6 +262,85 @@ async def test_mcp_tools_call_substitutes_path_param(
     assert res.json()["result"]["isError"] is False
 
 
+async def test_mcp_tools_call_encodes_path_params(
+    client: AsyncClient, mock_backend
+) -> None:
+    """A path argument must not be able to rewrite the upstream URL. An
+    unencoded `../` escaped /api/v1/ and reached endpoints that are
+    deliberately excluded from the tool surface.
+    """
+    token = await _mint_access_token(client)
+    captured = mock_backend(lambda req: httpx.Response(200, json={"id": 1}))
+    await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {"name": "getAgent", "arguments": {"agent_id": "../../simulations"}},
+        },
+    )
+    sent = captured[0]
+    # raw_path is what goes on the wire; .path is the decoded view.
+    assert sent.url.raw_path == b"/api/v1/agents/..%2F..%2Fsimulations"
+    assert not sent.url.params
+
+
+def test_registry_excludes_off_surface_operations() -> None:
+    """The exposure config in mcp-config.yaml is enforced at generation time,
+    so a stale committed registry is the only way an excluded operation can
+    reach clients. Guard the committed file.
+    """
+    names = {t["name"] for t in TOOLS}
+    for name in (
+        "listSimulations",
+        "createSimulation",
+        "getSimulation",
+        "updateSimulation",
+        "deleteSimulation",
+        "startSimulation",
+        "stopSimulation",
+        "enhancePrompt",
+    ):
+        assert name not in names, name
+
+
+def test_registry_matches_regen_sentinel() -> None:
+    """tools.py and .spec.yml are written by the same regen run. A count
+    mismatch means one was hand-edited or a regen was left half-committed.
+    """
+    sentinel = (Path(__file__).parent.parent / "app" / "_generated" / ".spec.yml").read_text()
+    declared = next(
+        int(line.split(":", 1)[1])
+        for line in sentinel.splitlines()
+        if line.startswith("tool_count:")
+    )
+    assert declared == len(TOOLS)
+
+
+def test_reported_version_matches_the_package() -> None:
+    """serverInfo and the upstream User-Agent are hand-written literals. A
+    release that bumps only pyproject leaves clients reading a stale version.
+    """
+    root = Path(__file__).parent.parent
+    declared = next(
+        line.split('"')[1]
+        for line in (root / "pyproject.toml").read_text().splitlines()
+        if line.startswith("version = ")
+    )
+    assert SERVER_INFO["version"] == declared
+    assert dispatcher.USER_AGENT == f"omnidim-mcp-cloud/{declared}"
+
+
+def test_registry_order_is_deterministic() -> None:
+    """tools/list order feeds LLM prompt caches, so it must not shuffle
+    between regens.
+    """
+    names = [t["name"] for t in TOOLS]
+    assert names == sorted(names)
+
+
 async def test_mcp_tools_call_unknown_tool(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     res = await client.post(
@@ -285,7 +366,7 @@ async def test_mcp_tools_call_redacts_api_key_in_response(
         lambda req: httpx.Response(
             200,
             json={
-                "organizations": [
+                "agents": [
                     {"id": 1, "name": "Acme", "api_key": "sk_super_secret"},
                 ]
             },
@@ -298,7 +379,7 @@ async def test_mcp_tools_call_redacts_api_key_in_response(
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": {"name": "listChildOrganizations", "arguments": {}},
+            "params": {"name": "listAgents", "arguments": {}},
         },
     )
     text = res.json()["result"]["content"][0]["text"]

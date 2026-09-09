@@ -23,6 +23,14 @@ give it a **phone number** and optionally a **knowledge base**, then place
   `audit_calls` prompt, then `listCallLogs` + `getCallLog`.
 - "List / inspect what exists" -> `listAgents`, `listPhoneNumbers`,
   `listVoices`, `listKnowledgeBaseFiles`.
+- "Get me a number / buy a number" -> `searchPhoneNumbers` { region, carrier }
+  then `purchasePhoneNumber`. This spends the account's balance, so confirm the
+  exact number and price with the user before buying. `releasePhoneNumber`
+  gives one up and cannot be undone.
+  `carrier` is required on both calls, in every region. Carriers do not stock
+  the same numbers, so ask the user which one they want rather than picking:
+  see the `omnidim://reference/carriers` resource for what each one stocks.
+  `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
 - "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
   call tools.
 
@@ -57,6 +65,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
    everywhere downstream); `listPhoneNumbers` -> `id` (used as
    `phone_number_id` to attach and as `from_number_id` to dispatch).
 10. **Phone numbers are E.164 with a leading `+`** everywhere.
+11. **`voice.speech_speed` has a playable range per provider.** Default is
+    `1.0`; only set it when the user wants faster/slower speech. For
+    `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
+    silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
@@ -72,7 +84,11 @@ _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level 
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
 3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
    `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
-   import one first (importTwilioNumber / importExotelNumber / importSipTrunk).
+   either buy one (`searchPhoneNumbers` { region, carrier } then
+   `purchasePhoneNumber`, which charges the account, so confirm with the user
+   first and never pick for them; `carrier` is required on both calls in every
+   region, and carriers do not stock the same numbers) or import one you
+   already own (importTwilioNumber / importExotelNumber / importSipTrunk).
 4. Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }."""
 
 
@@ -141,6 +157,78 @@ def _audit_calls(args: dict[str, Any]) -> str:
     )
 
 
+def _restore_agent_version(args: dict[str, Any]) -> str:
+    agent_id = args.get("agent_id") or "<agent_id>"
+    goal = args.get("goal") or "(describe which earlier state you want back)"
+    return (
+        f'Roll agent {agent_id} back to an earlier version.\n\nGoal: "{goal}"\n\n'
+        "Follow these steps in order. Do NOT restore blindly, preview first.\n"
+        f"1. `listAgentVersions` {{ agent_id: {agent_id} }}. Versions come newest first; each has a "
+        "`version_number`, `kind` (manual / auto / system), who saved it, when, and a `change_summary` "
+        "(what changed in that version). Use the names, timestamps, and change summaries to find the one that "
+        "matches the goal above. If version history is off for this org these calls return 403 "
+        "(feature_disabled); report that and stop.\n"
+        f"2. Preview the effect: `diffAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen>, "
+        'against: "current" }. This shows exactly what restoring that version WOULD change vs the agent\'s live '
+        "config, grouped by area (Settings, Prompt, Transfer rules, etc.). If it reports no meaningful change, tell "
+        "the user there is nothing to restore and stop. Show the user this preview and confirm before the next step.\n"
+        f"3. Restore: `restoreAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen> }}. This automatically "
+        'saves the current state as a "Backup before restore" version first (so the restore is itself undoable), '
+        "then writes the chosen config back. Check the response's `skipped` list: knowledge files or integrations "
+        "that no longer exist are dropped and reported, not restored.\n"
+        "4. Confirm: `listAgentVersions` again (a new system \"Backup before restore\" entry should be at the top) "
+        "and tell the user they can undo by restoring it.\n\n"
+        "See the `omnidim://guide/agent-versioning` resource for the full tool list and the diff `against` modes."
+    )
+
+
+def _build_outbound_campaign(args: dict[str, Any]) -> str:
+    goal = args.get("goal") or "(describe who to call and why)"
+    agent_id = args.get("agent_id")
+    phone_number_id = args.get("phone_number_id")
+    number_line = (
+        f'Use phone_number_id "{phone_number_id}".'
+        if phone_number_id
+        else "Call `listPhoneNumbers` and pick the dialing number WITH the user; never pick silently."
+    )
+    agent_line = (
+        f"Pass bot_id {agent_id} so this agent runs the calls even if the number has a different or no agent attached."
+        if agent_id
+        else "If the number has an agent attached it runs the calls; otherwise pass a `bot_id`."
+    )
+    return (
+        f'Set up and launch an OmniDimension bulk-call campaign for this goal:\n\n"{goal}"\n\n'
+        "Follow these steps in order. Write tools take flat top-level arguments (no `requestBody` wrapper).\n"
+        "A campaign dials real people and spends real money: confirm the plan with the user before\n"
+        "`startBulkCall`, and never start one they have not approved.\n\n"
+        "1. Decide the shape: a one-time list is a normal campaign; continuously arriving leads mean a\n"
+        "   dynamic campaign (`is_dynamic: true`) fed by `addBulkCallContact` instead of steps 3 and 5.\n"
+        f"2. Number and agent: {number_line} {agent_line}\n"
+        "3. Create it as a draft with `createBulkCall`\n"
+        "   { name, phone_number_id, save_as_draft: true, concurrent_call_limit: <sized below> }.\n"
+        "   Add `rotation` when dialing from several numbers (see the bulk-campaigns resource for the\n"
+        "   shape). Keep the returned `id`.\n"
+        "4. Size concurrency from the goal's numbers, not a guess: per channel, 3600 / average call seconds\n"
+        "   gives calls per hour (~40 at 90s); divide the target hourly rate by that. Show the arithmetic\n"
+        "   to the user.\n"
+        "5. Add contacts with `addBulkCallContacts` in batches of up to 1000:\n"
+        '   { bulk_call_id, contacts: [{ to_number: "+1...", custom_variables: {...} }] }.\n'
+        "   This shape differs from create's contact_list on purpose; do not mix them. Report anything\n"
+        "   that comes back in `rejected` with its row index.\n"
+        "6. Calling hours: if the goal names a time window, set it with `setBulkCallDailyTimeControl`\n"
+        "   (both the stop and start blocks are required) and pass `daily_stop_timezone`/\n"
+        "   `daily_start_timezone` for the customers' region; left out they fall back to the campaign's\n"
+        "   timezone, and a mismatch dials people at night. Also set the agent's own `timezone` field\n"
+        "   (`updateAgent`) so it works with the customers' local time on calls.\n"
+        "7. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
+        "   their explicit go-ahead. Then `startBulkCall`.\n"
+        "8. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
+        "   with `listBulkCallLines` (follow `next_cursor` until null) and offer `retryBulkCall` for\n"
+        "   contacts that did not connect.\n\n"
+        "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
+    )
+
+
 _PROMPTS: list[dict[str, Any]] = [
     {
         "name": "provision_agent",
@@ -167,6 +255,31 @@ _PROMPTS: list[dict[str, Any]] = [
             {"name": "call_status", "description": "Optional status filter. Note the enum uses a hyphen for no-answer: completed | busy | failed | no-answer.", "required": False},
         ],
         "build": _audit_calls,
+    },
+    {
+        "name": "build_outbound_campaign",
+        "description": (
+            "Set up and launch a bulk-call campaign safely: draft it, batch the contacts in, size concurrency "
+            "from the numbers, check calling hours, then start and watch it."
+        ),
+        "arguments": [
+            {"name": "goal", "description": "Who to call and why, in plain language (e.g. 'call 8,000 renewal leads today between 9 and 6 Eastern').", "required": True},
+            {"name": "agent_id", "description": "Optional agent to run the calls (the listAgents id). If omitted, the agent attached to the chosen number runs them.", "required": False},
+            {"name": "phone_number_id", "description": "Optional number id to dial from (from listPhoneNumbers). If omitted, pick with the user from their numbers.", "required": False},
+        ],
+        "build": _build_outbound_campaign,
+    },
+    {
+        "name": "restore_agent_version",
+        "description": (
+            "Safely roll an agent back to an earlier saved version: find the right snapshot, preview exactly what "
+            "restoring changes, then restore."
+        ),
+        "arguments": [
+            {"name": "agent_id", "description": "The agent to roll back (the listAgents / createAgent id).", "required": True},
+            {"name": "goal", "description": "What you want to get back to, in plain language (e.g. 'the version before I broke the transfer flow').", "required": False},
+        ],
+        "build": _restore_agent_version,
     },
 ]
 
@@ -241,8 +354,13 @@ wrapper; see the routing guide). The fields:
   agent's instructions.
 - `call_type` -- "Incoming" or "Outgoing".
 - `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
-- `voice` -- `{ provider, voice_id, model? }`. `model` (e.g. `sonic-3.5`) is
-  only needed for `cartesia`.
+- `voice` -- `{ provider, voice_id, model?, speech_speed? }`. `model` (e.g.
+  `sonic-3.5`) is only needed for `cartesia`. `speech_speed` is a playback
+  multiplier (default `1.0`); leave it out unless the user asks for faster or
+  slower speech. If you do set it, stay in the provider's playable range or the
+  call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
+  0.9-1.1) -- a value outside 0.7-1.2 produces no audio at all. `cartesia`
+  accepts 0.6-1.5 and `smallest-tts` 0.5-2.0.
 - `transcriber` -- `{ provider, model?, language? }`. `model` (`nova-3` /
   `nova-2`) is only needed for `deepgram_stream`.
 
@@ -278,6 +396,185 @@ Then give the agent a phone number and verify with a test call (the
 `provision_agent` prompt walks through this end to end).
 """
 
+VERSIONING_GUIDE = """# Agent version history
+
+A **version** is a frozen snapshot of an agent's configuration at a point in
+time. Use it to save a known-good setup before a risky change, and to roll back
+if a change makes the agent worse.
+
+## The tools
+
+- `listAgentVersions` { agent_id } - the timeline, newest first. Each entry has a
+  `version_number`, a `kind`, who saved it, and a `change_summary` (a one-line
+  "what changed in this version vs the one before it").
+- `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
+  config as a named version.
+- `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
+- `restoreAgentVersion` { agent_id, version_number } - write a version back onto
+  the live agent.
+- `renameAgentVersion` / `deleteAgentVersion` - tidy the timeline.
+
+`kind` is `manual` (a person saved it), `auto` (saved automatically a few minutes
+after editing settles - you do NOT trigger these), or `system` (a safety backup
+taken automatically right before a restore).
+
+## When to snapshot
+
+Call `createAgentVersion` right BEFORE a change you might want to undo (swapping
+the model/voice, rewriting the prompt, changing transfer rules). Give it a clear
+`name`. You do not need to snapshot after routine edits - the platform auto-saves
+settled states on its own.
+
+## How to read a diff
+
+`diffAgentVersion` returns `{ changed, groups }`, each group an area (Settings,
+Prompt, Transfer rules, Post-call actions, Knowledge, Integrations, Web widget,
+Conversation flow, Other settings) with the specific old -> new changes. Pick the
+comparison with `against`:
+
+- **omit / `against=previous`** (default): what changed IN this version vs the
+  one before it. Matches the `change_summary` in the list.
+- **`against=current`**: what restoring this version WOULD change vs the agent's
+  live config right now. Read this before a restore to preview the effect.
+- **`against=<number>`**: compare with a specific other version.
+
+## How to decide and perform a restore
+
+1. `listAgentVersions` and scan `change_summary` to find the target version.
+2. `diffAgentVersion` { version_number, against: "current" } to preview exactly
+   what restoring changes. If nothing meaningful changed, there is nothing to do.
+3. `restoreAgentVersion` { agent_id, version_number }. This first saves the
+   current state as a `system` "Backup before restore" version (so the restore is
+   itself undoable), then writes the chosen config back. The response's `skipped`
+   list reports references (knowledge files, integrations) that no longer exist
+   and were dropped rather than failing the restore.
+4. Confirm with `listAgentVersions` (a new `system` backup appears at the top).
+
+## Gotchas
+
+- Version history is enabled per organization. If it is off for the caller's org,
+  these endpoints return 403 (`feature_disabled`).
+- `createAgentVersion` refuses a no-op: if nothing changed since the latest
+  version it returns 409 (`no_changes`). Make a real change first.
+- There is a per-agent cap on versions created through the API; at the cap
+  `createAgentVersion` returns 409 (`version_limit_reached`) - delete an old one.
+- `listAgentVersions` and `diffAgentVersion` are read-only and safe to call
+  freely. Restore and delete mutate the live agent - confirm intent first.
+"""
+
+BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
+
+## Normal or dynamic
+- One-time list: a normal campaign. Create it (as a draft), add contacts, start it.
+- Continuous leads (form fills, CRM events): a dynamic campaign (`is_dynamic: true`,
+  no contact list) fed by `addBulkCallContact` as each lead arrives. The faster a
+  fresh lead is called, the higher the conversion.
+
+## The two contact shapes (do not mix them)
+- `createBulkCall`'s `contact_list` rows are FLAT:
+  `{ "phone_number": "+1...", "any_other_key": "reaches the agent as context" }`.
+- `addBulkCallContact` / `addBulkCallContacts` instead take
+  `{ to_number, custom_variables: {...}, metadata: {...} }`. `metadata` is
+  bookkeeping the agent never sees.
+- Sending `custom_variables` inside a `contact_list` row does not error; it becomes
+  one nested variable and garbles the agent's context.
+
+## Build as a draft, then start
+- `createBulkCall` { name, phone_number_id, save_as_draft: true, ... }. Keep the
+  returned `id`. Without `save_as_draft` the campaign dials the moment it is created.
+- `addBulkCallContacts` accepts up to 1000 contacts per request. Invalid rows come
+  back in `rejected` with their index and reason; valid rows are still added, so one
+  bad number never costs the batch.
+- `startBulkCall` launches a draft.
+- Adding contacts is NOT dynamic-only: any campaign that is not cancelled or failed
+  accepts them, and a completed campaign wakes up and dials again.
+
+## Size concurrency with arithmetic, not vibes
+- Calls per hour per channel = 3600 / average call seconds (~40/hour at 90s).
+- Channels needed = target calls per hour / per-channel rate.
+- Example: 100,000 calls in an 8-hour day is 12,500/hour, ~315 channels. The failure
+  mode: concurrency 5 against 10,000 leads is ~200 calls/hour, a 50-hour "today"
+  campaign.
+- `setBulkCallConcurrency` changes it mid-run; the org's ceiling caps it.
+
+## Numbers and rotation
+- One number dialing a whole campaign collects spam reports and stops being answered.
+  Rotate: `rotation: { numbers: [{ phone_number_id, sequence }], strategy:
+  "fixed_count", calls_per_number: 50 }` at create.
+- `phone_number_id` stays required and becomes the standby; list it in
+  `rotation.numbers` too if it should take a share of the calls.
+- A rotation number attached to a DIFFERENT agent is refused by name. Attach it to
+  this campaign's agent first, or leave it out.
+- `listBulkCallNumbers` shows which number is dialing now; `setBulkCallNumberActive`
+  pauses one without losing its history (the last active number of a running
+  campaign cannot be paused).
+- Check a new number's reputation before a campaign and watch pickup rates.
+
+## Calling hours and the timezone trap
+- `setBulkCallDailyTimeControl` sets a hard stop and an auto start; the API requires
+  both blocks together.
+- Each block carries its own timezone (`daily_stop_timezone`, `daily_start_timezone`);
+  left out, it falls back to the campaign's `timezone`, not the operator's. A wrong
+  timezone dials people at 11 PM, which is a compliance problem. Set both to the
+  customers' region.
+- The agent has its own `timezone` field (`createAgent`/`updateAgent`) that sets the
+  local date and time it works with during calls. Set that to the customers' region too.
+
+## Watching a campaign and reading results
+- `getBulkCallLiveStatus` for progress counts while it runs.
+- `listBulkCallLines` for per-contact outcomes: `pagesize` up to 150, follow
+  `next_cursor` until it comes back null, never build a cursor yourself.
+  `include_total` once for a header, not on every page.
+- Rows carry `recording_id`, not the transcript; `getCallLog` serves it.
+- `retryBulkCall` re-queues contacts that did not connect; it refuses a campaign
+  that is still running.
+
+## Contact rules
+- Numbers are E.164 with the country code. Run one campaign per country code.
+- Dashboard CSV uploads need the phone column named exactly `phone_number`.
+"""
+
+CARRIERS_GUIDE = """# Which carrier to buy from
+
+A region holds one or more carriers. They do not stock the same numbers and
+they are not interchangeable, so `carrier` is **required** on
+`searchPhoneNumbers` and `purchasePhoneNumber`, in every region, however few
+it holds.
+
+## What each one stocks
+
+| Region | `carrier` | Stocks |
+|---|---|---|
+| `IN` | `carrier-1` | Landline numbers, city codes 11, 12 and 80 |
+| `IN` | `carrier-2-new` | Mobile numbers, 94 and 79 series |
+| `US` | `carrier-us` | US local numbers, by area code |
+
+A snapshot, not the authority. The API is: omit `carrier` on a call that needs
+one and the `409 carrier_required` body lists that region's carriers with what
+each stocks and whether each is taking orders. Many MCP clients will not let
+you omit a required field, which is why the table is here at all. If a user
+names a carrier that is not in it, pass it through rather than refusing: this
+file can be older than the account.
+
+## Rules
+
+- **Ask, do not pick.** Landline and mobile are not substitutes, and buying
+  spends the account's balance on a rental that renews. If the user has not
+  said which they want, ask, and say what each one stocks.
+- **Buy from the carrier you searched.** `searchPhoneNumbers` echoes the
+  `carrier` its results came from. Pass that exact value to
+  `purchasePhoneNumber`, or you are buying out of inventory you never looked
+  at.
+- **Verification is per carrier.** An account verified on one carrier of a
+  region is not verified on the other, and a purchase it has not cleared fails
+  with `409 kyc_incomplete`. Verification is not on this surface: send the user
+  to the dashboard number shop.
+- **A carrier can be down.** One flagged unavailable is still named in the
+  refusal, and a purchase against it answers `422 purchase_failed`. Sell from
+  another one meanwhile.
+- **The name is stable across a rename**, so it is safe for a user to store.
+"""
+
 _RESOURCES: list[dict[str, str]] = [
     {
         "uri": "omnidim://guide/routing",
@@ -306,6 +603,27 @@ _RESOURCES: list[dict[str, str]] = [
         "description": "The createAgent field shape with two complete, copy-ready example configurations (Indian-English support, Hindi/Hinglish reminder).",
         "mimeType": "text/markdown",
         "text": AGENT_CONFIG_GUIDE,
+    },
+    {
+        "uri": "omnidim://guide/bulk-campaigns",
+        "name": "Running outbound campaigns",
+        "description": "The campaign lifecycle end to end: draft, batch contacts (two contact shapes, do not mix), rotation, concurrency arithmetic, the agent-timezone trap, cursor-paged results.",
+        "mimeType": "text/markdown",
+        "text": BULK_CAMPAIGNS_GUIDE,
+    },
+    {
+        "uri": "omnidim://reference/carriers",
+        "name": "Which carrier to buy a number from",
+        "description": "The carriers each region holds and what each one stocks, why `carrier` is required on search and purchase, and the rules that decide which to use: ask rather than pick, buy from the carrier you searched, verification is per carrier.",
+        "mimeType": "text/markdown",
+        "text": CARRIERS_GUIDE,
+    },
+    {
+        "uri": "omnidim://guide/agent-versioning",
+        "name": "Agent version history",
+        "description": "How to save, diff, and restore agent config snapshots: which tool to call, what the diff `against` modes mean, how to decide on a restore, and the 403/409 gotchas.",
+        "mimeType": "text/markdown",
+        "text": VERSIONING_GUIDE,
     },
 ]
 

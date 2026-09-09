@@ -1,9 +1,25 @@
 """MCP tool annotations: unit logic + tools/list wiring."""
 from httpx import AsyncClient
 
+from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 
 from .test_mcp_transport import _mint_access_token
+
+
+def test_every_generated_tool_has_a_title() -> None:
+    """Regen adds tools; titles are hand-authored. Without this guard a new
+    tool ships with no display name (the version-history tools did).
+    """
+    missing = [t["name"] for t in TOOLS if "title" not in tool_annotations(t["name"], t["method"])]
+    assert missing == []
+
+
+def test_version_overwrite_and_removal_are_destructive() -> None:
+    for name in ("deleteAgentVersion", "restoreAgentVersion"):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is False, name
 
 
 def test_get_tools_are_read_only() -> None:
@@ -16,7 +32,6 @@ def test_get_tools_are_read_only() -> None:
 
 def test_preview_posts_are_read_only() -> None:
     assert tool_annotations("canUploadFile", "POST")["readOnlyHint"] is True
-    assert tool_annotations("calculateCreditOperation", "POST")["readOnlyHint"] is True
 
 
 def test_plain_writes_are_not_destructive() -> None:
@@ -27,17 +42,58 @@ def test_plain_writes_are_not_destructive() -> None:
 
 
 def test_removals_are_destructive_not_open_world() -> None:
-    for name in ("deleteAgent", "cancelBulkCall", "detachPhoneNumber", "revertCreditsFromChild"):
+    for name in ("deleteAgent", "cancelBulkCall", "detachPhoneNumber"):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is False, name
 
 
 def test_call_placing_tools_are_destructive_and_open_world() -> None:
-    for name in ("dispatchCall", "createBulkCall", "addBulkCallContact"):
+    for name in (
+        "dispatchCall",
+        "createBulkCall",
+        "addBulkCallContact",
+        "addBulkCallContacts",
+        "startBulkCall",
+        "retryBulkCall",
+    ):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is True, name
+
+
+def test_campaign_config_writes_are_not_destructive() -> None:
+    for name, method in (
+        ("setBulkCallConcurrency", "PUT"),
+        ("setBulkCallDailyTimeControl", "PUT"),
+        ("addBulkCallNumber", "POST"),
+        ("setBulkCallNumberActive", "PUT"),
+    ):
+        a = tool_annotations(name, method)
+        assert a["readOnlyHint"] is False, name
+        assert a["destructiveHint"] is False, name
+        assert a["openWorldHint"] is False, name
+
+
+def test_campaign_reads_are_read_only() -> None:
+    for name in ("listBulkCallLines", "listBulkCallNumbers"):
+        a = tool_annotations(name, "GET")
+        assert a["readOnlyHint"] is True, name
+        assert a["openWorldHint"] is False, name
+
+
+def test_phone_number_purchase_and_release_are_destructive_and_open_world() -> None:
+    for name in ("purchasePhoneNumber", "releasePhoneNumber"):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is True, name
+
+
+def test_phone_number_search_is_read_only() -> None:
+    a = tool_annotations("searchPhoneNumbers", "GET")
+    assert a["readOnlyHint"] is True
+    assert a["openWorldHint"] is False
+    assert a["title"] == "Search available phone numbers"
 
 
 async def test_tools_list_includes_annotations(client: AsyncClient) -> None:

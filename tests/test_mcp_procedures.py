@@ -97,6 +97,47 @@ async def test_resources_read_unknown(client: AsyncClient) -> None:
     assert res.json()["error"]["code"] == -32602
 
 
+async def test_versioning_prompt_and_resource(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    # The restore prompt is advertised.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 20, "method": "prompts/list"},
+    )
+    names = {p["name"] for p in res.json()["result"]["prompts"]}
+    assert "restore_agent_version" in names
+    # It weaves in the agent id and steers to preview-before-restore.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "prompts/get",
+            "params": {"name": "restore_agent_version", "arguments": {"agent_id": "6391"}},
+        },
+    )
+    text = res.json()["result"]["messages"][0]["content"]["text"]
+    assert "6391" in text
+    assert "restoreAgentVersion" in text
+    assert 'against: "current"' in text
+    # The versioning guide resource explains the diff modes and the gotchas.
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 22,
+            "method": "resources/read",
+            "params": {"uri": "omnidim://guide/agent-versioning"},
+        },
+    )
+    guide = res.json()["result"]["contents"][0]["text"]
+    assert "against=current" in guide
+    assert "feature_disabled" in guide
+
+
 async def _read_resource(client: AsyncClient, token: str, uri: str) -> str:
     res = await client.post(
         "/mcp",
@@ -137,6 +178,18 @@ async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
     assert '"transcriber": { "provider": "azure_stream" }' in text
 
 
+async def test_speech_speed_range_is_documented(client: AsyncClient) -> None:
+    # A speech_speed outside the provider's playable range silently mutes the
+    # call (ElevenLabs: no audio outside 0.7-1.2), so the guidance must state it.
+    token = await _mint_access_token(client)
+    cfg = await _read_resource(client, token, "omnidim://reference/agent-config")
+    assert "speech_speed" in cfg
+    assert "0.7-1.2" in cfg
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    assert "speech_speed" in routing
+    assert "0.7-1.2" in routing
+
+
 async def test_resources_never_expose_internal_infra(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     res = await client.post(
@@ -149,3 +202,77 @@ async def test_resources_never_expose_internal_infra(client: AsyncClient) -> Non
         text = (await _read_resource(client, token, uri)).lower()
         assert "failover" not in text, uri
         assert "gpt-5.4" not in text, uri
+
+
+async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "prompts/get",
+            "params": {
+                "name": "build_outbound_campaign",
+                "arguments": {"goal": "call 8,000 renewal leads today", "phone_number_id": "177"},
+            },
+        },
+    )
+    text = res.json()["result"]["messages"][0]["content"]["text"]
+    assert "call 8,000 renewal leads today" in text
+    assert 'phone_number_id "177"' in text
+    assert "save_as_draft: true" in text
+    assert "never start one they have not approved" in text
+    assert "3600 / average call seconds" in text
+    assert "no `requestBody` wrapper" in text
+
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "resources/read",
+            "params": {"uri": "omnidim://guide/bulk-campaigns"},
+        },
+    )
+    guide = res.json()["result"]["contents"][0]["text"]
+    assert "to_number" in guide
+    assert "next_cursor" in guide
+    assert "daily_stop_timezone" in guide
+    assert "agent has its own `timezone` field" in guide
+
+
+def test_every_resource_a_prompt_points_at_actually_exists():
+    """A guide that names a resource URI has to be able to hand it over.
+
+    The prompts tell the agent to go read `omnidim://...` for the detail. A
+    rename on one side and not the other leaves the agent chasing a URI the
+    server will not serve, and nothing else catches that.
+    """
+    import re
+
+    from app.procedures import _PROMPTS, _RESOURCES, ROUTING_GUIDE, read_resource
+
+    served = {r["uri"] for r in _RESOURCES}
+    text = ROUTING_GUIDE + "".join(r["text"] for r in _RESOURCES)
+    text += "".join(p["build"]({}) for p in _PROMPTS)
+
+    for uri in set(re.findall(r"omnidim://[a-z0-9/\-]+", text)):
+        assert uri in served, f"{uri} is referenced but not served"
+        assert read_resource(uri) is not None
+
+
+def test_the_carriers_resource_answers_which_carrier_to_buy_from():
+    """carrier is required on search and purchase, and an MCP client will not
+    let the agent omit it to discover the names from the 409. This resource is
+    the only place it can learn them."""
+    from app.procedures import read_resource
+
+    guide = read_resource("omnidim://reference/carriers")["contents"][0]["text"]
+    for carrier in ("carrier-1", "carrier-2-new", "carrier-us"):
+        assert carrier in guide
+    assert "Ask, do not pick" in guide
+    assert "Buy from the carrier you searched" in guide
+    assert "per carrier" in guide

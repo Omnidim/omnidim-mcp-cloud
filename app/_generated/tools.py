@@ -3,8 +3,8 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=ef7073810fdc
-Config:        mcp-config.yaml  sha256=a9b46dc8496e
+Source spec:   openapi.yaml   sha256=4767df48d475
+Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
 
@@ -64,65 +64,87 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
-        "name": "addUser",
-        "description": "Add user. Create a new child user and organization under the reseller.\nThe new organization is linked to your reseller account\nautomatically.",
+        "name": "addBulkCallContacts",
+        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful: one request of 500 contacts is\nfar cheaper than 500 requests, on your side and ours.\n\nRepeated numbers are kept, not merged. If the same number appears twice\nwith different variables, it is called twice, because two rows for one\nnumber usually means two real reasons to call.\n\nRows that fail validation are reported in `rejected` and the rest are\nstill added, so a single bad number does not lose the batch. If the\ncampaign has `call_conditions`, rows that do not match are added with\nstatus `Skipped`.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Full name of the new user."
-                },
-                "email": {
-                    "type": "string",
-                    "format": "email",
-                    "description": "Email address. Also used as the login."
-                },
-                "phone": {
-                    "type": "string",
-                    "description": "Phone number including country code (e.g. `+15551234567`).",
-                    "example": "+15551234567"
-                },
-                "password": {
-                    "type": "string",
-                    "format": "password",
-                    "description": "Account password for the new user."
-                },
-                "welcome_minutes_to_credit": {
+                "campaign_id": {
                     "type": "integer",
-                    "description": "Minutes to credit to the new account on signup."
+                    "description": "Id of the bulk call campaign."
                 },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Cost per minute charged to this user (e.g. `0.20`). Must be at least the reseller's premium model rate.",
-                    "example": 0.2
-                },
-                "concurrent_call_limit": {
-                    "type": "integer",
-                    "description": "Maximum number of concurrent calls allowed for this account."
-                },
-                "expiry_date": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Account expiry date in `YYYY-MM-DD` format (e.g. `2026-12-31`)."
-                },
-                "user_currency": {
-                    "type": "string",
-                    "description": "ISO 4217 currency code for the account (e.g. `USD`, `INR`). Defaults to the reseller's currency.",
-                    "example": "USD"
+                "contacts": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "description": "Each row needs `to_number`. Note this differs from the\n`contact_list` on Create bulk call, which uses\n`phone_number` and takes loose keys: here the variables go\nin an explicit `custom_variables` object.\n",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "to_number"
+                        ],
+                        "properties": {
+                            "to_number": {
+                                "type": "string",
+                                "description": "Number to call, in international format.",
+                                "example": "+15551234567"
+                            },
+                            "custom_variables": {
+                                "type": "object",
+                                "description": "Passed to the agent as context for this call, so it\ncan use them in the conversation.\n",
+                                "additionalProperties": true,
+                                "example": {
+                                    "contact_name": "Ravi"
+                                }
+                            },
+                            "metadata": {
+                                "type": "object",
+                                "description": "Stored with the contact and returned on its row in\nBulk call results. Not shown to the agent.\n",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
                 }
             },
             "required": [
-                "email",
-                "name",
-                "password",
-                "phone"
+                "campaign_id",
+                "contacts"
             ],
             "additionalProperties": true
         },
         "method": "POST",
-        "path": "/reseller/users/add",
-        "path_params": [],
+        "path": "/calls/bulk_call/{campaign_id}/add_contacts",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "addBulkCallNumber",
+        "description": "Add number to rotation pool. Add one of your numbers to the campaign's rotation pool. Works while the\ncampaign is running, which is how you bring in a fresh number when the\npool is running out of healthy ones.\n\nThe number must belong to you and must not already be in the pool. A\nnumber with no agent attached gets this campaign's agent attached\nautomatically; a number attached to a **different** agent is refused.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "phone_number_id": {
+                    "type": "integer",
+                    "example": 178,
+                    "description": "One of your numbers, from List phone numbers."
+                }
+            },
+            "required": [
+                "bulk_call_id",
+                "phone_number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/calls/bulk_call/{bulk_call_id}/numbers",
+        "path_params": [
+            "bulk_call_id"
+        ],
         "query_params": []
     },
     {
@@ -204,6 +226,7 @@ _TOOLS_JSON = r"""[
                 },
                 "action": {
                     "type": "string",
+                    "example": "pause",
                     "enum": [
                         "pause",
                         "resume",
@@ -233,41 +256,6 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
-    },
-    {
-        "name": "calculateCreditOperation",
-        "description": "Calculate credit operation. Preview the cost of a transfer or revert without moving any\ncredits. Use this to confirm amounts before calling the\ntransfer or revert endpoints. The response shape differs\nbetween forward transfers and reverts. See the examples.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to calculate for."
-                },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Rate per minute for a forward transfer (e.g. `0.20`). Not required when `is_revert` is `true`.",
-                    "example": 0.2
-                },
-                "is_revert": {
-                    "type": "boolean",
-                    "description": "Set to `true` to calculate a revert instead of a forward transfer.",
-                    "default": false
-                },
-                "child_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to revert credits from. Required when `is_revert` is `true`."
-                }
-            },
-            "required": [
-                "minutes"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/credits/calculate",
-        "path_params": [],
         "query_params": []
     },
     {
@@ -324,7 +312,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createAgent",
-        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email + webhook),\nambient background track, initial ringing sound, and multilingual support.",
+        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email + webhook),\nambient background track, initial ringing sound, and multilingual support.\n\n> **Voicemail detection is an access-gated feature** that we turn on per\naccount. If it isn't enabled for yours yet,\n[request access](https://omnidim.io/contact-us?reason=product&lock=1)\nbefore configuring the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -337,6 +325,10 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "Initial message the agent will say when answering a call.",
                     "example": "Hello! How can I help you today?"
+                },
+                "is_welcome_message_dynamic": {
+                    "type": "boolean",
+                    "description": "When true, the welcome message is treated as a directive the agent uses to generate a tailored greeting for each call, rather than being spoken word for word. When false, the welcome message is spoken exactly as written."
                 },
                 "is_welcome_message_interruption": {
                     "type": "boolean",
@@ -392,6 +384,11 @@ _TOOLS_JSON = r"""[
                         "Outgoing"
                     ],
                     "description": "Call type of the assistant."
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone for this agent, for example `Asia/Kolkata`. Sets the local date and time the agent works with during calls. If not set, the account timezone is used as fallback. Pass an empty string to clear it.",
+                    "example": "America/New_York"
                 },
                 "transcriber": {
                     "type": "object",
@@ -513,7 +510,12 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "dependentRequired": {
+                        "provider": [
+                            "voice_id"
+                        ]
+                    },
                     "properties": {
                         "provider": {
                             "type": "string",
@@ -523,12 +525,12 @@ _TOOLS_JSON = r"""[
                                 "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list.",
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
                             "example": "eleven_labs"
                         },
                         "voice_id": {
                             "type": "string",
-                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`).",
+                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
                         "model": {
@@ -721,7 +723,7 @@ _TOOLS_JSON = r"""[
                         },
                         "transfer_options": {
                             "type": "array",
-                            "description": "Where to transfer the call and under what condition. The first matching condition wins.",
+                            "description": "Where to transfer the call and under what condition. The first matching condition wins. In an agent update, sending this list replaces all saved options. Omit it to keep them unchanged, or send an empty array to clear them.",
                             "items": {
                                 "type": "object",
                                 "required": [
@@ -838,11 +840,11 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls.",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "description": "Detect voicemail and react instead of speaking to a machine."
+                            "description": "Detect voicemail and leave your message instead of speaking to a machine."
                         },
                         "message": {
                             "type": "string",
@@ -875,8 +877,42 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "createAgentVersion",
+        "description": "Save an agent version. Save the agent's current configuration as a named version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "name": {
+                    "type": "string",
+                    "example": "v2 pricing script",
+                    "description": "Display name for the version."
+                },
+                "note": {
+                    "type": "string",
+                    "example": "Shorter opener, new objection handling.",
+                    "description": "Optional note describing the version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "name"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/versions",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": []
+    },
+    {
         "name": "createBulkCall",
-        "description": "Create bulk call. Create a new bulk-call campaign. Supports immediate, scheduled,\nand auto-retry modes.\n\nThere are two kinds of campaign:\n\n- **Static** (default): you supply the full `contact_list` up\n  front and the campaign dials through it.\n- **Dynamic**: set `is_dynamic` to `true` and the campaign accepts\n  contacts in real time via the Add contact to dynamic campaign\n  webhook. `contact_list` is optional here, so you can start the\n  campaign empty and feed it from a CRM, form, or automation. A\n  dynamic campaign stays alive waiting for contacts instead of\n  completing when its queue drains.",
+        "description": "Create bulk call. Create a new bulk-call campaign. Only name, phone_number_id and a\ncontact_list are needed to dial a list now; every other field adds\none behaviour on top (drafts, rotation, filtering, scheduling,\nretries, dynamic feeding).\n\nThe guide below the field reference walks the whole journey: the\nfirst campaign and its response, each behaviour with a working\nrequest, every refusal message with its fix, and the endpoints that\noperate a campaign once it runs.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -887,16 +923,126 @@ _TOOLS_JSON = r"""[
                 },
                 "phone_number_id": {
                     "type": "string",
-                    "description": "Your phone number id to use for making calls."
+                    "example": "177",
+                    "description": "The number this campaign calls from. With a `rotation`, the\nrotation numbers dial instead and this one is the standby.\n"
+                },
+                "bot_id": {
+                    "type": "integer",
+                    "description": "Agent to run the campaign. Defaults to the agent attached\nto `phone_number_id`; required when the number has none.\n"
+                },
+                "save_as_draft": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Store the campaign without dialing; start it later with the\nstart endpoint. See Drafts in the guide below.\n"
+                },
+                "call_conditions": {
+                    "type": "array",
+                    "description": "Dial only the contacts that match every condition; the rest\nare kept as `Skipped`. See Filtering in the guide below.\n",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "column",
+                            "operator",
+                            "value"
+                        ],
+                        "properties": {
+                            "column": {
+                                "type": "string",
+                                "description": "Key on the contact row to test.",
+                                "example": "plan"
+                            },
+                            "operator": {
+                                "type": "string",
+                                "default": "equals",
+                                "example": "equals",
+                                "enum": [
+                                    "equals",
+                                    "not_equals",
+                                    "contains",
+                                    "greater_than",
+                                    "less_than"
+                                ],
+                                "description": "`contains` is case-insensitive. `greater_than` and\n`less_than` compare numerically, and a row whose value\nis not a number fails the condition rather than\nerroring.\n"
+                            },
+                            "value": {
+                                "type": "string",
+                                "example": "pro"
+                            }
+                        }
+                    }
+                },
+                "rotation": {
+                    "type": "object",
+                    "description": "Rotate the campaign across several of your numbers, so no\nsingle number burns out. See Rotation in the guide below.\n",
+                    "required": [
+                        "numbers"
+                    ],
+                    "properties": {
+                        "numbers": {
+                            "type": "array",
+                            "minItems": 1,
+                            "description": "The numbers to rotate across; each must be yours and\nlisted once.\n",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "phone_number_id"
+                                ],
+                                "properties": {
+                                    "phone_number_id": {
+                                        "type": "integer",
+                                        "example": 177,
+                                        "description": "One of your numbers, from List phone numbers."
+                                    },
+                                    "sequence": {
+                                        "type": "integer",
+                                        "default": 10,
+                                        "description": "Rotation order. Lowest dials first."
+                                    }
+                                }
+                            }
+                        },
+                        "strategy": {
+                            "type": "string",
+                            "default": "fixed_count",
+                            "example": "fixed_count",
+                            "enum": [
+                                "fixed_count",
+                                "cpr_threshold",
+                                "both",
+                                "none"
+                            ],
+                            "description": "When to move to the next number: every\n`calls_per_number` calls, on low health score, both, or\nnever.\n"
+                        },
+                        "calls_per_number": {
+                            "type": "integer",
+                            "default": 50,
+                            "example": 50,
+                            "description": "Calls before moving on. Used by `fixed_count` and `both`."
+                        },
+                        "health_threshold": {
+                            "type": "number",
+                            "default": 30.0,
+                            "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
+                        },
+                        "fallback": {
+                            "type": "string",
+                            "default": "pause",
+                            "enum": [
+                                "pause",
+                                "continue_best"
+                            ],
+                            "description": "When every number is unhealthy: `pause` the campaign,\nor `continue_best` with the healthiest one.\n"
+                        }
+                    }
                 },
                 "is_dynamic": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Set to `true` to create a dynamic campaign that accepts\ncontacts in real time via the Add contact to dynamic\ncampaign webhook. When `true`, `contact_list` is optional\nand may be omitted to start the campaign empty.\n"
+                    "description": "A dynamic campaign stays alive accepting contacts via the\nadd-contact webhooks, and `contact_list` becomes optional.\n"
                 },
                 "contact_list": {
                     "type": "array",
-                    "description": "Array of contact objects. Each row needs `phone_number`.\nAny other key you add on the row (e.g. `customer_name`,\n`account_id`, `priority`) is passed to the agent as a\ncontext variable for that specific call, so the agent\ncan reference it during the conversation.\n\nRequired for static campaigns. Optional when `is_dynamic`\nis `true` (you can omit it and add contacts later via the\nwebhook).\n",
+                    "description": "Who to call. Each row needs `phone_number`; any other key\nreaches the agent as context for that one call.\n",
                     "items": {
                         "type": "object",
                         "required": [
@@ -983,10 +1129,10 @@ _TOOLS_JSON = r"""[
                         },
                         "retry_limit": {
                             "type": "integer",
-                            "default": 0,
-                            "minimum": 0,
-                            "maximum": 5,
-                            "description": "Maximum number of retry attempts (0–5)."
+                            "default": 1,
+                            "minimum": 1,
+                            "maximum": 10,
+                            "description": "Retry attempts, 1 to 10. To disable retries omit it and\nleave `auto_retry` false; never send `0`.\n"
                         }
                     }
                 }
@@ -999,6 +1145,55 @@ _TOOLS_JSON = r"""[
         },
         "method": "POST",
         "path": "/calls/bulk_call/create",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "createSession",
+        "description": "Create session. Create a voice Session: a short-lived, single-conversation\nreservation that lets a client hold a live voice chat with your\nagent. This is step 1 of 2. Creating the Session does not start any\naudio on its own; it returns a `ws_url` that a client then connects\nto over WebSocket to actually talk.\n\nCall this endpoint from your server with your API key, and return\nonly the `ws_url` to your client. The API key must never reach the\nbrowser. The `ws_url` is the only thing the client needs, and it is\nsafe to hand out because it is single-use and expires. For how to\nconnect and talk, see \"Connect the client and talk\" below the\nrequest details.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "ID of the agent the session talks to.",
+                    "example": 158910
+                },
+                "type": {
+                    "type": "string",
+                    "default": "voice",
+                    "example": "voice",
+                    "enum": [
+                        "voice"
+                    ],
+                    "description": "The session type. Only `voice` is supported."
+                },
+                "custom_variables": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\n",
+                    "example": {
+                        "name": "Demo User"
+                    }
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Key-value pairs stored on the session for your own\ntracking (e.g. CRM or lead IDs). Not shared with the\nagent; echoed back as `metadata` in the post-call\nwebhook so you can correlate results with your records.\n",
+                    "example": {
+                        "crm_lead_id": "lead_9876",
+                        "source": "website_form"
+                    }
+                }
+            },
+            "required": [
+                "agent_id",
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/sessions/create",
         "path_params": [],
         "query_params": []
     },
@@ -1022,6 +1217,35 @@ _TOOLS_JSON = r"""[
         "path": "/agents/{agent_id}",
         "path_params": [
             "agent_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "deleteAgentVersion",
+        "description": "Delete an agent version. Delete a saved version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/agents/{agent_id}/versions/{version_number}",
+        "path_params": [
+            "agent_id",
+            "version_number"
         ],
         "query_params": []
     },
@@ -1104,6 +1328,41 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "diffAgentVersion",
+        "description": "Diff an agent version. Get a record-level diff for this version. By default it shows what changed in this version compared with the version before it. Use `against=current` to compare with the agent's live config (what restoring this version would change), or `against=<number>` to compare with another version.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                },
+                "against": {
+                    "type": "string",
+                    "description": "What to compare against. Omit or `previous` for the version before this one (the default). `current` for the agent's live config. A version number to compare with that version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/versions/{version_number}/diff",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": [
+            "against"
+        ]
+    },
+    {
         "name": "dispatchCall",
         "description": "Dispatch call. Initiate a call to a phone number using a specified agent. The\nphone number must include a country code with a leading plus.",
         "input_schema": {
@@ -1132,6 +1391,15 @@ _TOOLS_JSON = r"""[
                         "user_name": "Jane Doe",
                         "account_id": "A-2031",
                         "last_order": "2026-04-15"
+                    }
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Key-value pairs stored on the call for your own tracking\n(e.g. CRM or lead IDs). Not shared with the agent; echoed\nback as `metadata` in the post-call webhook so you can\ncorrelate results with your records.\n",
+                    "example": {
+                        "crm_lead_id": "lead_9876",
+                        "source": "website_form"
                     }
                 }
             },
@@ -1182,7 +1450,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID.",
+        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `version_history_enabled` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1271,46 +1539,6 @@ _TOOLS_JSON = r"""[
             "call_log_id"
         ],
         "query_params": []
-    },
-    {
-        "name": "getResellerCreditLogs",
-        "description": "Credit transfer logs. Paginated history of all credit transfers and reverts for the\nreseller account. Returns reverse-chronological order by\ndefault. Date filters are inclusive.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "page": {
-                    "type": "integer",
-                    "default": 1,
-                    "description": "Page number for pagination."
-                },
-                "page_size": {
-                    "type": "integer",
-                    "default": 20,
-                    "description": "Number of records per page (max 100)."
-                },
-                "date_from": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Filter logs from this date in `YYYY-MM-DD` format (e.g. `2026-01-01`)."
-                },
-                "date_to": {
-                    "type": "string",
-                    "format": "date",
-                    "description": "Filter logs up to and including this date in `YYYY-MM-DD` format (e.g. `2026-03-31`)."
-                }
-            },
-            "required": [],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/reseller/credits/logs",
-        "path_params": [],
-        "query_params": [
-            "page",
-            "page_size",
-            "date_from",
-            "date_to"
-        ]
     },
     {
         "name": "getVoice",
@@ -1482,6 +1710,58 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "listAgentVersions",
+        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions, automatic versions, and system backups taken before a restore.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Page number for pagination."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 30,
+                    "maximum": 150,
+                    "description": "Number of items per page (max 150)."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Filter versions whose name matches this substring (case-insensitive)."
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "auto",
+                        "system"
+                    ],
+                    "description": "Filter versions by kind."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/versions",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": [
+            "pageno",
+            "pagesize",
+            "search",
+            "kind"
+        ]
+    },
+    {
         "name": "listAgents",
         "description": "List agents. Retrieve all agents for the authenticated user with pagination support.",
         "input_schema": {
@@ -1527,6 +1807,98 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/all",
         "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "listBulkCallLines",
+        "description": "Bulk call results. Per-contact results for a campaign: what happened on each call, the\nvariables you sent with that contact, and a pointer to the recording.\n\n## Paging\n\nThere is one rule. Call it with no `cursor`, then keep passing back the\n`next_cursor` you were handed until it comes back `null`.\n\n```\ncursor = None\nwhile True:\n    page = GET /lines?pagesize=150&cursor={cursor}\n    handle(page[\"records\"])\n    cursor = page[\"next_cursor\"]\n    if not cursor: break\n```\n\nEach call returns a page of rows, oldest first: `pagesize` goes up to\n150 and defaults to 30. Cursors are opaque, so pass back the string you\nwere given and never build one. No contact is skipped or returned\ntwice, even while the campaign is still dialing.\n\n## Transcripts are not in the row\n\nEach row carries `call.recording_id`, not the conversation. Transcripts\nreach 212 KB, so carrying them here would make one page tens of\nmegabytes. Fetch the one you want from\n`GET /calls/logs/{recording_id}`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from your previous response. Omit it on the first\nrequest. Opaque: pass it back unchanged.\n"
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 30,
+                    "maximum": 150,
+                    "description": "Rows per page. Above 150 the request is refused."
+                },
+                "call_status": {
+                    "type": "string",
+                    "enum": [
+                        "Pending",
+                        "In Progress",
+                        "completed",
+                        "voicemail_detected",
+                        "no-answer",
+                        "busy",
+                        "Failed",
+                        "Skipped",
+                        "retry_scheduled",
+                        "cancelled"
+                    ],
+                    "description": "Return only contacts in this state."
+                },
+                "interaction_status": {
+                    "type": "string",
+                    "description": "Return only contacts with this interaction outcome."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "An exact phone number, matched against the contact's number and the\nnumber that called it. Not a substring search.\n"
+                },
+                "include_total": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Add `total_records` to the response. It costs a count over the whole\nfiltered campaign, so it is off unless you ask. Ask for it once to\nfill a header, not on every page of a walk.\n"
+                }
+            },
+            "required": [
+                "bulk_call_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/calls/bulk_call/{bulk_call_id}/lines",
+        "path_params": [
+            "bulk_call_id"
+        ],
+        "query_params": [
+            "cursor",
+            "pagesize",
+            "call_status",
+            "interaction_status",
+            "search",
+            "include_total"
+        ]
+    },
+    {
+        "name": "listBulkCallNumbers",
+        "description": "List rotation pool. The campaign's number pool, and which number is dialing right now.\n\n`calls_this_cycle` is what `fixed_count` rotation compares against, so\nit is the field to watch for the next rotation. `calls_dispatched` is\nthe number's lifetime total across every cycle.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                }
+            },
+            "required": [
+                "bulk_call_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/calls/bulk_call/{bulk_call_id}/numbers",
+        "path_params": [
+            "bulk_call_id"
+        ],
         "query_params": []
     },
     {
@@ -1580,20 +1952,6 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
-        "name": "listChildOrganizations",
-        "description": "List child organizations. List all child organizations and their users under the reseller\naccount. Returns each organization's balance, cost-per-minute\nrate, and concurrency limit, plus the dashboard menu access\nflags scoped to your reseller's permissions for every user.",
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/reseller/organizations",
-        "path_params": [],
-        "query_params": []
-    },
-    {
         "name": "listKnowledgeBaseFiles",
         "description": "List knowledge base files. List all knowledge-base files for the authenticated user.",
         "input_schema": {
@@ -1623,7 +1981,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listPhoneNumbers",
-        "description": "List phone numbers. Retrieve all phone numbers associated with your account.",
+        "description": "List phone numbers. Retrieve the phone numbers on your account, whether you bought them\nfrom the OmniDimension number shop or imported your own.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1744,203 +2102,374 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
-        "name": "revertCreditsFromChild",
-        "description": "Revert credits. Take back unused minutes from a child organization to the\nreseller balance. The refund is calculated at the child's\ncurrent rate, so you don't pass one. This matches exactly\nwhat was originally charged. Use the calculate endpoint\nfirst to preview the refund.",
+        "name": "purchasePhoneNumber",
+        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop. The monthly\nrental comes out of your wallet and the number is added to your\naccount, ready to attach to an agent.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "from_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to revert credits from."
-                },
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to revert."
-                }
-            },
-            "required": [
-                "from_organization_id",
-                "minutes"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/credits/revert",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setChildConcurrency",
-        "description": "Set child concurrency limit. Set the maximum number of simultaneous calls a child\norganization can run. Slots come from the reseller's shared\npool. Increasing the limit deducts the delta from your pool\nand fails if you don't have enough slots. Decreasing the\nlimit returns the delta to your pool immediately.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "child_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to update."
-                },
-                "new_limit": {
-                    "type": "integer",
-                    "description": "The desired absolute concurrent call limit (must be `>= 0`)."
-                }
-            },
-            "required": [
-                "child_organization_id",
-                "new_limit"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/concurrency",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setUserAccessControl",
-        "description": "Update user access control. Enable or disable dashboard menu access flags for a child user.\nOnly the flags you pass are changed. Flags outside your\nreseller's permissions are silently ignored.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "ID of the child user to update."
-                },
-                "dashboard_menu_access": {
-                    "allOf": [
-                        {
-                            "type": "object",
-                            "description": "Reseller-managed dashboard menu access flags. Each property is\na boolean toggle for a feature area in the child user's\ndashboard. On read endpoints, only flags the reseller\nthemselves has enabled are returned (so a child cannot have a\nflag the reseller doesn't have).\n",
-                            "properties": {
-                                "is_bots_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_leads_access": {
-                                    "type": "boolean"
-                                },
-                                "is_voice_cloning_access": {
-                                    "type": "boolean"
-                                },
-                                "is_workflow_access": {
-                                    "type": "boolean"
-                                },
-                                "is_asr_evaluation_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_train_with_call_recording_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_call_logs_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_call_simulation_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_omni_crm_access": {
-                                    "type": "boolean"
-                                },
-                                "access_to_monitor_live_call": {
-                                    "type": "boolean"
-                                },
-                                "is_whatsapp_flow_enabled": {
-                                    "type": "boolean"
-                                },
-                                "is_billing_menu_access": {
-                                    "type": "boolean"
-                                },
-                                "is_knowledge_base_access": {
-                                    "type": "boolean"
-                                },
-                                "is_integration_access": {
-                                    "type": "boolean"
-                                },
-                                "is_phone_number_access": {
-                                    "type": "boolean"
-                                },
-                                "is_bulk_call_access": {
-                                    "type": "boolean"
-                                },
-                                "is_analytics_access": {
-                                    "type": "boolean"
-                                }
-                            }
-                        }
-                    ],
-                    "description": "Flags to update. Only pass the flags you want to\nchange. Others are left untouched. Flags outside\nyour reseller's permissions are silently dropped.\n"
-                }
-            },
-            "required": [
-                "dashboard_menu_access",
-                "user_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/reseller/users/access-control",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "setUserExpiry",
-        "description": "Update user expiry. Set or remove the expiry date on a child user. The user must\nbelong to a child organization of your reseller.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "ID of the child user to update."
-                },
-                "expiry_date": {
+                "Idempotency-Key": {
                     "type": "string",
-                    "format": "date",
-                    "nullable": true,
-                    "description": "Expiry date in `YYYY-MM-DD` format. Omit or pass `null` to remove the expiry."
+                    "description": "Your own unique key for this purchase, for example a\nfresh UUID. Strongly recommended: it is what makes a\nretry safe.\n"
+                },
+                "region": {
+                    "type": "string",
+                    "enum": [
+                        "IN",
+                        "US"
+                    ],
+                    "description": "Region the number belongs to."
+                },
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to buy, as returned by the search operation.",
+                    "example": "+15551234567"
+                },
+                "carrier": {
+                    "type": "string",
+                    "description": "The carrier to buy from: pass the `carrier` the search\nresponse named, so you buy from the inventory you searched.\nAlways required, and omitting it returns\n`409 carrier_required` naming that region's carriers.\n",
+                    "example": "carrier-1"
                 }
             },
             "required": [
-                "user_id"
+                "carrier",
+                "phone_number",
+                "region"
             ],
             "additionalProperties": true
         },
         "method": "POST",
-        "path": "/reseller/users/expiry",
+        "path": "/phone_number/purchase",
         "path_params": [],
         "query_params": []
     },
     {
-        "name": "transferCreditsToChild",
-        "description": "Transfer credits to a child. Transfer minutes from the reseller balance to a child\norganization. Credits are deducted from your balance\nimmediately on success. The target organization must be a\ndirect child of your reseller. Use the calculate endpoint\nfirst to preview the cost.",
+        "name": "releasePhoneNumber",
+        "description": "Release a phone number. Give up a phone number and stop its rental, so it is not charged at the\nnext renewal. Only a number currently allocated to the account can be\nreleased.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "to_organization_id": {
-                    "type": "integer",
-                    "description": "ID of the child organization to transfer credits to."
-                },
-                "minutes": {
-                    "type": "integer",
-                    "description": "Number of minutes to transfer."
-                },
-                "cost_per_min": {
-                    "type": "number",
-                    "description": "Rate per minute to charge the child organization (e.g. `0.20`).",
-                    "example": 0.2
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to release.",
+                    "example": "+15551234567"
                 }
             },
             "required": [
-                "cost_per_min",
-                "minutes",
-                "to_organization_id"
+                "phone_number"
             ],
             "additionalProperties": true
         },
         "method": "POST",
-        "path": "/reseller/credits/transfer",
+        "path": "/phone_number/release",
         "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "renameAgentVersion",
+        "description": "Rename an agent version. Rename a saved version or edit its note. Version history is immutable otherwise; only the name and note can change.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                },
+                "name": {
+                    "type": "string",
+                    "example": "v2 pricing script",
+                    "description": "New display name for the version."
+                },
+                "note": {
+                    "type": "string",
+                    "example": "Shorter opener, new objection handling.",
+                    "description": "New note for the version."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PATCH",
+        "path": "/agents/{agent_id}/versions/{version_number}",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "restoreAgentVersion",
+        "description": "Restore an agent version. Restore a version onto the live agent. Your current setup is saved first as a backup version, so restoring is undoable. Configuration is brought back; any knowledge files or integrations that were deleted since this version was saved can't be re-linked, and are reported in `skipped`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                }
+            },
+            "required": [
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/versions/{version_number}/restore",
+        "path_params": [
+            "agent_id",
+            "version_number"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "retryBulkCall",
+        "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without creating a new campaign.\n\nUse it after a campaign finishes with more no-answers than you expected,\nor when the reason was on your side (a bad window, a number that was\nhaving a bad day). Retried contacts keep their original variables.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "retry_strategy": {
+                    "type": "string",
+                    "default": "all",
+                    "description": "Which contacts to re-queue. `all` takes everything that did\nnot connect.\n"
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "description": "Skip contacts already retried this many times."
+                },
+                "failure_reasons": {
+                    "type": "array",
+                    "description": "Re-queue only contacts that failed for these reasons, for\nexample `no-answer` and `busy`.\n",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "bulk_call_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/calls/bulk_call/{bulk_call_id}/manual_retry",
+        "path_params": [
+            "bulk_call_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "searchPhoneNumbers",
+        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.\n\nA region can have more than one carrier, each stocking different\nnumber series. Pass the `carrier` you want; the response names the\ncarrier its results came from, and that is the carrier a purchase has\nto pass.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "region": {
+                    "type": "string",
+                    "enum": [
+                        "IN",
+                        "US"
+                    ],
+                    "description": "Region to search in. `IN` and `US` both serve numbers. Which\nregions answer is configuration, so a region with no carrier\nenabled returns `404 not_available` rather than an empty list.\n"
+                },
+                "carrier": {
+                    "type": "string",
+                    "description": "Which carrier's stock to search: carriers in a region do not sell\nthe same numbers. Always required, even where a region holds one,\nand omitting it returns `409 carrier_required` naming that\nregion's carriers and what each one stocks.\n"
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Digits or prefix to match within the number."
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1,
+                    "description": "Page of results to return."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 150,
+                    "default": 20,
+                    "description": "Results per page."
+                }
+            },
+            "required": [
+                "carrier",
+                "region"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/phone_number/search",
+        "path_params": [],
+        "query_params": [
+            "region",
+            "carrier",
+            "pattern",
+            "page",
+            "limit"
+        ]
+    },
+    {
+        "name": "setBulkCallConcurrency",
+        "description": "Change concurrency. Change how many calls the campaign places at once, including while it is\nrunning. Raise it to finish sooner, lower it if your team cannot keep up\nwith transfers or your numbers are being answered less.\n\nThe ceiling is your account's concurrency limit.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "concurrent_call_limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 5,
+                    "description": "Calls to place at once."
+                }
+            },
+            "required": [
+                "bulk_call_id",
+                "concurrent_call_limit"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PUT",
+        "path": "/calls/bulk_call/{bulk_call_id}/concurrency",
+        "path_params": [
+            "bulk_call_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "setBulkCallDailyTimeControl",
+        "description": "Set calling hours. Restrict a campaign to a daily calling window, in the campaign's\ntimezone. Outside the window the campaign holds rather than finishing,\nand resumes the next day.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "enable_daily_hard_stop": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Stop dialing at `daily_stop_time` each day."
+                },
+                "daily_stop_time": {
+                    "type": "number",
+                    "example": 18,
+                    "description": "Hour of day to stop, 0 to 23. Fractions are allowed, so\n`17.5` is 17:30. Required when the hard stop is on.\n"
+                },
+                "daily_stop_timezone": {
+                    "type": "string",
+                    "example": "Asia/Kolkata",
+                    "description": "Timezone for the stop time."
+                },
+                "enable_daily_auto_start": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Resume dialing at `daily_start_time` each day."
+                },
+                "daily_start_time": {
+                    "type": "number",
+                    "example": 9,
+                    "description": "Hour of day to resume, 0 to 23. Required when auto start\nis on.\n"
+                },
+                "daily_start_timezone": {
+                    "type": "string",
+                    "example": "Asia/Kolkata",
+                    "description": "Timezone for the start time."
+                }
+            },
+            "required": [
+                "bulk_call_id",
+                "enable_daily_auto_start",
+                "enable_daily_hard_stop"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PUT",
+        "path": "/calls/bulk_call/{bulk_call_id}/daily-time-control",
+        "path_params": [
+            "bulk_call_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "setBulkCallNumberActive",
+        "description": "Pause or resume a pool number. Stop or resume dialing from one number in the pool.\n\nPausing is what you want when a number starts going bad mid-campaign:\ndialing moves to the next number in sequence and the paused number keeps\nits history and counters. The last active number of a running campaign\ncannot be paused, since the campaign would have nothing to dial from.\n\nSend the state you want rather than a toggle, so retrying the same\nrequest is harmless.\n\n`assignment_id` is the number's id **within this campaign's pool**, from\nList rotation pool. It is not the `phone_number_id`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "assignment_id": {
+                    "type": "integer",
+                    "description": "The `assignment_id` from List rotation pool."
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "`false` pauses the number, `true` resumes it."
+                }
+            },
+            "required": [
+                "assignment_id",
+                "bulk_call_id",
+                "is_active"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PUT",
+        "path": "/calls/bulk_call/{bulk_call_id}/numbers/{assignment_id}",
+        "path_params": [
+            "bulk_call_id",
+            "assignment_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "startBulkCall",
+        "description": "Start a draft campaign. Start a campaign that was created with `save_as_draft: true`.\n\nDrafts let you build a campaign over several requests: create it, add\ncontacts in batches, set the number pool, set concurrency, then start\nwhen everything is in place. A campaign that is already running,\nscheduled, or finished cannot be started.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                }
+            },
+            "required": [
+                "bulk_call_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/calls/bulk_call/{bulk_call_id}/start",
+        "path_params": [
+            "bulk_call_id"
+        ],
         "query_params": []
     },
     {
         "name": "updateAgent",
-        "description": "Update agent. Update an existing agent. Send only the fields you want to change.",
+        "description": "Update agent. Update an existing agent. Send only the fields you want to change.\n\n> **Voicemail detection is an access-gated feature** that we turn on per account. If it isn't enabled for yours yet, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before configuring the `voicemail` object below.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1957,6 +2486,10 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "Initial message the agent will say when answering a call.",
                     "example": "Hello! How can I help you today?"
+                },
+                "is_welcome_message_dynamic": {
+                    "type": "boolean",
+                    "description": "When true, the welcome message is treated as a directive the agent uses to generate a tailored greeting for each call, rather than being spoken word for word. When false, the welcome message is spoken exactly as written."
                 },
                 "is_welcome_message_interruption": {
                     "type": "boolean",
@@ -2012,6 +2545,11 @@ _TOOLS_JSON = r"""[
                         "Outgoing"
                     ],
                     "description": "Call type of the assistant."
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone for this agent, for example `Asia/Kolkata`. Sets the local date and time the agent works with during calls. If not set, the account timezone is used as fallback. Pass an empty string to clear it.",
+                    "example": "America/New_York"
                 },
                 "transcriber": {
                     "type": "object",
@@ -2133,7 +2671,12 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "dependentRequired": {
+                        "provider": [
+                            "voice_id"
+                        ]
+                    },
                     "properties": {
                         "provider": {
                             "type": "string",
@@ -2143,12 +2686,12 @@ _TOOLS_JSON = r"""[
                                 "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list.",
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
                             "example": "eleven_labs"
                         },
                         "voice_id": {
                             "type": "string",
-                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`).",
+                            "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
                         "model": {
@@ -2341,7 +2884,7 @@ _TOOLS_JSON = r"""[
                         },
                         "transfer_options": {
                             "type": "array",
-                            "description": "Where to transfer the call and under what condition. The first matching condition wins.",
+                            "description": "Where to transfer the call and under what condition. The first matching condition wins. In an agent update, sending this list replaces all saved options. Omit it to keep them unchanged, or send an empty array to clear them.",
                             "items": {
                                 "type": "object",
                                 "required": [
@@ -2458,11 +3001,11 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls.",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
-                            "description": "Detect voicemail and react instead of speaking to a machine."
+                            "description": "Detect voicemail and leave your message instead of speaking to a machine."
                         },
                         "message": {
                             "type": "string",

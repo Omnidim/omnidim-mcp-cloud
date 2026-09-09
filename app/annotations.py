@@ -14,6 +14,13 @@ _TITLES: dict[str, str] = {
     "getAgent": "Get agent",
     "updateAgent": "Update agent",
     "deleteAgent": "Delete agent",
+    "listAgentVersions": "List agent versions",
+    "createAgentVersion": "Save agent version",
+    "diffAgentVersion": "Diff agent version",
+    "restoreAgentVersion": "Restore agent version",
+    "renameAgentVersion": "Rename agent version",
+    "deleteAgentVersion": "Delete agent version",
+    "createSession": "Create voice session",
     "dispatchCall": "Dispatch call",
     "listCallLogs": "List call logs",
     "getCallLog": "Get call log",
@@ -24,6 +31,15 @@ _TITLES: dict[str, str] = {
     "bulkCallActions": "Control bulk campaign",
     "cancelBulkCall": "Cancel bulk campaign",
     "getBulkCallLiveStatus": "Get campaign live status",
+    "startBulkCall": "Start draft campaign",
+    "addBulkCallContacts": "Add contacts to campaign in bulk",
+    "retryBulkCall": "Retry unconnected contacts",
+    "setBulkCallConcurrency": "Set campaign concurrency",
+    "setBulkCallDailyTimeControl": "Set campaign calling hours",
+    "listBulkCallLines": "List campaign call results",
+    "listBulkCallNumbers": "List campaign rotation pool",
+    "addBulkCallNumber": "Add number to rotation pool",
+    "setBulkCallNumberActive": "Pause or resume pool number",
     "listKnowledgeBaseFiles": "List knowledge base files",
     "canUploadFile": "Check file upload eligibility",
     "uploadKnowledgeBaseFile": "Upload knowledge base file",
@@ -42,37 +58,49 @@ _TITLES: dict[str, str] = {
     "listTTSProviders": "List text-to-speech providers",
     "listAllProviders": "List all providers",
     "getVoice": "Get voice",
-    "listChildOrganizations": "List child organizations",
-    "addUser": "Add child user",
-    "setUserAccessControl": "Set user access control",
-    "setUserExpiry": "Set user expiry",
-    "setChildConcurrency": "Set child concurrency limit",
-    "calculateCreditOperation": "Preview credit operation",
-    "transferCreditsToChild": "Transfer credits to child",
-    "revertCreditsFromChild": "Revert credits from child",
-    "getResellerCreditLogs": "Get reseller credit logs",
+    "searchPhoneNumbers": "Search available phone numbers",
+    "purchasePhoneNumber": "Buy phone number",
+    "releasePhoneNumber": "Release phone number",
 }
 
 # POST tools that only validate or preview, with no state change.
-_READ_ONLY: frozenset[str] = frozenset({"canUploadFile", "calculateCreditOperation"})
+_READ_ONLY: frozenset[str] = frozenset({"canUploadFile"})
 
-# Irreversible removals plus tools that place real outbound calls.
+# Irreversible removals, overwrites of live config, plus tools that place
+# real outbound calls.
 _DESTRUCTIVE: frozenset[str] = frozenset(
     {
         "deleteAgent",
+        "deleteAgentVersion",
+        "restoreAgentVersion",
         "deleteKnowledgeBaseFile",
         "detachKnowledgeBaseFiles",
         "detachPhoneNumber",
         "cancelBulkCall",
-        "revertCreditsFromChild",
         "dispatchCall",
         "createBulkCall",
         "addBulkCallContact",
+        "addBulkCallContacts",
+        "startBulkCall",
+        "retryBulkCall",
+        "purchasePhoneNumber",
+        "releasePhoneNumber",
     }
 )
 
-# Tools that reach the external phone network.
-_OPEN_WORLD: frozenset[str] = frozenset({"dispatchCall", "createBulkCall", "addBulkCallContact"})
+# Tools that reach the external phone network (a carrier, not just our API).
+_OPEN_WORLD: frozenset[str] = frozenset(
+    {
+        "dispatchCall",
+        "createBulkCall",
+        "addBulkCallContact",
+        "addBulkCallContacts",
+        "startBulkCall",
+        "retryBulkCall",
+        "purchasePhoneNumber",
+        "releasePhoneNumber",
+    }
+)
 
 
 def tool_annotations(name: str, method: str) -> dict[str, Any]:

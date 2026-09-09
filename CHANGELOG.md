@@ -4,6 +4,68 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+- `searchPhoneNumbers` and `purchasePhoneNumber` accept a `carrier` field, matching the upstream API which now requires it in any region with more than one carrier. A region with one carrier still works without it. The refusal response lists the valid carriers for that region, so a client does not need a separate lookup.
+
+## [0.9.0] - 2026-09-03
+
+### Added
+
+- `createAgent` and `updateAgent` accept a `timezone` field (IANA name, e.g. `Asia/Kolkata`) that sets the local date and time the agent works with during calls. Unset, the account timezone applies.
+
+### Fixed
+
+- The campaign prompt and bulk-campaigns guide described daily calling windows as following the agent's timezone; they follow the window's own `daily_stop_timezone`/`daily_start_timezone`, falling back to the campaign timezone. Both now say so and point at the agent's new `timezone` field for on-call local time.
+
+## [0.8.1] - 2026-08-28
+
+### Changed
+- The campaign prompt sticks to the common flow: contact filtering is no longer suggested in the step list (it stays available on createBulkCall for the rare list that needs it).
+
+## [0.8.0] - 2026-08-28
+
+### Added
+- Campaign lifecycle tools: startBulkCall, setBulkCallConcurrency, retryBulkCall, addBulkCallContacts (up to 1000 contacts per request), listBulkCallLines (per-contact results with cursor paging), listBulkCallNumbers, addBulkCallNumber, setBulkCallNumberActive (rotation pool), and setBulkCallDailyTimeControl (calling hours). Start, retry, and batch add place real calls and are marked destructive and open-world.
+- createBulkCall now supports bot_id, save_as_draft, call_conditions, and rotation.
+- A build_outbound_campaign prompt and an omnidim://guide/bulk-campaigns resource covering the campaign rules: the two contact shapes, draft-first building, concurrency arithmetic, rotation, calling hours, and cursor-paged results.
+
+## [0.7.0] - 2026-08-26
+
+### Removed
+- Reseller tools are no longer exposed: `listChildOrganizations`, `addUser`, `setUserAccessControl`, `setUserExpiry`, `setChildConcurrency`, `calculateCreditOperation`, `transferCreditsToChild`, `revertCreditsFromChild`, `getResellerCreditLogs`. These act on other people's accounts, several move money, and they are not safe behind a model. Use the REST API or an SDK for them.
+
+### Added
+- Phone number provisioning: `searchPhoneNumbers`, `purchasePhoneNumber`, `releasePhoneNumber`. Purchase and release are marked destructive and open-world, so a client can confirm before either runs.
+- `provision_agent` and the routing guide now tell you a number can be bought, not only imported, and to confirm the price with the user first.
+
+### Security
+- The phone number tools no longer accept `user_id`, the reseller "act on a client" switch. They only ever act on the account the key belongs to, so a reseller key cannot spend a client's balance or release their number from a model.
+
+## [0.6.1] - 2026-08-20
+
+### Changed
+- The `createAgent` and `updateAgent` tools now spell out how `transfer_options` behaves on an update: sending the list replaces every saved transfer option, omitting it leaves them as they are, and an empty array clears them. A client that sent a single option to add one could previously drop the rest without warning.
+- `voice.provider` and `voice.voice_id` are now marked as a pair. A provider sent on its own is rejected, and a voice id on its own leaves the voice unchanged.
+
+## [0.6.0] - 2026-08-12
+
+### Added
+- Agent version-history tools: list, save, diff, restore, rename, and delete an agent's configuration snapshots (generated from the OpenAPI spec).
+- `omnidim://guide/agent-versioning` resource and `restore_agent_version` prompt: when to snapshot, how to read a version diff (the `against` modes), and how to safely preview-then-restore an earlier version.
+
+### Fixed
+- The agent-version tools and `createSession` now report a display title, and restoring or deleting a version is flagged as destructive so clients confirm before overwriting or removing a saved configuration.
+- `restore_agent_version` prompt and the versioning guide describe `createAgentVersion`'s flat argument shape; they showed a `requestBody` wrapper this server rejects.
+
+### Security
+- Tool arguments that fill a URL path are percent-encoded. A crafted path argument could previously redirect a tool call to an API endpoint outside the exposed tool set.
+
+## [0.5.1] - 2026-07-12
+
+### Changed
+
+- The `provision_agent` prompt, `omnidim://guide/routing`, and `omnidim://reference/agent-config` now document the playable `speech_speed` range per voice provider. A speed outside the range silently produces no audio (ElevenLabs plays only within 0.7-1.2), so agents created through the API could end up with a mute voice; the guidance steers clients to a safe value.
+
 ## [0.5.0] - 2026-06-28
 
 ### Added
