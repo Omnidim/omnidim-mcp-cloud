@@ -25,8 +25,8 @@ jobs:
       issues: write
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
           cache: pip
@@ -71,7 +71,7 @@ jobs:
 
       - name: Mint an installation token
         id: token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           # Public identifier, useless without the key.
           app-id: "4881703"
@@ -123,7 +123,7 @@ jobs:
       # place. One issue, reused until it is closed.
       - name: Open an issue if the regen never produced a PR
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const existing = await github.rest.issues.listForRepo({
