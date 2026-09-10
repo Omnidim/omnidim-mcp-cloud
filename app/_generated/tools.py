@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=4767df48d475
+Source spec:   openapi.yaml   sha256=459da516c03d
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -912,7 +912,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createBulkCall",
-        "description": "Create bulk call. Create a new bulk-call campaign. Only name, phone_number_id and a\ncontact_list are needed to dial a list now; every other field adds\none behaviour on top (drafts, rotation, filtering, scheduling,\nretries, dynamic feeding).\n\nThe guide below the field reference walks the whole journey: the\nfirst campaign and its response, each behaviour with a working\nrequest, every refusal message with its fix, and the endpoints that\noperate a campaign once it runs.",
+        "description": "Create bulk call. Create a new bulk-call campaign. Only name, phone_number_id and a\ncontact_list are needed to dial a list now; every other field adds\none behavior on top (drafts, rotation, filtering, scheduling,\nretries, dynamic feeding).\n\nThe guide below the field reference walks the whole journey: the\nfirst campaign and its response, each behavior with a working\nrequest, every refusal message with its fix, and the endpoints that\noperate a campaign once it runs.",
         "input_schema": {
             "type": "object",
             "properties": {
