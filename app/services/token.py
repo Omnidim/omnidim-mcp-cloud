@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
 from app.services.clients import hash_secret
-from app.services.odoo_internal import revoke_api_keys
+from app.services.upstream_keys import revoke_api_keys
 
 log = structlog.get_logger()
 

@@ -14,7 +14,7 @@ import httpx
 import pytest
 from httpx import AsyncClient
 
-from app.services import odoo_internal
+from app.services import upstream_keys
 
 REVOKE_KEY_URL = "http://localhost:8069/api/internal/revoke-key"
 API_KEY_ID = 4242
@@ -38,11 +38,11 @@ def mock_upstream() -> Iterator[
             return handler(req)
 
         transport = httpx.MockTransport(wrapped)
-        odoo_internal.set_client_factory(lambda: httpx.AsyncClient(transport=transport))
+        upstream_keys.set_client_factory(lambda: httpx.AsyncClient(transport=transport))
         return captured
 
     yield setup
-    odoo_internal.reset_client_factory()
+    upstream_keys.reset_client_factory()
 
 
 def _ok(_req: httpx.Request) -> httpx.Response:
@@ -86,7 +86,7 @@ async def _grant(client: AsyncClient) -> tuple[str, dict[str, str]]:
         headers={"X-Internal-Secret": "test-shared-secret"},
         json={
             "request_id": request_id,
-            "odoo_user_id": 2943,
+            "odoo_user_id": 1,
             "odoo_api_key_id": API_KEY_ID,
             "odoo_api_key_value": "fake-upstream-key",
             "approved_scope": "omnidim:all",
@@ -213,7 +213,7 @@ async def test_upstream_500_does_not_block_local_revocation(
         "/revoke", data={"client_id": client_id, "token": tokens["access_token"]}
     )
     assert res.status_code == 200
-    assert len(requests) == odoo_internal.ATTEMPTS
+    assert len(requests) == upstream_keys.ATTEMPTS
     assert await _mcp_status(client, tokens["access_token"]) == 401
 
 
@@ -230,7 +230,7 @@ async def test_upstream_timeout_does_not_block_local_revocation(
         "/revoke", data={"client_id": client_id, "token": tokens["access_token"]}
     )
     assert res.status_code == 200
-    assert len(requests) == odoo_internal.ATTEMPTS
+    assert len(requests) == upstream_keys.ATTEMPTS
     assert await _mcp_status(client, tokens["access_token"]) == 401
 
 

@@ -40,7 +40,7 @@ async def revoke_api_keys(api_key_ids: Iterable[int], *, grant_id: str) -> None:
     committed by the caller, so an upstream outage must not surface as an
     error or undo it.
 
-    ponytail: best effort with a short retry. If upstream is down for the whole
+    Best effort with a short retry. If upstream is down for the whole
     window the key stays live and only this ERROR log records it. Closing that
     needs a persisted pending-revocation flag plus a reconciliation sweep.
     """
@@ -70,7 +70,7 @@ async def _revoke_one(
             log.info(
                 "upstream_key_revoked",
                 grant_id=grant_id,
-                odoo_api_key_id=api_key_id,
+                api_key_id=api_key_id,
                 status=res.status_code,
             )
             return
@@ -81,6 +81,6 @@ async def _revoke_one(
     log.error(
         "upstream_key_revoke_failed",
         grant_id=grant_id,
-        odoo_api_key_id=api_key_id,
+        api_key_id=api_key_id,
         reason=reason,
     )
