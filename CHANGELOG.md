@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-12
+
 ### Security
 - Disconnecting an MCP connection now also deactivates the account credential that was issued with it. Revoking a token previously ended MCP access but left that credential usable. The same cascade runs when a refresh token is replayed and the grant is revoked automatically.
 
