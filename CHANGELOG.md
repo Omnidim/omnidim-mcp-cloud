@@ -4,6 +4,9 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Security
+- Disconnecting an MCP connection now also deactivates the account credential that was issued with it. Revoking a token previously ended MCP access but left that credential usable. The same cascade runs when a refresh token is replayed and the grant is revoked automatically.
+
 ### Fixed
 - `searchPhoneNumbers` and `purchasePhoneNumber` accept a `carrier` field, matching the upstream API which now requires it in any region with more than one carrier. A region with one carrier still works without it. The refusal response lists the valid carriers for that region, so a client does not need a separate lookup.
 

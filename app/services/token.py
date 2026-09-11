@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
 from app.services.clients import hash_secret
+from app.services.upstream_keys import revoke_api_keys
 
 log = structlog.get_logger()
 
@@ -53,6 +54,35 @@ def _verify_pkce(verifier: str, expected_challenge: str) -> bool:
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     computed = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
     return hmac.compare_digest(computed, expected_challenge)
+
+
+async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> None:
+    """Revoke a whole grant family locally, then kill the upstream keys behind it.
+
+    Commits before the upstream call: local revocation is authoritative, so it
+    must survive both an upstream failure and a caller that aborts the request
+    afterwards (reuse detection does exactly that).
+    """
+    key_ids = list(
+        (
+            await session.execute(
+                select(AccessToken.odoo_api_key_id)
+                .where(AccessToken.grant_id == grant_id)
+                .distinct()
+            )
+        ).scalars()
+    )
+    await session.execute(
+        update(AccessToken).where(AccessToken.grant_id == grant_id).values(revoked_at=now)
+    )
+    await session.execute(
+        update(RefreshToken)
+        .where(RefreshToken.grant_id == grant_id)
+        .where(RefreshToken.consumed_at.is_(None))
+        .values(consumed_at=now)
+    )
+    await session.commit()
+    await revoke_api_keys(key_ids, grant_id=grant_id)
 
 
 async def _authenticate_client(
@@ -97,11 +127,7 @@ async def exchange_refresh_token(
     if presented.expires_at <= now:
         raise TokenError("invalid_grant", "refresh token expired")
     if presented.consumed_at is not None:
-        await session.execute(
-            update(AccessToken)
-            .where(AccessToken.grant_id == presented.grant_id)
-            .values(revoked_at=now)
-        )
+        await _revoke_grant(session, presented.grant_id, now)
         raise TokenError("invalid_grant", "refresh token already used (grant revoked)")
 
     access_row: AccessToken | None = (
@@ -165,6 +191,8 @@ async def revoke(
     token: str,
 ) -> None:
     client = await _authenticate_client(session, client_id, client_secret)
+    # Held as locals: the commit inside _revoke_grant expires loaded attributes.
+    authenticated_client_id = client.client_id
     now = datetime.now(UTC)
     token_hash = _hash(token)
 
@@ -173,19 +201,10 @@ async def revoke(
             select(AccessToken).where(AccessToken.token_hash == token_hash)
         )
     ).scalar_one_or_none()
-    if access and access.client_id == client.client_id and access.revoked_at is None:
-        await session.execute(
-            update(AccessToken)
-            .where(AccessToken.grant_id == access.grant_id)
-            .values(revoked_at=now)
-        )
-        await session.execute(
-            update(RefreshToken)
-            .where(RefreshToken.grant_id == access.grant_id)
-            .where(RefreshToken.consumed_at.is_(None))
-            .values(consumed_at=now)
-        )
-        log.info("token_revoked", client_id=client.client_id, grant_id=access.grant_id)
+    if access and access.client_id == authenticated_client_id and access.revoked_at is None:
+        grant_id = access.grant_id
+        await _revoke_grant(session, grant_id, now)
+        log.info("token_revoked", client_id=authenticated_client_id, grant_id=grant_id)
         return
 
     refresh = (
@@ -193,19 +212,10 @@ async def revoke(
             select(RefreshToken).where(RefreshToken.token_hash == token_hash)
         )
     ).scalar_one_or_none()
-    if refresh and refresh.client_id == client.client_id:
-        await session.execute(
-            update(AccessToken)
-            .where(AccessToken.grant_id == refresh.grant_id)
-            .values(revoked_at=now)
-        )
-        await session.execute(
-            update(RefreshToken)
-            .where(RefreshToken.grant_id == refresh.grant_id)
-            .where(RefreshToken.consumed_at.is_(None))
-            .values(consumed_at=now)
-        )
-        log.info("token_revoked", client_id=client.client_id, grant_id=refresh.grant_id)
+    if refresh and refresh.client_id == authenticated_client_id:
+        grant_id = refresh.grant_id
+        await _revoke_grant(session, grant_id, now)
+        log.info("token_revoked", client_id=authenticated_client_id, grant_id=grant_id)
 
 
 async def exchange_authorization_code(
