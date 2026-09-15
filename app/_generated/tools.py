@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=459da516c03d
+Source spec:   openapi.yaml   sha256=b9cf802a8d7b
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
