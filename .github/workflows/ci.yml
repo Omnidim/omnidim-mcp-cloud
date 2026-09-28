@@ -80,7 +80,7 @@ jobs:
           exit 1
 
   # Build and push the tagged image on a GitHub-hosted runner so the prod
-  # box never builds; the self-hosted deploy job only pulls and restarts.
+  # box never builds; the deploy job only has it pull and restart.
   publish:
     runs-on: ubuntu-latest
     needs: [test, docker]
