@@ -41,7 +41,7 @@ These do not bend without an explicit decision:
 ## Release flow
 
 - `main` is the release branch. Every commit on `main` must pass CI.
-- Production deploys on a `v*` git tag. The deploy job builds the image, pushes it to `ghcr.io/omnidim/omnidim-mcp-cloud`, then SSHes to the deploy host (`MCP_DEPLOY_*` secrets) to pull, migrate, restart, healthcheck, and roll back to the previous image on failure.
+- Production deploys on a `v*` git tag. The deploy job builds the image, pushes it to `ghcr.io/omnidim/omnidim-mcp-cloud`, then asks the deploy host (via a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back to the previous image on failure. No SSH keys in CI.
 - Staging deploys on every merge to `main` once a staging host is provisioned.
 - Never deploy from a laptop. Tag → CI → server.
 - Database migrations are forward-compatible: an old app version must be able to run against the new schema for the rolling-deploy window.
