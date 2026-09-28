@@ -105,54 +105,42 @@ jobs:
             ghcr.io/omnidim/omnidim-mcp-cloud:${{ github.ref_name }}
             ghcr.io/omnidim/omnidim-mcp-cloud:latest
 
-  # Runs on the deploy host itself (self-hosted runner labelled omnidim-mcp),
-  # so there is no SSH hop or firewall to traverse. The runner must already be
-  # logged in to ghcr and able to use docker compose in MCP_DEPLOY_PATH.
+  # The role this job assumes can only run one deploy command, for one tag, on
+  # one host. The migrate, restart, readiness and rollback steps live on the host.
   deploy:
-    runs-on: [self-hosted, omnidim-mcp]
+    runs-on: ubuntu-latest
     needs: publish
     if: startsWith(github.ref, 'refs/tags/v')
     environment: production
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: us-west-1
+      INSTANCE_ID: ${{ secrets.MCP_DEPLOY_INSTANCE_ID }}
     steps:
-      - name: Deploy with healthcheck + rollback
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          set -e
-          cd "${{ secrets.MCP_DEPLOY_PATH }}"
-          PREV=$(grep '^MCP_IMAGE=' .env 2>/dev/null | cut -d= -f2- || echo "")
-          NEW="ghcr.io/omnidim/omnidim-mcp-cloud:${{ github.ref_name }}"
-          echo "Deploying $NEW (previous: ${PREV:-unset})"
-
-          docker pull "$NEW"
-
-          grep -v '^MCP_IMAGE=' .env > .env.next 2>/dev/null || true
-          echo "MCP_IMAGE=$NEW" >> .env.next
-          mv .env.next .env
-          chmod 600 .env
-
-          # Forward-compatible migrations: old app keeps working against
-          # the new schema during the swap window.
-          docker compose run --rm app alembic upgrade head
-          docker compose up -d --no-deps app
-
-          ok=0
-          for i in $(seq 1 30); do
-            if curl -fsS https://mcp.omnidim.io/healthz > /dev/null; then
-              ok=1; break
+          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name mcp-cloud-deploy \
+            --parameters "tag=$TAG" --query Command.CommandId --output text)
+          echo "SSM command $id"
+          status=Pending
+          while [ "$status" = Pending ] || [ "$status" = InProgress ] || [ "$status" = Delayed ] || [ "$status" = Cancelling ]; do
+            sleep 10
+            # InvocationDoesNotExist is normal for a few seconds after send-command; any other error is real.
+            if ! out=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>&1); then
+              case "$out" in *InvocationDoesNotExist*) out=Pending ;; *) echo "$out" >&2; exit 1 ;; esac
             fi
-            sleep 2
+            status=$out
           done
-
-          if [ "$ok" -ne 1 ]; then
-            echo "Healthcheck failed. Rolling back to ${PREV:-unset}."
-            if [ -n "$PREV" ]; then
-              grep -v '^MCP_IMAGE=' .env > .env.next
-              echo "MCP_IMAGE=$PREV" >> .env.next
-              mv .env.next .env
-              chmod 600 .env
-              docker compose up -d --no-deps app
-            fi
-            docker compose logs --tail=80 app
-            exit 1
-          fi
-
-          echo "Deployed $NEW successfully."
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query StandardErrorContent --output text >&2
+          echo "Status: $status"
+          [ "$status" = Success ]
