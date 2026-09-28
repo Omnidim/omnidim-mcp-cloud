@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-09-28
+
+### Changed
+- Tool calls return about half a second faster.
+- Releases no longer interrupt the service: connected clients keep working while a new version rolls out.
+
 ## [0.9.1] - 2026-09-12
 
 ### Security
