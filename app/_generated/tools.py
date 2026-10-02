@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=b9cf802a8d7b
+Source spec:   openapi.yaml   sha256=0233c8c58885
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -1171,7 +1171,178 @@ _TOOLS_JSON = r"""[
                 "custom_variables": {
                     "type": "object",
                     "additionalProperties": true,
-                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\n",
+                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\nTwo reserved keys are read as instructions for this session\nand never reach the agent: `__languages` and\n`__post_call_actions`.\n",
+                    "properties": {
+                        "__languages": {
+                            "oneOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ],
+                            "description": "Languages this session runs in, replacing the agent's\nconfigured list. The first entry is the language the\nvisitor is greeted in. Send an array, or a pipe-separated\nstring such as `Hindi|English`.\n",
+                            "example": "Hindi|Gujarati|English"
+                        },
+                        "__post_call_actions": {
+                            "allOf": [
+                                {
+                                    "type": "object",
+                                    "description": "Side effects that fire once the call ends. Configure email, webhook, or both.",
+                                    "properties": {
+                                        "email": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "recipients": {
+                                                    "type": "array",
+                                                    "description": "Email addresses that should receive the notification.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "format": "email"
+                                                    },
+                                                    "example": [
+                                                        "support@example.com"
+                                                    ]
+                                                },
+                                                "include": {
+                                                    "type": "array",
+                                                    "description": "Which sections to include in the email body.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "summary",
+                                                            "extracted_variables",
+                                                            "fullConversation",
+                                                            "sentiment"
+                                                        ]
+                                                    }
+                                                },
+                                                "extracted_variables": {
+                                                    "type": "array",
+                                                    "description": "Variables the model should pull out of the conversation for the email.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "key",
+                                                            "prompt"
+                                                        ],
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string",
+                                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                                "example": "customer_issue"
+                                                            },
+                                                            "prompt": {
+                                                                "type": "string",
+                                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                                "example": "Identify the main issue the customer is experiencing."
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "trigger_call_statuses": {
+                                                    "type": "array",
+                                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "completed",
+                                                            "voicemail_detected",
+                                                            "failed",
+                                                            "no_answer",
+                                                            "busy",
+                                                            "cancelled"
+                                                        ]
+                                                    },
+                                                    "example": [
+                                                        "completed",
+                                                        "voicemail_detected"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "webhook": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "description": "Endpoint that receives a POST with the call payload.",
+                                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
+                                                },
+                                                "include": {
+                                                    "type": "array",
+                                                    "description": "Which sections to include in the webhook body.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "summary",
+                                                            "extracted_variables",
+                                                            "fullConversation",
+                                                            "sentiment"
+                                                        ]
+                                                    }
+                                                },
+                                                "extracted_variables": {
+                                                    "type": "array",
+                                                    "description": "Variables the model should pull out of the conversation for the webhook.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "key",
+                                                            "prompt"
+                                                        ],
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string",
+                                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                                "example": "customer_issue"
+                                                            },
+                                                            "prompt": {
+                                                                "type": "string",
+                                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                                "example": "Identify the main issue the customer is experiencing."
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "trigger_call_statuses": {
+                                                    "type": "array",
+                                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "completed",
+                                                            "voicemail_detected",
+                                                            "failed",
+                                                            "no_answer",
+                                                            "busy",
+                                                            "cancelled"
+                                                        ]
+                                                    },
+                                                    "example": [
+                                                        "completed",
+                                                        "failed"
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\n"
+                        }
+                    },
                     "example": {
                         "name": "Demo User"
                     }
@@ -1401,6 +1572,178 @@ _TOOLS_JSON = r"""[
                         "crm_lead_id": "lead_9876",
                         "source": "website_form"
                     }
+                },
+                "__languages": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Languages this call runs in, replacing the agent's configured\nlist for this call only. The first entry is the language the\ncall opens in. Send an array, or a pipe-separated string such\nas `Hindi|English`. Names the platform does not recognize are\nskipped and listed in `languages_ignored`.\n",
+                    "example": [
+                        "Tamil",
+                        "English"
+                    ]
+                },
+                "__post_call_actions": {
+                    "allOf": [
+                        {
+                            "type": "object",
+                            "description": "Side effects that fire once the call ends. Configure email, webhook, or both.",
+                            "properties": {
+                                "email": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "recipients": {
+                                            "type": "array",
+                                            "description": "Email addresses that should receive the notification.",
+                                            "items": {
+                                                "type": "string",
+                                                "format": "email"
+                                            },
+                                            "example": [
+                                                "support@example.com"
+                                            ]
+                                        },
+                                        "include": {
+                                            "type": "array",
+                                            "description": "Which sections to include in the email body.",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "summary",
+                                                    "extracted_variables",
+                                                    "fullConversation",
+                                                    "sentiment"
+                                                ]
+                                            }
+                                        },
+                                        "extracted_variables": {
+                                            "type": "array",
+                                            "description": "Variables the model should pull out of the conversation for the email.",
+                                            "items": {
+                                                "type": "object",
+                                                "required": [
+                                                    "key",
+                                                    "prompt"
+                                                ],
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string",
+                                                        "description": "Unique identifier for the variable in the post-call payload.",
+                                                        "example": "customer_issue"
+                                                    },
+                                                    "prompt": {
+                                                        "type": "string",
+                                                        "description": "Instruction for the model on what to pull out of the conversation.",
+                                                        "example": "Identify the main issue the customer is experiencing."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "trigger_call_statuses": {
+                                            "type": "array",
+                                            "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "completed",
+                                                    "voicemail_detected",
+                                                    "failed",
+                                                    "no_answer",
+                                                    "busy",
+                                                    "cancelled"
+                                                ]
+                                            },
+                                            "example": [
+                                                "completed",
+                                                "voicemail_detected"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "webhook": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "format": "uri",
+                                            "description": "Endpoint that receives a POST with the call payload.",
+                                            "example": "https://your-webhook-endpoint.com/omnidim-callback"
+                                        },
+                                        "include": {
+                                            "type": "array",
+                                            "description": "Which sections to include in the webhook body.",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "summary",
+                                                    "extracted_variables",
+                                                    "fullConversation",
+                                                    "sentiment"
+                                                ]
+                                            }
+                                        },
+                                        "extracted_variables": {
+                                            "type": "array",
+                                            "description": "Variables the model should pull out of the conversation for the webhook.",
+                                            "items": {
+                                                "type": "object",
+                                                "required": [
+                                                    "key",
+                                                    "prompt"
+                                                ],
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string",
+                                                        "description": "Unique identifier for the variable in the post-call payload.",
+                                                        "example": "customer_issue"
+                                                    },
+                                                    "prompt": {
+                                                        "type": "string",
+                                                        "description": "Instruction for the model on what to pull out of the conversation.",
+                                                        "example": "Identify the main issue the customer is experiencing."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "trigger_call_statuses": {
+                                            "type": "array",
+                                            "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "completed",
+                                                    "voicemail_detected",
+                                                    "failed",
+                                                    "no_answer",
+                                                    "busy",
+                                                    "cancelled"
+                                                ]
+                                            },
+                                            "example": [
+                                                "completed",
+                                                "failed"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\n"
                 }
             },
             "required": [
@@ -1654,7 +1997,11 @@ _TOOLS_JSON = r"""[
                 },
                 "sip_dial_prefix": {
                     "type": "string",
-                    "description": "Optional prefix to prepend before the destination number when dialing (e.g. to strip the country code)."
+                    "description": "Digits added in front of every number dialed through this trunk. See `sip_strip_country_code` for how it combines with the country code."
+                },
+                "sip_strip_country_code": {
+                    "type": "boolean",
+                    "description": "When true, the country code is removed from every number dialed through this trunk. When omitted and `sip_dial_prefix` is set, the country code is removed, so send `false` to keep it."
                 },
                 "sip_strip_plus": {
                     "type": "boolean",
