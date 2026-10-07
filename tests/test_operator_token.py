@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app._generated.tools import TOOLS
 from app.config import get_settings
-from app.models import AccessToken, RefreshToken
+from app.models import AccessToken, OAuthClient, RefreshToken
 from app.services import upstream_keys
 
 SECRET = {"X-Internal-Secret": "test-shared-secret"}
@@ -62,6 +62,9 @@ async def test_rejected_without_secret(client: AsyncClient) -> None:
         {},
         {"odoo_user_id": 1, "odoo_api_key_id": 2},
         {"odoo_user_id": "x", "odoo_api_key_id": 2, "odoo_api_key_value": "k"},
+        {"odoo_user_id": 1, "odoo_api_key_id": 2, "odoo_api_key_value": ""},
+        {"odoo_user_id": 0, "odoo_api_key_id": 2, "odoo_api_key_value": "k"},
+        {"odoo_user_id": 1, "odoo_api_key_id": -1, "odoo_api_key_value": "k"},
     ],
 )
 async def test_bad_body_is_422(client: AsyncClient, body: dict[str, object]) -> None:
@@ -142,8 +145,42 @@ async def test_revoking_grant_revokes_upstream_key(
     assert (await _mcp(client, data["access_token"], "tools/list")).status_code == 401
 
 
-async def test_repeat_issue_is_idempotent_for_client_row(client: AsyncClient) -> None:
+async def test_repeat_issue_is_idempotent_for_client_row(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
     first = await _issue(client)
     second = await _issue(client)
     assert first["grant_id"] != second["grant_id"]
+    async with session_factory() as session:
+        count = (
+            await session.execute(
+                select(func.count())
+                .select_from(OAuthClient)
+                .where(OAuthClient.client_id == get_settings().operator_client_id)
+            )
+        ).scalar_one()
+    assert count == 1
+
+
+@pytest.mark.parametrize(
+    "form",
+    [
+        {
+            "grant_type": "authorization_code",
+            "code": "any",
+            "redirect_uri": "http://localhost/cb",
+            "code_verifier": "v" * 43,
+        },
+        {"grant_type": "refresh_token", "refresh_token": "any"},
+    ],
+)
+async def test_operator_client_rejected_at_token_endpoint(
+    client: AsyncClient, form: dict[str, str]
+) -> None:
+    await _issue(client)
+    res = await client.post(
+        "/token", data={**form, "client_id": get_settings().operator_client_id}
+    )
+    assert res.status_code == 401
+    assert res.json()["detail"]["error"] == "invalid_client"
 

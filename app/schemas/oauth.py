@@ -85,12 +85,14 @@ class IssueCodeRequest(BaseModel):
 class IssueTokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    odoo_user_id: int
-    odoo_api_key_id: int
-    odoo_api_key_value: str
+    odoo_user_id: int = Field(gt=0)
+    odoo_api_key_id: int = Field(gt=0)
+    odoo_api_key_value: str = Field(min_length=1)
 
 
 class IssueTokenResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     access_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int

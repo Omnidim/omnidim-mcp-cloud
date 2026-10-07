@@ -10,6 +10,9 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 ### Changed
 - Access token lifetime now follows the `ACCESS_TOKEN_TTL_SECONDS` setting (default 3600) for every issued token.
 
+### Security
+- The internal operator client is refused at `/token` with `invalid_client`, so it can never exchange a code or refresh token; it can still revoke its own tokens.
+
 ## [0.9.2] - 2026-09-28
 
 ### Changed

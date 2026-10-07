@@ -10,10 +10,13 @@ from typing import Final
 
 import structlog
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
+from app.scopes import DEFAULT_SCOPE
+from app.security import encrypt_secret
 from app.services.clients import hash_secret
 from app.services.upstream_keys import revoke_api_keys
 
@@ -28,6 +31,14 @@ class TokenError(Exception):
         self.code = code
         self.description = description
         self.status_code = status_code
+
+
+@dataclass(frozen=True)
+class IssuedOperatorToken:
+    access_token: str
+    expires_in: int
+    scope: str
+    grant_id: str
 
 
 @dataclass(frozen=True)
@@ -60,6 +71,30 @@ def _verify_pkce(verifier: str, expected_challenge: str) -> bool:
     return hmac.compare_digest(computed, expected_challenge)
 
 
+def _new_access_token(
+    *,
+    client_id: str,
+    odoo_user_id: int,
+    odoo_api_key_id: int,
+    odoo_api_key_value: str | None,
+    grant_id: str,
+    scope: str,
+) -> tuple[str, AccessToken]:
+    """Return the plaintext token and its hash-only row, expiring after access_token_ttl()."""
+    plain = _generate_token()
+    row = AccessToken(
+        token_hash=_hash(plain),
+        client_id=client_id,
+        odoo_user_id=odoo_user_id,
+        odoo_api_key_id=odoo_api_key_id,
+        odoo_api_key_value=odoo_api_key_value,
+        grant_id=grant_id,
+        scope=scope,
+        expires_at=datetime.now(UTC) + access_token_ttl(),
+    )
+    return plain, row
+
+
 async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> None:
     """Revoke a whole grant family locally, then kill the upstream keys behind it.
 
@@ -90,8 +125,15 @@ async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> 
 
 
 async def _authenticate_client(
-    session: AsyncSession, client_id: str, client_secret: str | None
+    session: AsyncSession,
+    client_id: str,
+    client_secret: str | None,
+    *,
+    allow_operator: bool = False,
 ) -> OAuthClient:
+    # The operator client exists only to own internally minted tokens; it may revoke, never obtain.
+    if client_id == get_settings().operator_client_id and not allow_operator:
+        raise TokenError("invalid_client", "client not allowed at this endpoint", 401)
     client: OAuthClient | None = (
         await session.execute(select(OAuthClient).where(OAuthClient.client_id == client_id))
     ).scalar_one_or_none()
@@ -145,22 +187,16 @@ async def exchange_refresh_token(
     if access_row is None:
         raise TokenError("invalid_grant", "grant has no access token on file")
 
-    new_access = _generate_token()
-    new_refresh = _generate_token()
-    ttl = access_token_ttl()
-
-    session.add(
-        AccessToken(
-            token_hash=_hash(new_access),
-            client_id=client.client_id,
-            odoo_user_id=presented.odoo_user_id,
-            odoo_api_key_id=access_row.odoo_api_key_id,
-            odoo_api_key_value=access_row.odoo_api_key_value,
-            grant_id=presented.grant_id,
-            scope=presented.scope,
-            expires_at=now + ttl,
-        )
+    new_access, new_access_row = _new_access_token(
+        client_id=client.client_id,
+        odoo_user_id=presented.odoo_user_id,
+        odoo_api_key_id=access_row.odoo_api_key_id,
+        odoo_api_key_value=access_row.odoo_api_key_value,
+        grant_id=presented.grant_id,
+        scope=presented.scope,
     )
+    new_refresh = _generate_token()
+    session.add(new_access_row)
     new_refresh_row = RefreshToken(
         token_hash=_hash(new_refresh),
         client_id=client.client_id,
@@ -183,7 +219,7 @@ async def exchange_refresh_token(
     return IssuedTokens(
         access_token=new_access,
         refresh_token=new_refresh,
-        expires_in=int(ttl.total_seconds()),
+        expires_in=int(access_token_ttl().total_seconds()),
         scope=presented.scope,
     )
 
@@ -195,7 +231,7 @@ async def revoke(
     client_secret: str | None,
     token: str,
 ) -> None:
-    client = await _authenticate_client(session, client_id, client_secret)
+    client = await _authenticate_client(session, client_id, client_secret, allow_operator=True)
     # Held as locals: the commit inside _revoke_grant expires loaded attributes.
     authenticated_client_id = client.client_id
     now = datetime.now(UTC)
@@ -256,23 +292,17 @@ async def exchange_authorization_code(
 
     auth_code.consumed_at = now
 
-    access_plain = _generate_token()
-    refresh_plain = _generate_token()
     grant_id = _generate_grant_id()
-    ttl = access_token_ttl()
-
-    session.add(
-        AccessToken(
-            token_hash=_hash(access_plain),
-            client_id=client.client_id,
-            odoo_user_id=auth_code.odoo_user_id,
-            odoo_api_key_id=auth_code.odoo_api_key_id,
-            odoo_api_key_value=auth_code.odoo_api_key_value,
-            grant_id=grant_id,
-            scope=auth_code.scope,
-            expires_at=now + ttl,
-        )
+    access_plain, access_row = _new_access_token(
+        client_id=client.client_id,
+        odoo_user_id=auth_code.odoo_user_id,
+        odoo_api_key_id=auth_code.odoo_api_key_id,
+        odoo_api_key_value=auth_code.odoo_api_key_value,
+        grant_id=grant_id,
+        scope=auth_code.scope,
     )
+    refresh_plain = _generate_token()
+    session.add(access_row)
     session.add(
         RefreshToken(
             token_hash=_hash(refresh_plain),
@@ -294,6 +324,54 @@ async def exchange_authorization_code(
     return IssuedTokens(
         access_token=access_plain,
         refresh_token=refresh_plain,
-        expires_in=int(ttl.total_seconds()),
+        expires_in=int(access_token_ttl().total_seconds()),
         scope=auth_code.scope,
+    )
+
+
+async def _ensure_operator_client(session: AsyncSession, client_id: str) -> None:
+    await session.execute(
+        insert(OAuthClient)
+        .values(
+            client_id=client_id,
+            client_name="OmniOP Operator",
+            redirect_uris=[],
+            grant_types=[],
+            response_types=[],
+            scope=DEFAULT_SCOPE,
+            token_endpoint_auth_method="none",  # noqa: S106 (spec literal)
+            metadata_json={},
+        )
+        .on_conflict_do_nothing(index_elements=[OAuthClient.client_id])
+    )
+
+
+async def issue_operator_token(
+    session: AsyncSession,
+    *,
+    odoo_user_id: int,
+    odoo_api_key_id: int,
+    odoo_api_key_value: str,
+) -> IssuedOperatorToken:
+    """Mint an access token for a first-party operator session. No refresh token:
+    the operator reopens through Odoo when this one expires."""
+    client_id = get_settings().operator_client_id
+    await _ensure_operator_client(session, client_id)
+
+    grant_id = _generate_grant_id()
+    access_plain, access_row = _new_access_token(
+        client_id=client_id,
+        odoo_user_id=odoo_user_id,
+        odoo_api_key_id=odoo_api_key_id,
+        odoo_api_key_value=encrypt_secret(odoo_api_key_value),
+        grant_id=grant_id,
+        scope=DEFAULT_SCOPE,
+    )
+    session.add(access_row)
+    log.info("operator_token_issued", odoo_user_id=odoo_user_id, grant_id=grant_id)
+    return IssuedOperatorToken(
+        access_token=access_plain,
+        expires_in=int(access_token_ttl().total_seconds()),
+        scope=DEFAULT_SCOPE,
+        grant_id=grant_id,
     )

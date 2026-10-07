@@ -19,7 +19,7 @@ from app.schemas.oauth import (
     IssueTokenResponse,
 )
 from app.services.issue_code import IssueCodeError, issue_code
-from app.services.issue_token import issue_operator_token
+from app.services.token import issue_operator_token
 
 router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=False)
 
@@ -128,9 +128,4 @@ async def post_issue_token(
             odoo_api_key_value=body.odoo_api_key_value,
         )
         await session.commit()
-    return IssueTokenResponse(
-        access_token=issued.access_token,
-        expires_in=issued.expires_in,
-        scope=issued.scope,
-        grant_id=issued.grant_id,
-    )
+    return IssueTokenResponse.model_validate(issued)
