@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     dashboard_base_url: str = Field(description="Origin where the consent screen is hosted.")
     odoo_internal_base_url: str
     odoo_internal_shared_secret: str
+    backend_base_url: str = "https://backend.omnidim.io/api/v1"
 
     token_signing_key: str = Field(min_length=32)
     access_token_ttl_seconds: int = 3600

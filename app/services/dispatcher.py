@@ -11,11 +11,11 @@ import httpx
 import structlog
 
 from app._generated.tools import TOOLS
+from app.config import get_settings
 from app.services.bearer import ResolvedToken
 
 log = structlog.get_logger()
 
-BACKEND_BASE_URL: Final = "https://backend.omnidim.io/api/v1"
 USER_AGENT: Final = "omnidim-mcp-cloud/0.9.2"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
@@ -195,7 +195,7 @@ async def dispatch_tool(
     path = _substitute_path(tool["path"], arguments, tool["path_params"])
     query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
 
-    url = f"{BACKEND_BASE_URL}{path}"
+    url = f"{get_settings().backend_base_url.rstrip('/')}{path}"
     headers = {
         "Authorization": f"Bearer {token.odoo_api_key_value}",
         "User-Agent": USER_AGENT,

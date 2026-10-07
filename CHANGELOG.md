@@ -8,6 +8,7 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 - Internal `POST /internal/issue-token` lets Odoo mint an access token for a signed-in dashboard user without the consent screen. The token works on the MCP endpoint like a consent-issued one, carries no refresh token, and revoking its grant deactivates the upstream API key.
 
 ### Changed
+- Tool calls go to the `BACKEND_BASE_URL` setting (default `https://backend.omnidim.io/api/v1`), so a local stack can point at a local Odoo.
 - Access token lifetime now follows the `ACCESS_TOKEN_TTL_SECONDS` setting (default 3600) for every issued token.
 
 ### Security

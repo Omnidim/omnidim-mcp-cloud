@@ -192,6 +192,28 @@ async def test_mcp_tools_call_proxies_to_backend(client: AsyncClient, mock_backe
     assert "Test Agent" in body["result"]["content"][0]["text"]
 
 
+async def test_mcp_tools_call_uses_configured_backend_base_url(
+    client: AsyncClient, mock_backend, monkeypatch
+) -> None:
+    from app.config import get_settings
+
+    token = await _mint_access_token(client)
+    monkeypatch.setattr(get_settings(), "backend_base_url", "http://localhost:8070/api/v1/")
+    captured = mock_backend(lambda req: httpx.Response(200, json={"bots": [], "total_records": 0}))
+    await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "listAgents", "arguments": {"pageno": 1}},
+        },
+    )
+    assert len(captured) == 1
+    assert str(captured[0].url).startswith("http://localhost:8070/api/v1/agents")
+
+
 def test_path_item_params_and_ref_body_resolved() -> None:
     """Regression: path-item-level params (agent_id) and $ref request
     bodies were both dropped by the generator, so updateAgent hit a
