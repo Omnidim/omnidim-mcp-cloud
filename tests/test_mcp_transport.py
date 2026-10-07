@@ -192,6 +192,34 @@ async def test_mcp_tools_call_proxies_to_backend(client: AsyncClient, mock_backe
     assert "Test Agent" in body["result"]["content"][0]["text"]
 
 
+async def test_list_call_logs_proxies_date_range(client: AsyncClient, mock_backend) -> None:
+    token = await _mint_access_token(client)
+    captured = mock_backend(
+        lambda req: httpx.Response(200, json={"call_log_data": [], "total_records": 0})
+    )
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "listCallLogs",
+                "arguments": {"date_from": "2026-10-01", "date_to": "2026-10-07"},
+            },
+        },
+    )
+    assert res.json()["result"]["isError"] is False
+    assert len(captured) == 1
+    sent = captured[0]
+    assert sent.url.path == "/api/v1/calls/logs"
+    assert sent.url.params["date_from"] == "2026-10-01"
+    assert sent.url.params["date_to"] == "2026-10-07"
+    props = next(t for t in TOOLS if t["name"] == "listCallLogs")["input_schema"]["properties"]
+    assert {"date_from", "date_to"} <= set(props)
+
+
 async def test_mcp_tools_call_uses_configured_backend_base_url(
     client: AsyncClient, mock_backend, monkeypatch
 ) -> None:

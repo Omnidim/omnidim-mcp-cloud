@@ -6,6 +6,7 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ### Added
 - Internal `POST /internal/issue-token` lets Odoo mint an access token for a signed-in dashboard user without the consent screen. The token works on the MCP endpoint like a consent-issued one, carries no refresh token, and revoking its grant deactivates the upstream API key.
+- `listCallLogs` accepts `date_from` and `date_to` (YYYY-MM-DD, inclusive, in the account time zone) to list calls from a date range.
 
 ### Changed
 - Tool calls go to the `BACKEND_BASE_URL` setting (default `https://backend.omnidim.io/api/v1`), so a local stack can point at a local Odoo.

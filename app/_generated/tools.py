@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=b9cf802a8d7b
+Source spec:   openapi.yaml   sha256=f92d65d4aa7b
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -1935,6 +1935,16 @@ _TOOLS_JSON = r"""[
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Filter by bulk-call campaign ID."
+                },
+                "date_from": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Only calls on or after this day (YYYY-MM-DD, inclusive), in the\ntime zone set on your account. UTC when none is set.\n"
+                },
+                "date_to": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Only calls on or before this day (YYYY-MM-DD, inclusive), in the\ntime zone set on your account. Must not be earlier than `date_from`.\n"
                 }
             },
             "required": [],
@@ -1948,7 +1958,9 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "agentid",
             "call_status",
-            "bulk_call_id"
+            "bulk_call_id",
+            "date_from",
+            "date_to"
         ]
     },
     {
