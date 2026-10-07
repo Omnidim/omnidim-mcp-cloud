@@ -106,14 +106,17 @@ def _find_list(data: Any) -> tuple[list[Any], str | None] | None:
     return None
 
 
-def _shorten_strings(value: Any, limit: int) -> Any:
-    """Cut every string longer than `limit` so the JSON keeps its shape."""
+def _shorten(value: Any, limit: int, items: int) -> Any:
+    """Cut long strings to `limit` chars and long lists to `items` entries, keeping the shape."""
     if isinstance(value, str) and len(value) > limit:
         return value[:limit] + f"...[truncated {len(value) - limit} chars]"
     if isinstance(value, dict):
-        return {k: _shorten_strings(v, limit) for k, v in value.items()}
+        return {k: _shorten(v, limit, items) for k, v in value.items()}
     if isinstance(value, list):
-        return [_shorten_strings(v, limit) for v in value]
+        kept = [_shorten(v, limit, items) for v in value[:items]]
+        if len(value) > items:
+            kept.append(f"...[truncated {len(value) - items} more items]")
+        return kept
     return value
 
 
@@ -156,17 +159,17 @@ def _trim(data: Any) -> ToolResult:
             else arr[:1]
         )
 
-    # Still too big (one huge item, or no list): shorten long strings until it fits.
-    # ponytail: halving the per-string cap; fine for the few huge fields (transcripts, prompts).
-    limit = 4000
+    # Still too big (one huge item, or no list): shorten long strings and nested lists.
+    # ponytail: halving both caps until it fits; fine for the few huge fields (transcripts).
+    limit, items = 4000, 200
     while limit >= 50:
-        body = _shorten_strings(redacted, limit)
+        body = _shorten(redacted, limit, items)
         candidate = _with_note(
             body, f"Long text fields were truncated. Full size: {len(full)} chars."
         )
         if len(candidate) <= MAX_LIST_CHARS:
             return ToolResult(text=candidate)
-        limit //= 2
+        limit, items = limit // 2, max(1, items // 2)
     return ToolResult(
         text=_with_note({}, f"Result too large to return ({len(full)} chars). Fetch by ID.")
     )

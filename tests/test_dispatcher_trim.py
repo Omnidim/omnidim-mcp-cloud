@@ -37,3 +37,16 @@ def test_oversized_object_without_a_list_stays_valid_json() -> None:
     data = {"id": 9, "prompt": "z" * 80_000}
     parsed = json.loads(_trim(data).text)
     assert parsed["id"] == 9 and len(parsed["prompt"]) < 80_000
+
+
+def test_one_item_with_a_long_nested_list_is_shortened_not_dropped() -> None:
+    turns = [
+        {"role": "user" if i % 2 else "assistant", "text": f"turn {i} " + "w" * 120}
+        for i in range(600)
+    ]
+    call = {"id": 173415, "bot_name": "Test Call Agent", "transcript": turns}
+    parsed = json.loads(_trim({"call_log_data": [call], "total_records": 1}).text)
+    (kept,) = parsed["call_log_data"]
+    assert kept["id"] == 173415 and kept["bot_name"] == "Test Call Agent"
+    assert 1 <= len(kept["transcript"]) < 600
+    assert "truncated" in parsed["_note"]
