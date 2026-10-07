@@ -14,6 +14,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 ### Security
 - The internal operator client is refused at `/token` with `invalid_client`, so it can never exchange a code or refresh token; it can still revoke its own tokens.
 
+### Fixed
+- Long tool results stay valid JSON: the trim note moves into a `_note` field and one oversized item keeps its shape with long text fields shortened, instead of being cut mid-string.
+
+
 ## [0.9.2] - 2026-09-28
 
 ### Changed

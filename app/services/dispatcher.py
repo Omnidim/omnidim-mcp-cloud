@@ -106,31 +106,69 @@ def _find_list(data: Any) -> tuple[list[Any], str | None] | None:
     return None
 
 
+def _shorten_strings(value: Any, limit: int) -> Any:
+    """Cut every string longer than `limit` so the JSON keeps its shape."""
+    if isinstance(value, str) and len(value) > limit:
+        return value[:limit] + f"...[truncated {len(value) - limit} chars]"
+    if isinstance(value, dict):
+        return {k: _shorten_strings(v, limit) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_shorten_strings(v, limit) for v in value]
+    return value
+
+
+def _with_note(data: Any, note: str) -> str:
+    # The note rides inside the JSON so clients can always parse the result.
+    if isinstance(data, dict):
+        return json.dumps({**data, "_note": note}, indent=2, ensure_ascii=False)
+    return json.dumps({"items": data, "_note": note}, indent=2, ensure_ascii=False)
+
+
 def _trim(data: Any) -> ToolResult:
+    """Fit a result under MAX_LIST_CHARS while keeping it valid JSON."""
     redacted = _redact(data)
     full = json.dumps(redacted, indent=2, ensure_ascii=False)
-    found = _find_list(redacted)
-    if found is None or len(full) <= MAX_LIST_CHARS:
+    if len(full) <= MAX_LIST_CHARS:
         return ToolResult(text=full)
 
-    arr, key = found
-    kept = len(arr)
-    while kept > 1:
-        trimmed = arr[:kept]
-        if key is not None and isinstance(redacted, dict):
-            candidate = json.dumps({**redacted, key: trimmed}, indent=2, ensure_ascii=False)
-        else:
-            candidate = json.dumps(trimmed, indent=2, ensure_ascii=False)
-        if len(candidate) <= MAX_LIST_CHARS:
-            note = (
-                f"\n\n[Showing {kept} of {len(arr)} items. Lower pagesize, filter "
-                "by name, or fetch a specific item by ID for full detail.]"
+    found = _find_list(redacted)
+    if found is not None:
+        arr, key = found
+        kept = len(arr)
+        while kept > 1:
+            trimmed = arr[:kept]
+            body = (
+                {**redacted, key: trimmed}
+                if key is not None and isinstance(redacted, dict)
+                else trimmed
             )
-            return ToolResult(text=candidate + note)
-        kept = max(1, int(kept * 0.6))
+            note = (
+                f"Showing {kept} of {len(arr)} items. Lower pagesize, filter by name, "
+                "or fetch a specific item by ID for full detail."
+            )
+            candidate = _with_note(body, note)
+            if len(candidate) <= MAX_LIST_CHARS:
+                return ToolResult(text=candidate)
+            kept = max(1, int(kept * 0.6))
+        redacted = (
+            {**redacted, key: arr[:1]}
+            if key is not None and isinstance(redacted, dict)
+            else arr[:1]
+        )
 
+    # Still too big (one huge item, or no list): shorten long strings until it fits.
+    # ponytail: halving the per-string cap; fine for the few huge fields (transcripts, prompts).
+    limit = 4000
+    while limit >= 50:
+        body = _shorten_strings(redacted, limit)
+        candidate = _with_note(
+            body, f"Long text fields were truncated. Full size: {len(full)} chars."
+        )
+        if len(candidate) <= MAX_LIST_CHARS:
+            return ToolResult(text=candidate)
+        limit //= 2
     return ToolResult(
-        text=full[:MAX_LIST_CHARS] + f"\n\n[Response truncated. Full size: {len(full)} chars.]",
+        text=_with_note({}, f"Result too large to return ({len(full)} chars). Fetch by ID.")
     )
 
 
@@ -254,9 +292,7 @@ async def dispatch_tool(
                 "and retry once. If the error persists, try a smaller request."
             ),
         }
-        return ToolResult(
-            text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
-        )
+        return ToolResult(text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True)
 
     if res.status_code >= 400:
         text = json.dumps(payload, indent=2, ensure_ascii=False)
