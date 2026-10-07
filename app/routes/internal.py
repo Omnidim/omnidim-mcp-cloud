@@ -12,8 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.config import Settings, get_settings
 from app.dependencies import get_session_factory
 from app.models import AuthorizationRequest, OAuthClient
-from app.schemas.oauth import IssueCodeRequest, IssueCodeResponse
+from app.schemas.oauth import (
+    IssueCodeRequest,
+    IssueCodeResponse,
+    IssueTokenRequest,
+    IssueTokenResponse,
+)
 from app.services.issue_code import IssueCodeError, issue_code
+from app.services.issue_token import issue_operator_token
 
 router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=False)
 
@@ -103,3 +109,28 @@ async def post_issue_code(
             detail={"error": exc.code, "error_description": exc.description},
         ) from exc
     return IssueCodeResponse(code=issued.code, redirect_to=issued.redirect_to)
+
+
+@router.post(
+    "/issue-token",
+    dependencies=[Depends(_require_shared_secret)],
+    response_model=IssueTokenResponse,
+)
+async def post_issue_token(
+    body: IssueTokenRequest,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> IssueTokenResponse:
+    async with factory() as session:
+        issued = await issue_operator_token(
+            session,
+            odoo_user_id=body.odoo_user_id,
+            odoo_api_key_id=body.odoo_api_key_id,
+            odoo_api_key_value=body.odoo_api_key_value,
+        )
+        await session.commit()
+    return IssueTokenResponse(
+        access_token=issued.access_token,
+        expires_in=issued.expires_in,
+        scope=issued.scope,
+        grant_id=issued.grant_id,
+    )

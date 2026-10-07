@@ -82,6 +82,22 @@ class IssueCodeRequest(BaseModel):
     approved_scope: str
 
 
+class IssueTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    odoo_user_id: int
+    odoo_api_key_id: int
+    odoo_api_key_value: str
+
+
+class IssueTokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["Bearer"] = "Bearer"
+    expires_in: int
+    scope: str
+    grant_id: str
+
+
 class IssueCodeResponse(BaseModel):
     code: str
     redirect_to: str

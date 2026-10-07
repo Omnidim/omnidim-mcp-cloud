@@ -12,13 +12,13 @@ import structlog
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
 from app.services.clients import hash_secret
 from app.services.upstream_keys import revoke_api_keys
 
 log = structlog.get_logger()
 
-ACCESS_TOKEN_TTL: Final = timedelta(seconds=3600)
 REFRESH_TOKEN_TTL: Final = timedelta(days=90)
 
 
@@ -36,6 +36,10 @@ class IssuedTokens:
     refresh_token: str
     expires_in: int
     scope: str
+
+
+def access_token_ttl() -> timedelta:
+    return timedelta(seconds=get_settings().access_token_ttl_seconds)
 
 
 def _hash(value: str) -> str:
@@ -143,6 +147,7 @@ async def exchange_refresh_token(
 
     new_access = _generate_token()
     new_refresh = _generate_token()
+    ttl = access_token_ttl()
 
     session.add(
         AccessToken(
@@ -153,7 +158,7 @@ async def exchange_refresh_token(
             odoo_api_key_value=access_row.odoo_api_key_value,
             grant_id=presented.grant_id,
             scope=presented.scope,
-            expires_at=now + ACCESS_TOKEN_TTL,
+            expires_at=now + ttl,
         )
     )
     new_refresh_row = RefreshToken(
@@ -178,7 +183,7 @@ async def exchange_refresh_token(
     return IssuedTokens(
         access_token=new_access,
         refresh_token=new_refresh,
-        expires_in=int(ACCESS_TOKEN_TTL.total_seconds()),
+        expires_in=int(ttl.total_seconds()),
         scope=presented.scope,
     )
 
@@ -254,6 +259,7 @@ async def exchange_authorization_code(
     access_plain = _generate_token()
     refresh_plain = _generate_token()
     grant_id = _generate_grant_id()
+    ttl = access_token_ttl()
 
     session.add(
         AccessToken(
@@ -264,7 +270,7 @@ async def exchange_authorization_code(
             odoo_api_key_value=auth_code.odoo_api_key_value,
             grant_id=grant_id,
             scope=auth_code.scope,
-            expires_at=now + ACCESS_TOKEN_TTL,
+            expires_at=now + ttl,
         )
     )
     session.add(
@@ -288,6 +294,6 @@ async def exchange_authorization_code(
     return IssuedTokens(
         access_token=access_plain,
         refresh_token=refresh_plain,
-        expires_in=int(ACCESS_TOKEN_TTL.total_seconds()),
+        expires_in=int(ttl.total_seconds()),
         scope=auth_code.scope,
     )

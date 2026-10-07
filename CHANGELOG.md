@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+- Internal `POST /internal/issue-token` lets Odoo mint an access token for a signed-in dashboard user without the consent screen. The token works on the MCP endpoint like a consent-issued one, carries no refresh token, and revoking its grant deactivates the upstream API key.
+
+### Changed
+- Access token lifetime now follows the `ACCESS_TOKEN_TTL_SECONDS` setting (default 3600) for every issued token.
+
 ## [0.9.2] - 2026-09-28
 
 ### Changed

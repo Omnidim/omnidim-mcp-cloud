@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     token_signing_key: str = Field(min_length=32)
     access_token_ttl_seconds: int = 3600
     refresh_token_ttl_seconds: int = 60 * 60 * 24 * 90
+    operator_client_id: str = "omniop-operator"
 
     loki_push_url: str = ""
     loki_labels: str = "service=omni-mcp-server"
