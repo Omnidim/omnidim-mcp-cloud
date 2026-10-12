@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=b9cf802a8d7b
+Source spec:   openapi.yaml   sha256=846609bec6ae
 Config:        mcp-config.yaml  sha256=0d075000b968
 """
 from __future__ import annotations
@@ -65,7 +65,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addBulkCallContacts",
-        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful: one request of 500 contacts is\nfar cheaper than 500 requests, on your side and ours.\n\nRepeated numbers are kept, not merged. If the same number appears twice\nwith different variables, it is called twice, because two rows for one\nnumber usually means two real reasons to call.\n\nRows that fail validation are reported in `rejected` and the rest are\nstill added, so a single bad number does not lose the batch. If the\ncampaign has `call_conditions`, rows that do not match are added with\nstatus `Skipped`.",
+        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful: one request of 500 contacts is\nfar cheaper than 500 requests, on your side and ours.\n\nRepeated numbers are kept, not merged. If the same number appears twice\nwith different variables, it is called twice, because two rows for one\nnumber usually means two real reasons to call.\n\nRows that fail validation are reported in `rejected` and the rest are\nstill added, so a single bad number does not lose the batch. A row that\nis missing a column the campaign's `call_conditions` need is reported in\n`rejected`; the condition values themselves are not evaluated on this\nroute.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -289,7 +289,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "cancelBulkCall",
-        "description": "Cancel bulk call. Cancel a bulk-call campaign.",
+        "description": "Cancel bulk call. Cancel a scheduled bulk-call campaign. A campaign that is already running, or is still a draft, is refused.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -316,6 +316,11 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "Your own unique key for this agent, for example a fresh UUID.\nSend the same key when you retry. If the first request already\ncreated the agent, you get that agent back instead of a second\none, so a request that timed out is safe to repeat. The same key\nwith a different request body is refused. Keys are kept for 24\nhours.\n"
+                },
                 "name": {
                     "type": "string",
                     "description": "Name for the agent.",
@@ -408,11 +413,7 @@ _TOOLS_JSON = r"""[
                         },
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "nova-3",
-                                "nova-2"
-                            ],
-                            "description": "The model to use for transcription (required when provider is `deepgram_stream`).",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
                             "example": "nova-3"
                         },
                         "language": {
@@ -533,11 +534,6 @@ _TOOLS_JSON = r"""[
                             "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
-                        "model": {
-                            "type": "string",
-                            "description": "TTS model identifier. Only consumed when `provider` is\n`cartesia` (e.g. `sonic-3.5`). For ElevenLabs and other\nproviders the model is implied by `voice_id` and this\nfield is ignored.\n",
-                            "example": "sonic-3.5"
-                        },
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
@@ -558,7 +554,8 @@ _TOOLS_JSON = r"""[
                         "provider": {
                             "type": "string",
                             "enum": [
-                                "DuckDuckGo"
+                                "DuckDuckGo",
+                                "openAI"
                             ],
                             "description": "The search provider to use.",
                             "example": "DuckDuckGo"
@@ -631,9 +628,9 @@ _TOOLS_JSON = r"""[
                                             "completed",
                                             "voicemail_detected",
                                             "failed",
-                                            "no_answer",
+                                            "no-answer",
                                             "busy",
-                                            "cancelled"
+                                            "canceled"
                                         ]
                                     },
                                     "example": [
@@ -700,9 +697,9 @@ _TOOLS_JSON = r"""[
                                             "completed",
                                             "voicemail_detected",
                                             "failed",
-                                            "no_answer",
+                                            "no-answer",
                                             "busy",
-                                            "cancelled"
+                                            "canceled"
                                         ]
                                     },
                                     "example": [
@@ -866,8 +863,7 @@ _TOOLS_JSON = r"""[
             },
             "required": [
                 "context_breakdown",
-                "name",
-                "welcome_message"
+                "name"
             ],
             "additionalProperties": true
         },
@@ -1171,7 +1167,178 @@ _TOOLS_JSON = r"""[
                 "custom_variables": {
                     "type": "object",
                     "additionalProperties": true,
-                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\n",
+                    "description": "Per-session variables that personalize the conversation.\nSet server-side, so visitors cannot tamper with them.\nTwo reserved keys are read as instructions for this session\nand never reach the agent: `__languages` and\n`__post_call_actions`.\n",
+                    "properties": {
+                        "__languages": {
+                            "oneOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ],
+                            "description": "Languages this session runs in, replacing the agent's\nconfigured list. The first entry is the language the\nvisitor is greeted in. Send an array, or a pipe-separated\nstring such as `Hindi|English`.\n",
+                            "example": "Hindi|Gujarati|English"
+                        },
+                        "__post_call_actions": {
+                            "allOf": [
+                                {
+                                    "type": "object",
+                                    "description": "Side effects that fire once the call ends. Configure email, webhook, or both.",
+                                    "properties": {
+                                        "email": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "recipients": {
+                                                    "type": "array",
+                                                    "description": "Email addresses that should receive the notification.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "format": "email"
+                                                    },
+                                                    "example": [
+                                                        "support@example.com"
+                                                    ]
+                                                },
+                                                "include": {
+                                                    "type": "array",
+                                                    "description": "Which sections to include in the email body.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "summary",
+                                                            "extracted_variables",
+                                                            "fullConversation",
+                                                            "sentiment"
+                                                        ]
+                                                    }
+                                                },
+                                                "extracted_variables": {
+                                                    "type": "array",
+                                                    "description": "Variables the model should pull out of the conversation for the email.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "key",
+                                                            "prompt"
+                                                        ],
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string",
+                                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                                "example": "customer_issue"
+                                                            },
+                                                            "prompt": {
+                                                                "type": "string",
+                                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                                "example": "Identify the main issue the customer is experiencing."
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "trigger_call_statuses": {
+                                                    "type": "array",
+                                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "completed",
+                                                            "voicemail_detected",
+                                                            "failed",
+                                                            "no-answer",
+                                                            "busy",
+                                                            "canceled"
+                                                        ]
+                                                    },
+                                                    "example": [
+                                                        "completed",
+                                                        "voicemail_detected"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "webhook": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "description": "Endpoint that receives a POST with the call payload.",
+                                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
+                                                },
+                                                "include": {
+                                                    "type": "array",
+                                                    "description": "Which sections to include in the webhook body.",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "summary",
+                                                            "extracted_variables",
+                                                            "fullConversation",
+                                                            "sentiment"
+                                                        ]
+                                                    }
+                                                },
+                                                "extracted_variables": {
+                                                    "type": "array",
+                                                    "description": "Variables the model should pull out of the conversation for the webhook.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "key",
+                                                            "prompt"
+                                                        ],
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string",
+                                                                "description": "Unique identifier for the variable in the post-call payload.",
+                                                                "example": "customer_issue"
+                                                            },
+                                                            "prompt": {
+                                                                "type": "string",
+                                                                "description": "Instruction for the model on what to pull out of the conversation.",
+                                                                "example": "Identify the main issue the customer is experiencing."
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "trigger_call_statuses": {
+                                                    "type": "array",
+                                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "completed",
+                                                            "voicemail_detected",
+                                                            "failed",
+                                                            "no-answer",
+                                                            "busy",
+                                                            "canceled"
+                                                        ]
+                                                    },
+                                                    "example": [
+                                                        "completed",
+                                                        "failed"
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\n"
+                        }
+                    },
                     "example": {
                         "name": "Demo User"
                     }
@@ -1401,6 +1568,178 @@ _TOOLS_JSON = r"""[
                         "crm_lead_id": "lead_9876",
                         "source": "website_form"
                     }
+                },
+                "__languages": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Languages this call runs in, replacing the agent's configured\nlist for this call only. The first entry is the language the\ncall opens in. Send an array, or a pipe-separated string such\nas `Hindi|English`. Names the platform does not recognize are\nskipped and listed in `languages_ignored`.\n",
+                    "example": [
+                        "Tamil",
+                        "English"
+                    ]
+                },
+                "__post_call_actions": {
+                    "allOf": [
+                        {
+                            "type": "object",
+                            "description": "Side effects that fire once the call ends. Configure email, webhook, or both.",
+                            "properties": {
+                                "email": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "recipients": {
+                                            "type": "array",
+                                            "description": "Email addresses that should receive the notification.",
+                                            "items": {
+                                                "type": "string",
+                                                "format": "email"
+                                            },
+                                            "example": [
+                                                "support@example.com"
+                                            ]
+                                        },
+                                        "include": {
+                                            "type": "array",
+                                            "description": "Which sections to include in the email body.",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "summary",
+                                                    "extracted_variables",
+                                                    "fullConversation",
+                                                    "sentiment"
+                                                ]
+                                            }
+                                        },
+                                        "extracted_variables": {
+                                            "type": "array",
+                                            "description": "Variables the model should pull out of the conversation for the email.",
+                                            "items": {
+                                                "type": "object",
+                                                "required": [
+                                                    "key",
+                                                    "prompt"
+                                                ],
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string",
+                                                        "description": "Unique identifier for the variable in the post-call payload.",
+                                                        "example": "customer_issue"
+                                                    },
+                                                    "prompt": {
+                                                        "type": "string",
+                                                        "description": "Instruction for the model on what to pull out of the conversation.",
+                                                        "example": "Identify the main issue the customer is experiencing."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "trigger_call_statuses": {
+                                            "type": "array",
+                                            "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "completed",
+                                                    "voicemail_detected",
+                                                    "failed",
+                                                    "no-answer",
+                                                    "busy",
+                                                    "canceled"
+                                                ]
+                                            },
+                                            "example": [
+                                                "completed",
+                                                "voicemail_detected"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "webhook": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "format": "uri",
+                                            "description": "Endpoint that receives a POST with the call payload.",
+                                            "example": "https://your-webhook-endpoint.com/omnidim-callback"
+                                        },
+                                        "include": {
+                                            "type": "array",
+                                            "description": "Which sections to include in the webhook body.",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "summary",
+                                                    "extracted_variables",
+                                                    "fullConversation",
+                                                    "sentiment"
+                                                ]
+                                            }
+                                        },
+                                        "extracted_variables": {
+                                            "type": "array",
+                                            "description": "Variables the model should pull out of the conversation for the webhook.",
+                                            "items": {
+                                                "type": "object",
+                                                "required": [
+                                                    "key",
+                                                    "prompt"
+                                                ],
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string",
+                                                        "description": "Unique identifier for the variable in the post-call payload.",
+                                                        "example": "customer_issue"
+                                                    },
+                                                    "prompt": {
+                                                        "type": "string",
+                                                        "description": "Instruction for the model on what to pull out of the conversation.",
+                                                        "example": "Identify the main issue the customer is experiencing."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "trigger_call_statuses": {
+                                            "type": "array",
+                                            "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
+                                            "items": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "completed",
+                                                    "voicemail_detected",
+                                                    "failed",
+                                                    "no-answer",
+                                                    "busy",
+                                                    "canceled"
+                                                ]
+                                            },
+                                            "example": [
+                                                "completed",
+                                                "failed"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\n"
                 }
             },
             "required": [
@@ -1449,8 +1788,22 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
+        "name": "getAccountBalance",
+        "description": "Get account balance. Read your organization's wallet: the remaining balance, the minutes\nit buys at your rates, your plan, your concurrency headroom, and\nwhether auto-recharge will refill it.\n\nUse it before a campaign, or on a schedule, so you find out you are\nlow on credit from this endpoint rather than from a call failing\nwith `402 payment_required`.\n\nThe response always describes the organization the API key belongs\nto. There is no parameter for reading another account; resellers\nread a client's figures through the Reseller endpoints.\n\nA balance at or below zero does not always mean calls will stop. An\norganization on usage-based billing (`plan.is_usage_based`) keeps\nplacing calls and is metered to its payment method instead, so check\nthat flag before treating a zero balance as a stop condition.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization; when it is not, contact support.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/balance",
+        "path_params": [],
+        "query_params": []
+    },
+    {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `version_history_enabled` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
+        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `can_publish` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1654,7 +2007,11 @@ _TOOLS_JSON = r"""[
                 },
                 "sip_dial_prefix": {
                     "type": "string",
-                    "description": "Optional prefix to prepend before the destination number when dialing (e.g. to strip the country code)."
+                    "description": "Digits added in front of every number dialed through this trunk. See `sip_strip_country_code` for how it combines with the country code."
+                },
+                "sip_strip_country_code": {
+                    "type": "boolean",
+                    "description": "When true, the country code is removed from every number dialed through this trunk. When omitted and `sip_dial_prefix` is set, the country code is removed, so send `false` to keep it."
                 },
                 "sip_strip_plus": {
                     "type": "boolean",
@@ -1738,7 +2095,6 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "enum": [
                         "manual",
-                        "auto",
                         "system"
                     ],
                     "description": "Filter versions by kind."
@@ -2038,7 +2394,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listVoices",
-        "description": "List voices. Retrieve voices with filtering and pagination support. ElevenLabs\nsupports advanced filtering by name, language, accent, and gender.\nOther providers support basic pagination only.",
+        "description": "List voices. Retrieve voices with filtering and pagination support. ElevenLabs\nand Cartesia support advanced filtering by name, language, accent,\nand gender.\nOther providers support basic pagination only.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2049,21 +2405,26 @@ _TOOLS_JSON = r"""[
                         "google",
                         "deepgram",
                         "cartesia",
-                        "sarvam"
+                        "sarvam",
+                        "rime",
+                        "playht",
+                        "hume",
+                        "inworld",
+                        "smallest"
                     ],
                     "description": "TTS provider to list voices from. Omit to list across all providers."
                 },
                 "search": {
                     "type": "string",
-                    "description": "Substring match against voice name or description. ElevenLabs only."
+                    "description": "Substring match against voice name or description. ElevenLabs and Cartesia."
                 },
                 "language": {
                     "type": "string",
-                    "description": "ISO language code (e.g. `en`, `hi`, `es`). ElevenLabs only."
+                    "description": "ISO language code (e.g. `en`, `hi`, `es`). ElevenLabs and Cartesia."
                 },
                 "accent": {
                     "type": "string",
-                    "description": "Accent label (e.g. `american`, `british`). ElevenLabs only."
+                    "description": "Accent label (e.g. `american`, `british`). ElevenLabs and Cartesia."
                 },
                 "gender": {
                     "type": "string",
@@ -2071,7 +2432,7 @@ _TOOLS_JSON = r"""[
                         "male",
                         "female"
                     ],
-                    "description": "Filter voices by gender. ElevenLabs only."
+                    "description": "Filter voices by gender. ElevenLabs and Cartesia."
                 },
                 "page": {
                     "type": "integer",
@@ -2126,7 +2487,7 @@ _TOOLS_JSON = r"""[
                 },
                 "carrier": {
                     "type": "string",
-                    "description": "The carrier to buy from: pass the `carrier` the search\nresponse named, so you buy from the inventory you searched.\nAlways required, and omitting it returns\n`409 carrier_required` naming that region's carriers.\n",
+                    "description": "The carrier to buy from: pass the `carrier` the search\nresponse named, so you buy from the inventory you searched.\nRequired where the region has more than one carrier;\nomitting it there returns `409 carrier_required`.\n",
                     "example": "carrier-1"
                 }
             },
@@ -2245,15 +2606,11 @@ _TOOLS_JSON = r"""[
                 "retry_strategy": {
                     "type": "string",
                     "default": "all",
-                    "description": "Which contacts to re-queue. `all` takes everything that did\nnot connect.\n"
-                },
-                "max_retries": {
-                    "type": "integer",
-                    "description": "Skip contacts already retried this many times."
+                    "description": "Which contacts to re-queue. `all` takes everything that did\nnot connect. `specific` re-queues only the statuses listed\nin `failure_reasons`.\n"
                 },
                 "failure_reasons": {
                     "type": "array",
-                    "description": "Re-queue only contacts that failed for these reasons, for\nexample `no-answer` and `busy`.\n",
+                    "description": "Statuses to re-queue. Read only when `retry_strategy` is\n`specific`; for example `no-answer` and `busy`. Ignored when\n`retry_strategy` is `all`.\n",
                     "items": {
                         "type": "string"
                     }
@@ -2287,7 +2644,7 @@ _TOOLS_JSON = r"""[
                 },
                 "carrier": {
                     "type": "string",
-                    "description": "Which carrier's stock to search: carriers in a region do not sell\nthe same numbers. Always required, even where a region holds one,\nand omitting it returns `409 carrier_required` naming that\nregion's carriers and what each one stocks.\n"
+                    "description": "Which carrier's stock to search: carriers in a region do not sell\nthe same numbers. Required where a region has more than one\ncarrier; omitting it there returns `409 carrier_required` naming\nthe region's carriers and what each one stocks.\n"
                 },
                 "pattern": {
                     "type": "string",
@@ -2308,7 +2665,6 @@ _TOOLS_JSON = r"""[
                 }
             },
             "required": [
-                "carrier",
                 "region"
             ],
             "additionalProperties": true
@@ -2569,11 +2925,7 @@ _TOOLS_JSON = r"""[
                         },
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "nova-3",
-                                "nova-2"
-                            ],
-                            "description": "The model to use for transcription (required when provider is `deepgram_stream`).",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
                             "example": "nova-3"
                         },
                         "language": {
@@ -2694,11 +3046,6 @@ _TOOLS_JSON = r"""[
                             "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
                             "example": "JBFqnCBsd6RMkjVDRZzb"
                         },
-                        "model": {
-                            "type": "string",
-                            "description": "TTS model identifier. Only consumed when `provider` is\n`cartesia` (e.g. `sonic-3.5`). For ElevenLabs and other\nproviders the model is implied by `voice_id` and this\nfield is ignored.\n",
-                            "example": "sonic-3.5"
-                        },
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
@@ -2719,7 +3066,8 @@ _TOOLS_JSON = r"""[
                         "provider": {
                             "type": "string",
                             "enum": [
-                                "DuckDuckGo"
+                                "DuckDuckGo",
+                                "openAI"
                             ],
                             "description": "The search provider to use.",
                             "example": "DuckDuckGo"
@@ -2792,9 +3140,9 @@ _TOOLS_JSON = r"""[
                                             "completed",
                                             "voicemail_detected",
                                             "failed",
-                                            "no_answer",
+                                            "no-answer",
                                             "busy",
-                                            "cancelled"
+                                            "canceled"
                                         ]
                                     },
                                     "example": [
@@ -2861,9 +3209,9 @@ _TOOLS_JSON = r"""[
                                             "completed",
                                             "voicemail_detected",
                                             "failed",
-                                            "no_answer",
+                                            "no-answer",
                                             "busy",
-                                            "cancelled"
+                                            "canceled"
                                         ]
                                     },
                                     "example": [
