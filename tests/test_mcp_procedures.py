@@ -329,3 +329,13 @@ def test_no_tool_exposes_the_reseller_user_id():
         if "user_id" in t["input_schema"].get("properties", {}) or "user_id" in t["query_params"]
     ]
     assert not leaked, f"reseller user_id exposed on: {leaked}"
+
+
+def test_workflow_guide_warns_against_breaking_a_live_workflow():
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    assert "## Do not break a workflow that is already running" in guide
+    assert "overwrites" in guide

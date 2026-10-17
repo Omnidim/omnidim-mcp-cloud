@@ -245,6 +245,8 @@ def _build_workflow(args: dict[str, Any]) -> str:
         "   user says yes, with their own phone number or email in the payload. It returns at once, so poll\n"
         "   `getWorkflowExecution` until `state` is `completed`, `failed` or `cancelled`.\n"
         "6. Show the user the finished flow, then `publishWorkflow` when they approve. Publishing makes it live.\n"
+        "7. Prefer creating a new workflow. Never publish, activate, deactivate, delete or test an existing\n"
+        "   workflow without the user's explicit yes, and read it with `getWorkflow` first.\n"
     )
 
 
@@ -638,6 +640,18 @@ Use it to orient in a large workflow. Use `view: full` before you edit config.
   needed to go live.
 - Every edit needs the current `revision`. On `409 revision_conflict`, someone
   (often the user in the dashboard) saved first. Call `getWorkflow` and retry.
+
+## Do not break a workflow that is already running
+
+Most harm comes from changing a workflow the user did not ask you to touch.
+
+- Default to creating a NEW workflow. Edit an existing one only when the user names it.
+- Call `getWorkflow` first and read what it does before any edit. Keep its `revision`.
+- Your edits land on the draft and change nothing live until you publish.
+- `publishWorkflow` overwrites the live version that real events run. `deactivateWorkflow`
+  pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
+  these on an existing workflow, tell the user exactly what will change and get a yes.
+- Never publish, activate, deactivate, delete or test a workflow as a side effect of another task.
 
 ## Entry: the trigger
 
