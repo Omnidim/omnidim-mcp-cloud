@@ -220,7 +220,12 @@ def build_tool(
     else:
         full_desc = summary or description
 
-    params = effective_parameters(path_item_params, op.get("parameters", []))
+    op_params = op.get("parameters", [])
+    if spec is not None:
+        # Parameters may be `$ref`s into components/parameters; resolve before merging by name.
+        path_item_params = [resolve_refs(p, spec) for p in path_item_params]
+        op_params = [resolve_refs(p, spec) for p in op_params]
+    params = effective_parameters(path_item_params, op_params)
     request_body = op.get("requestBody")
     if request_body is not None and spec is not None:
         request_body = resolve_refs(request_body, spec)

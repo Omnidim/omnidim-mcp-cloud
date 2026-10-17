@@ -244,6 +244,44 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     assert "agent has its own `timezone` field" in guide
 
 
+def test_workflow_prompt_asks_before_a_real_test_run():
+    from app.procedures import build_prompt
+
+    prompt = build_prompt("build_workflow", {"goal": "Follow up interested leads on WhatsApp"})
+    assert prompt is not None
+    text = prompt["messages"][0]["content"]["text"]
+    assert "Follow up interested leads on WhatsApp" in text
+    assert "omnidim://guide/workflows" in text
+    assert "for real" in text  # test runs send real messages; the model must ask first
+
+
+def test_workflow_guide_covers_building_end_to_end():
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    for topic in ("## Lifecycle", "## Entry", "## Connecting", "## Exit", "## Moving", "## Notes"):
+        assert topic in guide, topic
+
+
+def test_workflow_guide_names_only_tools_that_exist():
+    """The guide steers the model by tool name. A renamed operation must fail here,
+    not leave the model calling a tool the server does not have."""
+    import re
+
+    from app._generated.tools import TOOLS
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    named = set(re.findall(r"`([a-z]+Workflow[A-Za-z]*)`", guide))
+    assert named, "the guide should name the workflow tools"
+    missing = named - {t["name"] for t in TOOLS}
+    assert not missing, f"guide names tools the server does not have: {sorted(missing)}"
+
+
 def test_every_resource_a_prompt_points_at_actually_exists():
     """A guide that names a resource URI has to be able to hand it over.
 

@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+- Workflow builder: 14 tools to list node types, create, edit, validate, publish, turn on or off, test and delete workflows, and read workflow runs. A new `omnidim://guide/workflows` resource and a `build_workflow` prompt guide the client through building one.
+- Post-call action tools (`listPostCallActions`, `addPostCallAction`, `updatePostCallAction`, `deletePostCallAction`) and `listIntegrations` to see which integrations an action can use.
+
 ## [0.9.2] - 2026-09-28
 
 ### Changed
