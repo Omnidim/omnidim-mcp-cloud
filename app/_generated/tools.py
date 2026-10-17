@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   pub.yaml   sha256=2a35849a45ef
+Source spec:   openapi.yaml   sha256=2a35849a45ef
 Config:        mcp-config.yaml  sha256=eaf21f879f19
 """
 from __future__ import annotations
@@ -25,11 +25,6 @@ _TOOLS_JSON = r"""[
                 "workflow_id": {
                     "type": "integer",
                     "description": "Id of the workflow."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -42,9 +37,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "addBulkCallContact",
@@ -55,11 +48,6 @@ _TOOLS_JSON = r"""[
                 "campaign_id": {
                     "type": "integer",
                     "description": "ID of the dynamic campaign to add the contact to."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "to_number": {
                     "type": "string",
@@ -107,11 +95,6 @@ _TOOLS_JSON = r"""[
                 "campaign_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "contacts": {
                     "type": "array",
@@ -168,11 +151,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "phone_number_id": {
                     "type": "integer",
                     "example": 178,
@@ -205,11 +183,6 @@ _TOOLS_JSON = r"""[
                 "Idempotency-Key": {
                     "type": "string",
                     "description": "Any unique string. A retry with the same key and body adds nothing new."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "type": {
                     "type": "string",
@@ -495,11 +468,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "ID of the agent to attach the phone number to.",
                     "example": 158910
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account.",
-                    "example": 1234
                 }
             },
             "required": [
@@ -522,11 +490,6 @@ _TOOLS_JSON = r"""[
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "action": {
                     "type": "string",
@@ -568,11 +531,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "file_size": {
                     "type": "integer",
                     "minimum": 1,
@@ -602,11 +560,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
@@ -622,9 +575,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "createAgent",
@@ -636,11 +587,6 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "maxLength": 255,
                     "description": "Your own unique key for this agent, for example a fresh UUID.\nSend the same key when you retry. If the first request already\ncreated the agent, you get that agent back instead of a second\none, so a request that timed out is safe to repeat. The same key\nwith a different request body is refused. Keys are kept for 24\nhours.\n"
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "name": {
                     "type": "string",
@@ -1923,11 +1869,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "The ID of the agent."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "name": {
                     "type": "string",
                     "example": "v2 pricing script",
@@ -1958,11 +1899,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "name": {
                     "type": "string",
                     "description": "Name of the bulk call campaign.",
@@ -2261,11 +2197,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "agent_id": {
                     "type": "integer",
                     "description": "ID of the agent the session talks to.",
@@ -3206,11 +3137,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "name": {
                     "type": "string",
                     "description": "A non-empty name."
@@ -3297,9 +3223,7 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/workflows",
         "path_params": [],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "deactivateWorkflow",
@@ -3310,11 +3234,6 @@ _TOOLS_JSON = r"""[
                 "workflow_id": {
                     "type": "integer",
                     "description": "Id of the workflow."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3327,9 +3246,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "deleteAgent",
@@ -3340,11 +3257,6 @@ _TOOLS_JSON = r"""[
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3357,9 +3269,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "deleteAgentVersion",
@@ -3374,11 +3284,6 @@ _TOOLS_JSON = r"""[
                 "version_number": {
                     "type": "integer",
                     "description": "The version number, as returned in `version_number` from the list or save endpoints."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3393,9 +3298,7 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "deleteClonedVoice",
@@ -3426,11 +3329,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "file_id": {
                     "type": "integer",
                     "description": "ID of the file to delete.",
@@ -3460,11 +3358,6 @@ _TOOLS_JSON = r"""[
                 "action_id": {
                     "type": "integer",
                     "description": "The ID of the post-call action."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3479,9 +3372,7 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "action_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "deleteWorkflow",
@@ -3492,11 +3383,6 @@ _TOOLS_JSON = r"""[
                 "workflow_id": {
                     "type": "integer",
                     "description": "Id of the workflow."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3509,9 +3395,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "detachKnowledgeBaseFiles",
@@ -3557,11 +3441,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "ID of the phone number to detach.",
                     "example": 23
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller accounts only: the client to act on. Omit it to act on your own account.",
-                    "example": 1234
                 }
             },
             "required": [
@@ -3588,11 +3467,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "The version number, as returned in `version_number` from the list or save endpoints."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "against": {
                     "type": "string",
                     "description": "What to compare against. Omit or `previous` for the version before this one (the default). `current` for the agent's live config. A version number to compare with that version."
@@ -3611,7 +3485,6 @@ _TOOLS_JSON = r"""[
             "version_number"
         ],
         "query_params": [
-            "user_id",
             "against"
         ]
     },
@@ -3621,11 +3494,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent that will handle the call.",
@@ -4574,11 +4442,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Id of the workflow."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "revision": {
                     "type": "string",
                     "description": "The `draft.revision` from your last `getWorkflow` or edit."
@@ -4668,9 +4531,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "fetchBulkCalls",
@@ -4678,11 +4539,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "pageno": {
                     "type": "integer",
                     "default": 1,
@@ -4699,14 +4555,12 @@ _TOOLS_JSON = r"""[
                     "description": "Filter by status (e.g. completed)."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/calls/bulk_call",
         "path_params": [],
         "query_params": [
-            "user_id",
             "pageno",
             "pagesize",
             "status"
@@ -4718,7 +4572,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {},
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -4735,11 +4588,6 @@ _TOOLS_JSON = r"""[
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -4752,9 +4600,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "getBulkCall",
@@ -4762,11 +4608,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
@@ -4782,9 +4623,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "getBulkCallLiveStatus",
@@ -4792,11 +4631,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
@@ -4812,9 +4646,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "getCallLog",
@@ -4822,11 +4654,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "call_log_id": {
                     "type": "integer",
                     "description": "Id of the call log, as returned by the call log list."
@@ -4842,9 +4669,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "call_log_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "getClonedVoice",
@@ -4925,11 +4750,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Id of the workflow."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "view": {
                     "type": "string",
                     "enum": [
@@ -4951,7 +4771,6 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [
-            "user_id",
             "view"
         ]
     },
@@ -4968,11 +4787,6 @@ _TOOLS_JSON = r"""[
                 "execution_id": {
                     "type": "integer",
                     "description": "The `execution_id` from `testWorkflow`."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -4987,9 +4801,7 @@ _TOOLS_JSON = r"""[
             "workflow_id",
             "execution_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "getWorkflowNodeType",
@@ -5031,11 +4843,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "exotel_phone_number": {
                     "type": "string",
                     "description": "Exotel phone number in E.164 format.",
@@ -5087,11 +4894,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "phone_number": {
                     "type": "string",
                     "description": "Phone number in E.164 format (starting with `+`).",
@@ -5155,11 +4957,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "phone_number": {
                     "type": "string",
                     "description": "Phone number in E.164 format (starting with `+`).",
@@ -5200,11 +4997,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "The ID of the agent."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "pageno": {
                     "type": "integer",
                     "default": 1,
@@ -5240,7 +5032,6 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [
-            "user_id",
             "pageno",
             "pagesize",
             "search",
@@ -5253,11 +5044,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "pageno": {
                     "type": "integer",
                     "default": 1,
@@ -5274,14 +5060,12 @@ _TOOLS_JSON = r"""[
                     "description": "Filter agents whose name matches this substring (case-insensitive)."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/agents",
         "path_params": [],
         "query_params": [
-            "user_id",
             "pageno",
             "pagesize",
             "name"
@@ -5293,7 +5077,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {},
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5307,11 +5090,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
@@ -5367,7 +5145,6 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [
-            "user_id",
             "cursor",
             "pagesize",
             "call_status",
@@ -5382,11 +5159,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
@@ -5402,9 +5174,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "listCallLogs",
@@ -5412,11 +5182,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "pageno": {
                     "type": "integer",
                     "default": 1,
@@ -5447,14 +5212,12 @@ _TOOLS_JSON = r"""[
                     "description": "Filter by bulk-call campaign ID."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/calls/logs",
         "path_params": [],
         "query_params": [
-            "user_id",
             "pageno",
             "pagesize",
             "agentid",
@@ -5479,7 +5242,6 @@ _TOOLS_JSON = r"""[
                     "description": "The `next_cursor` from your previous response. Omit it on the first\nrequest. Opaque: pass it back unchanged.\n"
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5495,44 +5257,26 @@ _TOOLS_JSON = r"""[
         "description": "List integrations. List the integrations connected to your workspace, with each one's `id` and `integration_type`. Stored credentials (tokens, secrets, passwords, API keys, and the values of a custom API's headers and parameters) are never returned: they read `********`. When you create an integration, send the real values: `********` is refused. Accounts that sign in with OAuth (Google Sheets, Slack, HubSpot, Salesforce, Zoho Bigin) are connected in the dashboard.",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                }
-            },
-            "required": [],
+            "properties": {},
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/integrations",
         "path_params": [],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "listKnowledgeBaseFiles",
         "description": "List knowledge base files. List all knowledge-base files for the authenticated user.",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                }
-            },
-            "required": [],
+            "properties": {},
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/knowledge_base/list",
         "path_params": [],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "listLLMProviders",
@@ -5540,7 +5284,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {},
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5566,7 +5309,6 @@ _TOOLS_JSON = r"""[
                     "description": "Items per page (max 150)."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5586,11 +5328,6 @@ _TOOLS_JSON = r"""[
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -5603,9 +5340,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "listSTTProviders",
@@ -5613,7 +5348,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {},
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5627,7 +5361,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {},
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5689,7 +5422,6 @@ _TOOLS_JSON = r"""[
                     "description": "Voices per page. Capped at 100."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5719,11 +5451,6 @@ _TOOLS_JSON = r"""[
                     "type": "string",
                     "description": "A field name from `getWorkflowNodeType`."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "depends": {
                     "type": "integer",
                     "description": "The value of the field this one depends on (`depends_on` in the node type), such as the chosen phone number id."
@@ -5742,7 +5469,6 @@ _TOOLS_JSON = r"""[
             "field"
         ],
         "query_params": [
-            "user_id",
             "depends"
         ]
     },
@@ -5770,7 +5496,6 @@ _TOOLS_JSON = r"""[
                     "description": "Only types in this category."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
@@ -5787,11 +5512,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "limit": {
                     "type": "integer",
                     "default": 20,
@@ -5804,14 +5524,12 @@ _TOOLS_JSON = r"""[
                     "description": "The `next_cursor` from the previous page. Omit it on the first request. Pass it back unchanged."
                 }
             },
-            "required": [],
             "additionalProperties": true
         },
         "method": "GET",
         "path": "/workflows",
         "path_params": [],
         "query_params": [
-            "user_id",
             "limit",
             "cursor"
         ]
@@ -5825,11 +5543,6 @@ _TOOLS_JSON = r"""[
                 "workflow_id": {
                     "type": "integer",
                     "description": "Id of the workflow."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -5842,9 +5555,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "purchasePhoneNumber",
@@ -5946,11 +5657,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "The version number, as returned in `version_number` from the list or save endpoints."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "name": {
                     "type": "string",
                     "example": "v2 pricing script",
@@ -5989,11 +5695,6 @@ _TOOLS_JSON = r"""[
                 "version_number": {
                     "type": "integer",
                     "description": "The version number, as returned in `version_number` from the list or save endpoints."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -6019,11 +5720,6 @@ _TOOLS_JSON = r"""[
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "retry_strategy": {
                     "type": "string",
@@ -6112,11 +5808,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "concurrent_call_limit": {
                     "type": "integer",
                     "minimum": 1,
@@ -6146,11 +5837,6 @@ _TOOLS_JSON = r"""[
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "enable_daily_hard_stop": {
                     "type": "boolean",
@@ -6241,11 +5927,6 @@ _TOOLS_JSON = r"""[
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -6270,11 +5951,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Id of the workflow."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "payload": {
                     "type": "object",
                     "additionalProperties": true,
@@ -6291,9 +5967,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     },
     {
         "name": "updateAgent",
@@ -6304,11 +5978,6 @@ _TOOLS_JSON = r"""[
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 },
                 "name": {
                     "type": "string",
@@ -7633,11 +7302,6 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "The ID of the post-call action."
                 },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "type": {
                     "type": "string",
                     "enum": [
@@ -7875,11 +7539,6 @@ _TOOLS_JSON = r"""[
         "input_schema": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
-                },
                 "file": {
                     "type": "string",
                     "description": "Base64-encoded file content."
@@ -7910,11 +7569,6 @@ _TOOLS_JSON = r"""[
                 "workflow_id": {
                     "type": "integer",
                     "description": "Id of the workflow."
-                },
-                "user_id": {
-                    "type": "integer",
-                    "description": "Reseller keys only: act as one of your clients by its user id. Omit\nit to act on your own account.\n[How acting for a client works](/docs/reseller/your-clients/acting-as-clients).\n",
-                    "example": 1234
                 }
             },
             "required": [
@@ -7927,9 +7581,7 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": [
-            "user_id"
-        ]
+        "query_params": []
     }
 ]"""
 

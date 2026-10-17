@@ -100,6 +100,8 @@ _DESTRUCTIVE: frozenset[str] = frozenset(
         "deleteAgent",
         "deleteAgentVersion",
         "deleteClonedVoice",
+        "createClonedVoice",
+        "regenerateClonedVoiceSample",
         "deleteWorkflow",
         "deletePostCallAction",
         "publishWorkflow",

@@ -242,8 +242,9 @@ def _build_workflow(args: dict[str, Any]) -> str:
         "   `after` and `handle`, and add a notes node that says what the workflow is for.\n"
         "4. `validateWorkflow` and fix every error.\n"
         "5. A test run happens for real: messages, calls and CRM writes go out. Only call `testWorkflow` after the\n"
-        "   user says yes, with their own phone number or email in the payload. Then read `getWorkflowExecution`.\n"
-        "6. Show the user the finished flow, then `publishWorkflow` when they approve.\n"
+        "   user says yes, with their own phone number or email in the payload. It returns at once, so poll\n"
+        "   `getWorkflowExecution` until `state` is `completed`, `failed` or `cancelled`.\n"
+        "6. Show the user the finished flow, then `publishWorkflow` when they approve. Publishing makes it live.\n"
     )
 
 
@@ -623,7 +624,7 @@ edges. It runs on OmniDimension's servers each time its trigger fires.
 5. `editWorkflow` with the `revision` from the last read and a list of `ops`.
 6. `validateWorkflow`, then fix what it reports with another `editWorkflow`.
 7. `testWorkflow` only after the user agrees (see "Test runs are real").
-8. `publishWorkflow`, then `activateWorkflow` or `deactivateWorkflow`.
+8. `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
 
 `getWorkflow` with `view: structure` shows nodes and edges without config.
 Use it to orient in a large workflow. Use `view: full` before you edit config.
@@ -633,7 +634,8 @@ Use it to orient in a large workflow. Use `view: full` before you edit config.
 - You always edit the **draft**. A published workflow is never changed in place.
 - `publishWorkflow` copies the draft to the live version and leaves a fresh draft
   for the next round of edits. It refuses while `validateWorkflow` has errors.
-- `deactivateWorkflow` pauses the live version. `activateWorkflow` resumes it.
+- `deactivateWorkflow` pauses a published workflow. `activateWorkflow` resumes a paused one. Neither is
+  needed to go live.
 - Every edit needs the current `revision`. On `409 revision_conflict`, someone
   (often the user in the dashboard) saved first. Call `getWorkflow` and retry.
 
@@ -679,7 +681,8 @@ output, `default`. Branching nodes have named outputs, and you must say which.
 There is no end node. A branch ends at a node with no outgoing edge, and the
 run finishes when every branch has ended. `wait`, `wait_for_time`, `voice_ai`
 and `send_email` pause the run and resume it later. `sub_workflow` starts
-another workflow and continues at once.
+another workflow and continues at once. The target must be published and active, or the run
+fails with "Target workflow has no published version".
 
 ## Passing data
 
@@ -736,8 +739,9 @@ integration, tell them to connect one in the dashboard first.
 `testWorkflow` runs the draft once with your `payload` as the trigger data.
 **Every node runs for real**: WhatsApp messages, SMS, emails and calls go out,
 and CRM records change. Before you call it, tell the user what will happen and
-get a yes. Use their own phone number or email in the payload. Then read
-`getWorkflowExecution` for each node's status, output and error.
+get a yes. Use their own phone number or email in the payload. The call returns `202` with an
+`execution_id` at once. Poll `getWorkflowExecution` until `state` is `completed`, `failed` or
+`cancelled`, then read each node's status, output and error.
 
 ## Errors you will see
 
@@ -747,6 +751,7 @@ get a yes. Use their own phone number or email in the payload. Then read
 | `422 validation_failed` on publish | Missing fields, an unconnected node, a bad handle | Fix each one, then publish again |
 | `422 invalid_op` | An op is malformed | Fix the op at `op_index` |
 | `409 revision_conflict` | The draft changed since you read it | `getWorkflow`, then retry |
+| `409 no_draft` | There is no draft to edit, validate or publish | `getWorkflow`, then make an edit to start a new draft |
 | `400 no_options` | The field holds an id from another system | Ask the user for the value |
 | `422` with `templated_ref` | An id field holds a `{{ }}` template | Put a literal id from `listWorkflowFieldOptions` |
 

@@ -314,3 +314,15 @@ def test_the_carriers_resource_answers_which_carrier_to_buy_from():
     assert "Ask, do not pick" in guide
     assert "Buy from the carrier you searched" in guide
     assert "per carrier" in guide
+
+
+def test_no_tool_exposes_the_reseller_user_id():
+    """`user_id` lets a reseller key act as a client. It must never be a tool input."""
+    from app._generated.tools import TOOLS
+
+    leaked = [
+        t["name"]
+        for t in TOOLS
+        if "user_id" in t["input_schema"].get("properties", {}) or "user_id" in t["query_params"]
+    ]
+    assert not leaked, f"reseller user_id exposed on: {leaked}"
