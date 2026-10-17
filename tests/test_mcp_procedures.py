@@ -244,6 +244,47 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     assert "agent has its own `timezone` field" in guide
 
 
+def test_workflow_prompt_asks_before_a_real_test_run():
+    from app.procedures import build_prompt
+
+    prompt = build_prompt("build_workflow", {"goal": "Follow up interested leads on WhatsApp"})
+    assert prompt is not None
+    text = prompt["messages"][0]["content"]["text"]
+    assert "Follow up interested leads on WhatsApp" in text
+    assert "omnidim://guide/workflows" in text
+    assert "for real" in text  # test runs send real messages; the model must ask first
+    assert "Only call `testWorkflow` after the" in text
+    assert "user says yes" in text
+
+
+def test_workflow_guide_covers_building_end_to_end():
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    for topic in ("## Lifecycle", "## Entry", "## Connecting", "## Exit", "## Moving", "## Notes",
+                  "## Credentials", "## Test runs are real"):
+        assert topic in guide, topic
+
+
+def test_workflow_guide_names_only_tools_that_exist():
+    """The guide steers the model by tool name. A renamed operation must fail here,
+    not leave the model calling a tool the server does not have."""
+    import re
+
+    from app._generated.tools import TOOLS
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    named = set(re.findall(r"`([a-z]+Workflow[A-Za-z]*)`", guide))
+    assert named, "the guide should name the workflow tools"
+    missing = named - {t["name"] for t in TOOLS}
+    assert not missing, f"guide names tools the server does not have: {sorted(missing)}"
+
+
 def test_every_resource_a_prompt_points_at_actually_exists():
     """A guide that names a resource URI has to be able to hand it over.
 
@@ -276,3 +317,25 @@ def test_the_carriers_resource_answers_which_carrier_to_buy_from():
     assert "Ask, do not pick" in guide
     assert "Buy from the carrier you searched" in guide
     assert "per carrier" in guide
+
+
+def test_no_tool_exposes_the_reseller_user_id():
+    """`user_id` lets a reseller key act as a client. It must never be a tool input."""
+    from app._generated.tools import TOOLS
+
+    leaked = [
+        t["name"]
+        for t in TOOLS
+        if "user_id" in t["input_schema"].get("properties", {}) or "user_id" in t["query_params"]
+    ]
+    assert not leaked, f"reseller user_id exposed on: {leaked}"
+
+
+def test_workflow_guide_warns_against_breaking_a_live_workflow():
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://guide/workflows")
+    assert resource is not None
+    guide = resource["contents"][0]["text"]
+    assert "## Do not break a workflow that is already running" in guide
+    assert "overwrites" in guide

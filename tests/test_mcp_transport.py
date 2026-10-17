@@ -216,7 +216,8 @@ def test_all_of_request_body_flattened() -> None:
     by_name = {t["name"]: t for t in TOOLS}
     create = by_name["createAgent"]
     schema = create["input_schema"]
-    assert set(schema["required"]) == {"name", "welcome_message", "context_breakdown"}
+    # welcome_message became optional in the public spec (omnidim-docs #99).
+    assert set(schema["required"]) == {"name", "context_breakdown"}
     cb = schema["properties"]["context_breakdown"]
     assert cb["type"] == "array"
     assert set(cb["items"]["required"]) == {"title", "body"}

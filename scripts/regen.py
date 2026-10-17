@@ -220,11 +220,26 @@ def build_tool(
     else:
         full_desc = summary or description
 
-    params = effective_parameters(path_item_params, op.get("parameters", []))
+    op_params = op.get("parameters", [])
+    if spec is not None:
+        # Parameters may be `$ref`s into components/parameters; resolve before merging by name.
+        # Reseller `user_id` (act as a client) must never reach an LLM-driven tool.
+        def keep(p: dict[str, Any]) -> bool:
+            return not str(p.get("$ref", "")).endswith("/parameters/ClientUserId")
+
+        path_item_params = [resolve_refs(p, spec) for p in path_item_params if keep(p)]
+        op_params = [resolve_refs(p, spec) for p in op_params if keep(p)]
+    params = effective_parameters(path_item_params, op_params)
     request_body = op.get("requestBody")
     if request_body is not None and spec is not None:
         request_body = resolve_refs(request_body, spec)
     schema = merge_schema(params, request_body)
+    # Same field can arrive in the body (via `$ref`): drop it there too.
+    schema.get("properties", {}).pop("user_id", None)
+    if "required" in schema:
+        schema["required"] = [r for r in schema["required"] if r != "user_id"]
+        if not schema["required"]:
+            del schema["required"]
     # Mark which inputs go in the path so the dispatcher can substitute them.
     path_param_names = [p["name"] for p in params if p.get("in") == "path"]
     query_param_names = [p["name"] for p in params if p.get("in") == "query"]
