@@ -253,6 +253,8 @@ def test_workflow_prompt_asks_before_a_real_test_run():
     assert "Follow up interested leads on WhatsApp" in text
     assert "omnidim://guide/workflows" in text
     assert "for real" in text  # test runs send real messages; the model must ask first
+    assert "Only call `testWorkflow` after the" in text
+    assert "user says yes" in text
 
 
 def test_workflow_guide_covers_building_end_to_end():
@@ -261,7 +263,8 @@ def test_workflow_guide_covers_building_end_to_end():
     resource = read_resource("omnidim://guide/workflows")
     assert resource is not None
     guide = resource["contents"][0]["text"]
-    for topic in ("## Lifecycle", "## Entry", "## Connecting", "## Exit", "## Moving", "## Notes"):
+    for topic in ("## Lifecycle", "## Entry", "## Connecting", "## Exit", "## Moving", "## Notes",
+                  "## Credentials", "## Test runs are real"):
         assert topic in guide, topic
 
 
