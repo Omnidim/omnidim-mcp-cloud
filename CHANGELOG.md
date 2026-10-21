@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-22
+
 ### Security
 
 - Require certifi 2026.10.19 or later, which no longer trusts the compromised emSign ECC Root CA - G3.
