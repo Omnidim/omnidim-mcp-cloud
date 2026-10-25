@@ -12,6 +12,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+import structlog.testing
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
@@ -342,21 +343,57 @@ def test_registry_order_is_deterministic() -> None:
     assert names == sorted(names)
 
 
-async def test_mcp_tools_call_unknown_tool(client: AsyncClient) -> None:
+async def test_mcp_tools_call_unknown_tool(client: AsyncClient, caplog: pytest.LogCaptureFixture) -> None:
     token = await _mint_access_token(client)
-    res = await client.post(
-        "/mcp",
-        headers={"Authorization": f"Bearer {token}"},
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {"name": "noSuchTool", "arguments": {}},
-        },
-    )
+    with caplog.at_level("WARNING"):
+        res = await client.post(
+            "/mcp",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": "noSuchTool", "arguments": {}},
+            },
+        )
     body = res.json()
     assert body["error"]["code"] == -32602
     assert "unknown tool" in body["error"]["message"]
+    assert any(
+        record.levelname == "WARNING"
+        and "tool_call_rejected" in record.message
+        and "unknown_tool" in record.message
+        for record in caplog.records
+    )
+
+
+async def test_mcp_tools_call_missing_upstream_credential_logs_rejected(caplog: pytest.LogCaptureFixture) -> None:
+    from app.services.bearer import ResolvedToken
+    from app.services.dispatcher import dispatch_tool, DispatchError
+
+    token_without_cred = ResolvedToken(
+        odoo_user_id=1,
+        odoo_api_key_id=1,
+        odoo_api_key_value="",
+        client_id="test-client-123",
+        scope="",
+    )
+    with caplog.at_level("WARNING"):
+        with pytest.raises(DispatchError) as exc_info:
+            await dispatch_tool(
+                name="listAgents",
+                arguments={},
+                token=token_without_cred,
+            )
+    assert exc_info.value.code == -32000
+    assert exc_info.value.message == "missing upstream credential"
+    assert any(
+        record.levelname == "WARNING"
+        and "tool_call_rejected" in record.message
+        and "missing_upstream_credential" in record.message
+        and "test-client-123" in record.message
+        for record in caplog.records
+    )
 
 
 async def test_mcp_tools_call_redacts_api_key_in_response(

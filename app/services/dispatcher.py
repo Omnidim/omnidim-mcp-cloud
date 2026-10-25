@@ -186,9 +186,21 @@ async def dispatch_tool(
 ) -> ToolResult:
     tool = _TOOLS_BY_NAME.get(name)
     if tool is None:
+        log.warning(
+            "tool_call_rejected",
+            tool=name,
+            client_id=token.client_id,
+            reason="unknown_tool",
+        )
         raise DispatchError(-32602, f"unknown tool: {name}")
 
     if not token.odoo_api_key_value:
+        log.warning(
+            "tool_call_rejected",
+            tool=name,
+            client_id=token.client_id,
+            reason="missing_upstream_credential",
+        )
         raise DispatchError(-32000, "missing upstream credential")
 
     arguments = _coerce_args(arguments, tool["input_schema"])
