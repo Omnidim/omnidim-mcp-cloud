@@ -46,6 +46,7 @@ def _default_client_factory() -> httpx.AsyncClient:
 
 
 _client_factory: Callable[[], httpx.AsyncClient] = _default_client_factory
+_worker_client: httpx.AsyncClient | None = None
 
 
 def set_client_factory(factory: Callable[[], httpx.AsyncClient]) -> None:
@@ -56,6 +57,19 @@ def set_client_factory(factory: Callable[[], httpx.AsyncClient]) -> None:
 def reset_client_factory() -> None:
     global _client_factory
     _client_factory = _default_client_factory
+
+
+async def start_worker_client() -> None:
+    global _worker_client
+    _worker_client = _default_client_factory()
+
+
+async def close_worker_client() -> None:
+    global _worker_client
+    client = _worker_client
+    _worker_client = None
+    if client is not None:
+        await client.aclose()
 
 
 class DispatchError(Exception):
@@ -233,8 +247,11 @@ async def dispatch_tool(
     )
 
     try:
-        async with _client_factory() as client:
-            res = await client.request(method, url, headers=headers, **request_kwargs)
+        if _client_factory is _default_client_factory and _worker_client is not None:
+            res = await _worker_client.request(method, url, headers=headers, **request_kwargs)
+        else:
+            async with _client_factory() as client:
+                res = await client.request(method, url, headers=headers, **request_kwargs)
     except httpx.TimeoutException as exc:
         raise DispatchError(-32000, "upstream timeout", {"tool": name}) from exc
     except httpx.HTTPError as exc:
