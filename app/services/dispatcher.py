@@ -15,8 +15,8 @@ from app.services.bearer import ResolvedToken
 
 log = structlog.get_logger()
 
-BACKEND_BASE_URL: Final = "https://backend.omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.10.1"
+BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
+USER_AGENT: Final = "omnidim-mcp-cloud/0.11.0"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 

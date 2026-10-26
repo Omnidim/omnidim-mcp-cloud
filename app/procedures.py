@@ -8,7 +8,13 @@ being written down.
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
+
+# MCP Apps view; the HTML is the npm server's build output, copied unchanged.
+WORKFLOW_CANVAS_URI = "ui://omnidim/workflow-canvas"
+_CANVAS_TOOLS = frozenset({"getWorkflow", "createWorkflow", "editWorkflow"})
+_WORKFLOW_CANVAS_HTML = (Path(__file__).parent / "views" / "workflow_canvas.html").read_text()
 
 ROUTING_GUIDE = """# OmniDimension routing guide
 
@@ -852,7 +858,20 @@ _RESOURCES: list[dict[str, str]] = [
         "mimeType": "text/markdown",
         "text": WORKFLOWS_GUIDE,
     },
+    {
+        "uri": WORKFLOW_CANVAS_URI,
+        "name": "Workflow canvas",
+        "description": "Interactive view of a workflow draft, shown by clients that support MCP Apps.",
+        "mimeType": "text/html;profile=mcp-app",
+        "text": _WORKFLOW_CANVAS_HTML,
+    },
 ]
+
+
+def tool_meta(name: str) -> dict[str, Any] | None:
+    if name in _CANVAS_TOOLS:
+        return {"ui": {"resourceUri": WORKFLOW_CANVAS_URI}}
+    return None
 
 
 def prompts_for_listing() -> list[dict[str, Any]]:
