@@ -15,6 +15,7 @@ from app.procedures import (
     prompts_for_listing,
     read_resource,
     resources_for_listing,
+    tool_meta,
 )
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
@@ -48,15 +49,19 @@ def _error(req_id: object, code: int, message: str, data: Any = None) -> dict[st
 
 
 def _tools_for_listing() -> list[dict[str, Any]]:
-    return [
-        {
+    tools = []
+    for t in TOOLS:
+        tool: dict[str, Any] = {
             "name": t["name"],
             "description": t["description"],
             "inputSchema": t["input_schema"],
             "annotations": tool_annotations(t["name"], t["method"]),
         }
-        for t in TOOLS
-    ]
+        meta = tool_meta(t["name"])
+        if meta:
+            tool["_meta"] = meta
+        tools.append(tool)
+    return tools
 
 
 def _bearer_challenge(exc: BearerError) -> JSONResponse:
