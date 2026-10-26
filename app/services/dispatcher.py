@@ -11,6 +11,7 @@ import httpx
 import structlog
 
 from app._generated.tools import TOOLS
+from app.procedures import EXTRA_TOOLS
 from app.services.bearer import ResolvedToken
 
 log = structlog.get_logger()
@@ -37,7 +38,7 @@ LIST_KEYS: Final = (
     "items",
 )
 
-_TOOLS_BY_NAME: Final = {t["name"]: t for t in TOOLS}
+_TOOLS_BY_NAME: Final = {t["name"]: t for t in (*TOOLS, *EXTRA_TOOLS)}
 
 
 def _default_client_factory() -> httpx.AsyncClient:

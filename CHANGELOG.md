@@ -4,6 +4,18 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Changed
+
+- The workflow canvas now opens only from a new `showWorkflow` tool, so building or editing a workflow no longer posts a canvas at every step.
+- The canvas looks like the dashboard's workflow editor: node cards, arrows that follow a node while you drag it, and problem nodes marked in red.
+- You can rename a node, change its settings and delete it from the canvas. If Claude changed the same setting while you were typing, the canvas refuses the save instead of overwriting either change.
+
+### Fixed
+
+- The canvas loads even when the chat app hands over the workflow late, and Full screen no longer fails before it loads.
+- Moving a node saves, instead of failing with "revision is required".
+- The bar under the canvas shows only when something failed, with a one-line message instead of raw JSON.
+
 ## [0.11.0] - 2026-10-26
 
 ### Added

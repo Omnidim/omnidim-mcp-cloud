@@ -15,6 +15,7 @@ import pytest
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
+from app.procedures import EXTRA_TOOLS
 from app.routes.mcp import SERVER_INFO
 from app.services import dispatcher
 
@@ -153,9 +154,10 @@ async def test_mcp_tools_list_matches_generated_registry(client: AsyncClient) ->
     )
     assert res.status_code == 200
     tools = res.json()["result"]["tools"]
-    assert len(tools) == len(TOOLS)
+    # The generated registry plus the hand-written tools (showWorkflow), nothing else.
+    assert len(tools) == len(TOOLS) + len(EXTRA_TOOLS)
     names_in = {t["name"] for t in tools}
-    names_expected = {t["name"] for t in TOOLS}
+    names_expected = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS)}
     assert names_in == names_expected
     # Spot-check the shape of one tool.
     sample = next(t for t in tools if t["name"] == "listAgents")
