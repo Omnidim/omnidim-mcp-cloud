@@ -1,6 +1,6 @@
 """MCP transport tests: bearer gate, initialize, tools/list, tools/call.
 
-tools/call exercises the dispatcher against a mocked backend.omnidim.io
+tools/call exercises the dispatcher against a mocked omnidim.io API
 so no real upstream traffic is generated.
 """
 import base64
