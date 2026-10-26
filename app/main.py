@@ -10,6 +10,7 @@ from app.errors import install_oauth_error_handler
 from app.logging import configure_logging
 from app.middleware import RequestIdMiddleware
 from app.routes import authorize, health, internal, mcp, register, telemetry, token, wellknown
+from app.services import dispatcher
 
 
 @asynccontextmanager
@@ -21,10 +22,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = build_engine(settings)
     app.state.engine = engine
     app.state.session_factory = build_session_factory(engine)
+    await dispatcher.start_worker_client()
     log.info("startup", environment=settings.environment)
     try:
         yield
     finally:
+        await dispatcher.close_worker_client()
         await engine.dispose()
         log.info("shutdown")
 

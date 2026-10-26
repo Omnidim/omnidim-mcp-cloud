@@ -9,6 +9,7 @@ import json
 import secrets
 from collections.abc import Callable
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -192,6 +193,40 @@ async def test_mcp_tools_call_proxies_to_backend(client: AsyncClient, mock_backe
     body = res.json()
     assert body["result"]["isError"] is False
     assert "Test Agent" in body["result"]["content"][0]["text"]
+
+
+async def test_mcp_tools_call_reuses_worker_client(client: AsyncClient) -> None:
+    worker_client = dispatcher._worker_client
+    assert worker_client is not None
+    request = AsyncMock(return_value=httpx.Response(200, json={"bots": []}))
+    worker_client.request = request  # type: ignore[method-assign]
+
+    token = await _mint_access_token(client)
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {"name": "listAgents", "arguments": {}},
+    }
+    for request_id in (31, 32):
+        res = await client.post(
+            "/mcp",
+            headers={"Authorization": f"Bearer {token}"},
+            json={**payload, "id": request_id},
+        )
+        assert res.json()["result"]["isError"] is False
+
+    assert request.await_count == 2
+
+
+async def test_worker_client_closes_on_shutdown() -> None:
+    await dispatcher.start_worker_client()
+    worker_client = dispatcher._worker_client
+    assert worker_client is not None
+
+    await dispatcher.close_worker_client()
+
+    assert worker_client.is_closed
+    assert dispatcher._worker_client is None
 
 
 def test_path_item_params_and_ref_body_resolved() -> None:
