@@ -281,12 +281,15 @@ async def test_mcp_tools_call_encodes_path_params(
             "jsonrpc": "2.0",
             "id": 6,
             "method": "tools/call",
-            "params": {"name": "getAgent", "arguments": {"agent_id": "../../simulations"}},
+            "params": {
+                "name": "getWorkflowNodeType",
+                "arguments": {"node_type": "../../simulations"},
+            },
         },
     )
     sent = captured[0]
     # raw_path is what goes on the wire; .path is the decoded view.
-    assert sent.url.raw_path == b"/api/v1/agents/..%2F..%2Fsimulations"
+    assert sent.url.raw_path == b"/api/v1/workflow-node-types/..%2F..%2Fsimulations"
     assert not sent.url.params
 
 

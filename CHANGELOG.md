@@ -16,6 +16,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 - Moving a node saves, instead of failing with "revision is required".
 - The bar under the canvas shows only when something failed, with a one-line message instead of raw JSON.
 
+### Security
+
+- Tools refuse an id that is not a whole number before calling the API.
+
 ## [0.11.0] - 2026-10-26
 
 ### Added

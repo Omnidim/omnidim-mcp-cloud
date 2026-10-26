@@ -54,6 +54,49 @@ async def test_show_workflow_reads_the_workflow(client: AsyncClient, mock_backen
     assert captured[0].url.raw_path == b"/api/v1/workflows/7"
 
 
+async def _call(client: AsyncClient, name: str, arguments: dict) -> dict:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments},
+        },
+    )
+    return res.json()
+
+
+async def test_non_numeric_ids_never_reach_the_api(
+    client: AsyncClient,
+    mock_backend,  # noqa: F811
+) -> None:
+    captured = mock_backend(lambda req: httpx.Response(200, json={}))
+    for name, bad in (
+        ("showWorkflow", "1/../../agents?x=1"),
+        ("getWorkflow", "1%2F..%2Fagents"),
+        ("getAgent", "../../simulations"),
+        ("showWorkflow", True),
+        ("showWorkflow", 1.5),
+    ):
+        key = "agent_id" if name == "getAgent" else "workflow_id"
+        body = await _call(client, name, {key: bad})
+        assert body["error"]["code"] == -32602, (name, bad, body)
+    assert captured == []
+
+
+async def test_digit_string_ids_still_work(
+    client: AsyncClient,
+    mock_backend,  # noqa: F811
+) -> None:
+    captured = mock_backend(lambda req: httpx.Response(200, json={"workflow": {"id": 7}}))
+    body = await _call(client, "showWorkflow", {"workflow_id": "7"})
+    assert body["result"]["isError"] is False
+    assert captured[0].url.raw_path == b"/api/v1/workflows/7"
+
+
 async def test_canvas_resource_is_an_mcp_app(client: AsyncClient) -> None:
     listed = (await _rpc(client, "resources/list"))["result"]["resources"]
     entry = next(r for r in listed if r["uri"] == WORKFLOW_CANVAS_URI)
