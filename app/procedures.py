@@ -11,10 +11,37 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from app._generated.tools import TOOLS
+
 # MCP Apps view; the HTML is the npm server's build output, copied unchanged.
 WORKFLOW_CANVAS_URI = "ui://omnidim/workflow-canvas"
-_CANVAS_TOOLS = frozenset({"getWorkflow", "createWorkflow", "editWorkflow"})
 _WORKFLOW_CANVAS_HTML = (Path(__file__).parent / "views" / "workflow_canvas.html").read_text()
+
+_SHOW_WORKFLOW_DESCRIPTION = (
+    "Show a workflow to the user as an interactive canvas in the chat, where they can move, "
+    "rename, edit and delete nodes. Call it when the user asks to see a workflow, and once "
+    "after you finish building or changing one. Do not call it before every edit: use "
+    "`getWorkflow` to read the draft.\n\n(Tags: Workflows)"
+)
+
+
+def _show_workflow_tool() -> dict[str, Any]:
+    # Same endpoint as getWorkflow; it exists so the canvas has one trigger, not one per build step.
+    get = next(t for t in TOOLS if t["name"] == "getWorkflow")
+    return {
+        **get,
+        "name": "showWorkflow",
+        "description": _SHOW_WORKFLOW_DESCRIPTION,
+        "input_schema": {
+            "type": "object",
+            "properties": {"workflow_id": get["input_schema"]["properties"]["workflow_id"]},
+            "required": ["workflow_id"],
+        },
+        "query_params": [],
+    }
+
+
+EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool()]
 
 ROUTING_GUIDE = """# OmniDimension routing guide
 
@@ -869,7 +896,7 @@ _RESOURCES: list[dict[str, str]] = [
 
 
 def tool_meta(name: str) -> dict[str, Any] | None:
-    if name in _CANVAS_TOOLS:
+    if name == "showWorkflow":
         return {"ui": {"resourceUri": WORKFLOW_CANVAS_URI}}
     return None
 

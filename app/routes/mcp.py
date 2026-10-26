@@ -11,6 +11,7 @@ from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
 from app.procedures import (
+    EXTRA_TOOLS,
     build_prompt,
     prompts_for_listing,
     read_resource,
@@ -50,7 +51,7 @@ def _error(req_id: object, code: int, message: str, data: Any = None) -> dict[st
 
 def _tools_for_listing() -> list[dict[str, Any]]:
     tools = []
-    for t in TOOLS:
+    for t in (*TOOLS, *EXTRA_TOOLS):
         tool: dict[str, Any] = {
             "name": t["name"],
             "description": t["description"],

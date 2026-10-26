@@ -15,6 +15,7 @@ import pytest
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
+from app.procedures import EXTRA_TOOLS
 from app.routes.mcp import SERVER_INFO
 from app.services import dispatcher
 
@@ -153,9 +154,10 @@ async def test_mcp_tools_list_matches_generated_registry(client: AsyncClient) ->
     )
     assert res.status_code == 200
     tools = res.json()["result"]["tools"]
-    assert len(tools) == len(TOOLS)
+    # The generated registry plus the hand-written tools (showWorkflow), nothing else.
+    assert len(tools) == len(TOOLS) + len(EXTRA_TOOLS)
     names_in = {t["name"] for t in tools}
-    names_expected = {t["name"] for t in TOOLS}
+    names_expected = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS)}
     assert names_in == names_expected
     # Spot-check the shape of one tool.
     sample = next(t for t in tools if t["name"] == "listAgents")
@@ -279,12 +281,15 @@ async def test_mcp_tools_call_encodes_path_params(
             "jsonrpc": "2.0",
             "id": 6,
             "method": "tools/call",
-            "params": {"name": "getAgent", "arguments": {"agent_id": "../../simulations"}},
+            "params": {
+                "name": "getWorkflowNodeType",
+                "arguments": {"node_type": "../../simulations"},
+            },
         },
     )
     sent = captured[0]
     # raw_path is what goes on the wire; .path is the decoded view.
-    assert sent.url.raw_path == b"/api/v1/agents/..%2F..%2Fsimulations"
+    assert sent.url.raw_path == b"/api/v1/workflow-node-types/..%2F..%2Fsimulations"
     assert not sent.url.params
 
 

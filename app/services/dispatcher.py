@@ -11,6 +11,7 @@ import httpx
 import structlog
 
 from app._generated.tools import TOOLS
+from app.procedures import EXTRA_TOOLS
 from app.services.bearer import ResolvedToken
 
 log = structlog.get_logger()
@@ -37,7 +38,7 @@ LIST_KEYS: Final = (
     "items",
 )
 
-_TOOLS_BY_NAME: Final = {t["name"]: t for t in TOOLS}
+_TOOLS_BY_NAME: Final = {t["name"]: t for t in (*TOOLS, *EXTRA_TOOLS)}
 
 
 def _default_client_factory() -> httpx.AsyncClient:
@@ -134,15 +135,29 @@ def _trim(data: Any) -> ToolResult:
     )
 
 
-def _substitute_path(template: str, args: dict[str, Any], path_params: list[str]) -> str:
+def _path_value(name: str, value: Any, declared: Any) -> str:
+    if declared not in ("integer", "number"):
+        return str(value)
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, str) and value.isascii() and value.isdigit():
+        return str(int(value))
+    raise DispatchError(-32602, f"{name} must be a whole number")
+
+
+def _substitute_path(
+    template: str, args: dict[str, Any], path_params: list[str], schema: dict[str, Any]
+) -> str:
+    props = schema.get("properties", {})
     path = template
     for p in path_params:
         if p not in args:
             raise DispatchError(-32602, f"missing required path parameter: {p}")
+        value = _path_value(p, args[p], props.get(p, {}).get("type"))
         # Percent-encode the whole value: an unencoded `../` or `?` in a path
         # argument would rewrite the upstream URL and reach endpoints outside
         # the generated tool surface.
-        path = path.replace(f"{{{p}}}", quote(str(args[p]), safe=""))
+        path = path.replace(f"{{{p}}}", quote(value, safe=""))
     return path
 
 
@@ -192,7 +207,9 @@ async def dispatch_tool(
         raise DispatchError(-32000, "missing upstream credential")
 
     arguments = _coerce_args(arguments, tool["input_schema"])
-    path = _substitute_path(tool["path"], arguments, tool["path_params"])
+    path = _substitute_path(
+        tool["path"], arguments, tool["path_params"], tool["input_schema"]
+    )
     query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
 
     url = f"{BACKEND_BASE_URL}{path}"
