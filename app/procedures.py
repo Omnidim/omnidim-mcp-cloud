@@ -7,6 +7,7 @@ being written down.
 """
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -14,8 +15,13 @@ from typing import Any
 from app._generated.tools import TOOLS
 
 # MCP Apps view; the HTML is the npm server's build output, copied unchanged.
-WORKFLOW_CANVAS_URI = "ui://omnidim/workflow-canvas"
 _WORKFLOW_CANVAS_HTML = (Path(__file__).parent / "views" / "workflow_canvas.html").read_text()
+# Where the canvas lived before its address carried a hash. Chats that showed it still ask for it there.
+LEGACY_CANVAS_URI = "ui://omnidim/workflow-canvas"
+# Chat apps cache a view by its address, so a changed page needs a new address or users keep the old one.
+WORKFLOW_CANVAS_URI = (
+    f"{LEGACY_CANVAS_URI}/{hashlib.sha256(_WORKFLOW_CANVAS_HTML.encode()).hexdigest()[:12]}"
+)
 
 _SHOW_WORKFLOW_DESCRIPTION = (
     "Show a workflow to the user as an interactive canvas in the chat, where they can move, "
@@ -921,7 +927,8 @@ def resources_for_listing() -> list[dict[str, str]]:
 
 
 def read_resource(uri: str) -> dict[str, Any] | None:
+    current = WORKFLOW_CANVAS_URI if uri == LEGACY_CANVAS_URI else uri
     for r in _RESOURCES:
-        if r["uri"] == uri:
-            return {"contents": [{"uri": r["uri"], "mimeType": r["mimeType"], "text": r["text"]}]}
+        if r["uri"] == current:
+            return {"contents": [{"uri": uri, "mimeType": r["mimeType"], "text": r["text"]}]}
     return None

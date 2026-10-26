@@ -1,4 +1,7 @@
 """Workflow canvas: the MCP Apps view and the showWorkflow tool that opens it."""
+import hashlib
+from pathlib import Path
+
 import httpx
 from httpx import AsyncClient
 
@@ -95,6 +98,22 @@ async def test_digit_string_ids_still_work(
     body = await _call(client, "showWorkflow", {"workflow_id": "7"})
     assert body["result"]["isError"] is False
     assert captured[0].url.raw_path == b"/api/v1/workflows/7"
+
+
+async def test_canvas_address_changes_with_the_page(client: AsyncClient) -> None:
+    # Chat apps cache a view by its address; a changed page must get a new one.
+    html = (Path(__file__).parent.parent / "app" / "views" / "workflow_canvas.html").read_bytes()
+    digest = hashlib.sha256(html).hexdigest()[:12]
+    assert WORKFLOW_CANVAS_URI == f"ui://omnidim/workflow-canvas/{digest}"
+    listed = (await _rpc(client, "resources/list"))["result"]["resources"]
+    assert [r["uri"] for r in listed if r["uri"].startswith("ui://")] == [WORKFLOW_CANVAS_URI]
+
+
+async def test_old_canvas_address_still_serves_the_page(client: AsyncClient) -> None:
+    old = await _rpc(client, "resources/read", {"uri": "ui://omnidim/workflow-canvas"})
+    new = await _rpc(client, "resources/read", {"uri": WORKFLOW_CANVAS_URI})
+    assert old["result"]["contents"][0]["text"] == new["result"]["contents"][0]["text"]
+    assert old["result"]["contents"][0]["uri"] == "ui://omnidim/workflow-canvas"
 
 
 async def test_canvas_resource_is_an_mcp_app(client: AsyncClient) -> None:

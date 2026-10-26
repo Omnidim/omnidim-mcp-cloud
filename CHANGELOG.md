@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-26
+
+### Fixed
+
+- Chat apps show the current workflow canvas after an update, instead of a copy they saved from an older version.
+
 ## [0.12.0] - 2026-10-26
 
 ### Changed
