@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-26
+
+### Added
+
+- Workflow canvas: in clients that support MCP Apps (such as Claude and ChatGPT), reading, creating or editing a workflow shows the draft as a canvas in the chat. You can select a node to see its settings, drag nodes to move them, ask about a node, and open the workflow in the dashboard.
+
 ## [0.10.1] - 2026-10-22
 
 ### Security
