@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-26
+
 ### Changed
 
 - The workflow canvas now opens only from a new `showWorkflow` tool, so building or editing a workflow no longer posts a canvas at every step.
