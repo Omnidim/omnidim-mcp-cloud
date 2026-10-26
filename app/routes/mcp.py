@@ -25,7 +25,7 @@ router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
 
 PROTOCOL_VERSION = "2025-11-25"
-SERVER_INFO = {"name": "OmniDimension", "version": "0.12.0"}
+SERVER_INFO = {"name": "OmniDimension", "version": "0.12.1"}
 INSTRUCTIONS = (
     "OmniDimension voice AI platform. Tools cover agents, calls, bulk calls, "
     "phone numbers, knowledge base, and providers. Pagination uses `pageno` "
