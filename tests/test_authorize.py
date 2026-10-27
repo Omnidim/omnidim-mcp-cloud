@@ -86,6 +86,7 @@ async def test_authorize_unsupported_response_type_redirects_with_error(
     assert loc.startswith("https://example.com/cb?")
     assert "error=unsupported_response_type" in loc
     assert "state=xyz" in loc
+    assert "iss=http%3A%2F%2Ftestserver" in loc
 
 
 async def test_authorize_plain_pkce_rejected(client: AsyncClient) -> None:
@@ -157,6 +158,7 @@ async def test_internal_fetch_returns_request_metadata(client: AsyncClient) -> N
     assert body["state"] == "xyz"
     assert body["consumed"] is False
     assert body["expired"] is False
+    assert body["issuer"] == "http://testserver"
 
 
 async def test_internal_fetch_requires_shared_secret(client: AsyncClient) -> None:

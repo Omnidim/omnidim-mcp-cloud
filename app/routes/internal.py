@@ -39,6 +39,7 @@ def _hash(value: str) -> str:
 async def get_authorization_request(
     request_id: str,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, object]:
     async with factory() as session:
         row: AuthorizationRequest | None = (
@@ -74,6 +75,7 @@ async def get_authorization_request(
         "expires_at": row.expires_at.isoformat(),
         "expired": expired,
         "consumed": consumed,
+        "issuer": settings.public_base_url.rstrip("/"),
     }
 
 
@@ -85,6 +87,7 @@ async def get_authorization_request(
 async def post_issue_code(
     body: IssueCodeRequest,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> IssueCodeResponse:
     try:
         async with factory() as session:
@@ -95,6 +98,7 @@ async def post_issue_code(
                 odoo_api_key_id=body.odoo_api_key_id,
                 odoo_api_key_value=body.odoo_api_key_value,
                 approved_scope=body.approved_scope,
+                issuer=settings.public_base_url.rstrip("/"),
             )
             await session.commit()
     except IssueCodeError as exc:

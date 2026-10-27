@@ -16,10 +16,13 @@ from app.services.authorize import (
 router = APIRouter(tags=["oauth"])
 
 
-def _error_redirect(redirect_uri: str, code: str, description: str, state: str | None) -> str:
+def _error_redirect(
+    redirect_uri: str, code: str, description: str, state: str | None, issuer: str
+) -> str:
     params = {"error": code, "error_description": description}
     if state is not None:
         params["state"] = state
+    params["iss"] = issuer
     sep = "&" if "?" in redirect_uri else "?"
     return f"{redirect_uri}{sep}{urlencode(params)}"
 
@@ -57,7 +60,13 @@ async def authorize(
     except AuthorizeError as exc:
         if exc.redirectable:
             return RedirectResponse(
-                _error_redirect(redirect_uri, exc.code, exc.description, state),
+                _error_redirect(
+                    redirect_uri,
+                    exc.code,
+                    exc.description,
+                    state,
+                    settings.public_base_url.rstrip("/"),
+                ),
                 status_code=status.HTTP_302_FOUND,
             )
         return JSONResponse(

@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- Sign-in redirects now include the `iss` parameter that the server metadata advertises (RFC 9207), so clients that check it can finish signing in.
+
 ## [0.12.1] - 2026-10-26
 
 ### Fixed
