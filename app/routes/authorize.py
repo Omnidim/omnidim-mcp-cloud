@@ -1,5 +1,4 @@
 from typing import Annotated
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -14,17 +13,6 @@ from app.services.authorize import (
 )
 
 router = APIRouter(tags=["oauth"])
-
-
-def _error_redirect(
-    redirect_uri: str, code: str, description: str, state: str | None, issuer: str
-) -> str:
-    params = {"error": code, "error_description": description}
-    if state is not None:
-        params["state"] = state
-    params["iss"] = issuer
-    sep = "&" if "?" in redirect_uri else "?"
-    return f"{redirect_uri}{sep}{urlencode(params)}"
 
 
 @router.get("/authorize", response_model=None)
@@ -58,17 +46,8 @@ async def authorize(
             )
             await session.commit()
     except AuthorizeError as exc:
-        if exc.redirectable:
-            return RedirectResponse(
-                _error_redirect(
-                    redirect_uri,
-                    exc.code,
-                    exc.description,
-                    state,
-                    settings.public_base_url.rstrip("/"),
-                ),
-                status_code=status.HTTP_302_FOUND,
-            )
+        # Never redirect before consent: any caller can register a redirect URI
+        # through DCR, so none is trusted for an automatic redirect (RFC 9700 4.11.2).
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"error": exc.code, "error_description": exc.description},

@@ -72,21 +72,18 @@ async def test_authorize_unregistered_redirect_uri_returns_400(client: AsyncClie
     assert res.json()["error"] == "invalid_request"
 
 
-async def test_authorize_unsupported_response_type_redirects_with_error(
-    client: AsyncClient,
-) -> None:
+async def test_authorize_errors_never_redirect_before_consent(client: AsyncClient) -> None:
+    # Any caller can register a redirect URI, so it is not trusted for an automatic
+    # redirect (RFC 9700 4.11.2): every pre-consent error is a 400 page.
     client_id = await _register_public_client(client)
     res = await client.get(
         "/authorize",
         params=_base_params(client_id, response_type="token"),
         follow_redirects=False,
     )
-    assert res.status_code == 302
-    loc = res.headers["location"]
-    assert loc.startswith("https://example.com/cb?")
-    assert "error=unsupported_response_type" in loc
-    assert "state=xyz" in loc
-    assert "iss=http%3A%2F%2Ftestserver" in loc
+    assert res.status_code == 400
+    assert "location" not in res.headers
+    assert res.json()["error"] == "unsupported_response_type"
 
 
 async def test_authorize_plain_pkce_rejected(client: AsyncClient) -> None:
@@ -96,8 +93,9 @@ async def test_authorize_plain_pkce_rejected(client: AsyncClient) -> None:
         params=_base_params(client_id, code_challenge_method="plain"),
         follow_redirects=False,
     )
-    assert res.status_code == 302
-    assert "error=invalid_request" in res.headers["location"]
+    assert res.status_code == 400
+    assert "location" not in res.headers
+    assert res.json()["error"] == "invalid_request"
 
 
 async def test_authorize_short_pkce_rejected(client: AsyncClient) -> None:
@@ -107,8 +105,9 @@ async def test_authorize_short_pkce_rejected(client: AsyncClient) -> None:
         params=_base_params(client_id, code_challenge="too-short"),
         follow_redirects=False,
     )
-    assert res.status_code == 302
-    assert "error=invalid_request" in res.headers["location"]
+    assert res.status_code == 400
+    assert "location" not in res.headers
+    assert res.json()["error"] == "invalid_request"
 
 
 async def test_authorize_unknown_scope_rejected(client: AsyncClient) -> None:
@@ -118,8 +117,9 @@ async def test_authorize_unknown_scope_rejected(client: AsyncClient) -> None:
         params=_base_params(client_id, scope="no-such-scope"),
         follow_redirects=False,
     )
-    assert res.status_code == 302
-    assert "error=invalid_scope" in res.headers["location"]
+    assert res.status_code == 400
+    assert "location" not in res.headers
+    assert res.json()["error"] == "invalid_scope"
 
 
 async def test_authorize_missing_scope_defaults_to_omnidim_all(
@@ -158,7 +158,8 @@ async def test_internal_fetch_returns_request_metadata(client: AsyncClient) -> N
     assert body["state"] == "xyz"
     assert body["consumed"] is False
     assert body["expired"] is False
-    assert body["issuer"] == "http://testserver"
+    advertised = await client.get("/.well-known/oauth-authorization-server")
+    assert body["issuer"] == advertised.json()["issuer"]
 
 
 async def test_internal_fetch_requires_shared_secret(client: AsyncClient) -> None:
