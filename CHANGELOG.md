@@ -4,6 +4,14 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- Sign-in redirects now include the `iss` parameter that the server metadata advertises (RFC 9207), so clients that check it can finish signing in.
+
+### Security
+
+- A malformed sign-in request now shows an error page instead of redirecting to the client's address, so the sign-in page cannot be used to send people to an untrusted site.
+
 ## [0.12.1] - 2026-10-26
 
 ### Fixed

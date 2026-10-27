@@ -50,6 +50,7 @@ async def issue_code(
     odoo_api_key_id: int,
     odoo_api_key_value: str | None,
     approved_scope: str,
+    issuer: str,
 ) -> IssuedCode:
     now = datetime.now(UTC)
     req: AuthorizationRequest | None = (
@@ -99,6 +100,7 @@ async def issue_code(
     params = {"code": code}
     if req.state is not None:
         params["state"] = req.state
+    params["iss"] = issuer
     sep = "&" if "?" in req.redirect_uri else "?"
     redirect_to = f"{req.redirect_uri}{sep}{urlencode(params)}"
 

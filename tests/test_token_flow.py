@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import secrets
+from urllib.parse import parse_qs, urlsplit
 
 from httpx import AsyncClient
 
@@ -54,6 +55,29 @@ async def _approve(client: AsyncClient, request_id: str) -> str:
     )
     assert res.status_code == 200, res.text
     return res.json()["code"]
+
+
+async def test_issued_code_redirect_names_the_issuer(client: AsyncClient) -> None:
+    # RFC 9207: discovery advertises authorization_response_iss_parameter_supported.
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    res = await client.post(
+        "/internal/issue-code",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={
+            "request_id": request_id,
+            "odoo_user_id": 2943,
+            "odoo_api_key_id": 1,
+            "odoo_api_key_value": "fake-upstream-key",
+            "approved_scope": "omnidim:all",
+        },
+    )
+    assert res.status_code == 200, res.text
+    query = parse_qs(urlsplit(res.json()["redirect_to"]).query)
+    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
+    assert query["iss"] == [issuer]
+    assert query["state"] == ["abc"]
 
 
 async def test_full_authorization_code_flow(client: AsyncClient) -> None:
