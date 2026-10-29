@@ -3,8 +3,8 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
-Source spec:   openapi.yaml   sha256=2a35849a45ef
-Config:        mcp-config.yaml  sha256=eaf21f879f19
+Source spec:   openapi.yaml   sha256=743fbbad8beb
+Config:        mcp-config.yaml  sha256=1591814fbb3b
 """
 from __future__ import annotations
 
@@ -415,6 +415,90 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "addWhatsappCampaignContacts",
+        "description": "Add campaign contacts. Add one contact, or up to 500 at once. On a draft they are stored for\nlaunch. On a running campaign they are sent now. A contact already in\nthe campaign is skipped, so a retry is safe. Each contact needs a\n`phone_number`; every other key is kept and can fill a template\nparameter through `variable_mapping`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/contacts",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "addWhatsappOptOut",
+        "description": "Block a customer. Stop every message you start to this customer from this number, until\nthe block is lifted. The response is `201` when the block is new and\n`200` when the customer was already blocked, in which case the entry is\nreturned unchanged.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The customer's number in international format, such as `+15551234567`."
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "A note for your team."
+                }
+            },
+            "required": [
+                "customer",
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "attachAgentIntegration",
+        "description": "Attach an integration to an agent. Attach one of your integrations to the agent. The agent can use it on its next call. Integrations already attached stay as they are.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "integration_id": {
+                    "type": "integer",
+                    "description": "The integration's id, from `listIntegrations` or a create response."
+                }
+            },
+            "required": [
+                "agent_id",
+                "integration_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/integrations",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": []
+    },
+    {
         "name": "attachKnowledgeBaseFiles",
         "description": "Attach files to agent. Attach multiple knowledge-base files to an agent.",
         "input_schema": {
@@ -574,6 +658,29 @@ _TOOLS_JSON = r"""[
         "path": "/calls/bulk_call/{bulk_call_id}",
         "path_params": [
             "bulk_call_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "cancelWhatsappCampaign",
+        "description": "Cancel a campaign. Stop a campaign for good. Contacts not yet sent are not sent. A completed\nor already-canceled campaign cannot be canceled.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/cancel",
+        "path_params": [
+            "campaign_id"
         ],
         "query_params": []
     },
@@ -804,8 +911,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -2004,7 +2111,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2115,7 +2222,49 @@ _TOOLS_JSON = r"""[
                             "default": 1,
                             "minimum": 1,
                             "maximum": 10,
-                            "description": "Retry attempts, 1 to 10. To disable retries omit it and\nleave `auto_retry` false; never send `0`.\n"
+                            "description": "Retry attempts, 1 to 10. To disable retries omit it and\nleave `auto_retry` false; never send `0`. Ignored when\n`retry_steps` is set.\n"
+                        },
+                        "retry_steps": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 10,
+                            "description": "A different delay for each retry, in order: retry 1\nwaits for the first step, retry 2 for the second, and\nso on. When set, it replaces `auto_retry_schedule`,\n`retry_schedule_days`, `retry_schedule_hours` and\n`retry_limit`: a contact gets one retry per step. Each\ndelay is at most 30 days. A retry that falls outside\nthe campaign's daily calling hours waits until they\nopen again.\n",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "delay",
+                                    "unit"
+                                ],
+                                "properties": {
+                                    "delay": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "How long to wait, in `unit`. `0` retries right away."
+                                    },
+                                    "unit": {
+                                        "type": "string",
+                                        "enum": [
+                                            "minutes",
+                                            "hours",
+                                            "days"
+                                        ]
+                                    }
+                                }
+                            },
+                            "example": [
+                                {
+                                    "delay": 1,
+                                    "unit": "hours"
+                                },
+                                {
+                                    "delay": 3,
+                                    "unit": "hours"
+                                },
+                                {
+                                    "delay": 1,
+                                    "unit": "days"
+                                }
+                            ]
                         }
                     }
                 }
@@ -2128,6 +2277,42 @@ _TOOLS_JSON = r"""[
         },
         "method": "POST",
         "path": "/calls/bulk_call/create",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "createCalIntegration",
+        "description": "Create a Cal.com integration. Connect a Cal.com event type so an agent can check availability and book meetings during a call. Attach it to an agent with `attachAgentIntegration`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "A name for the integration."
+                },
+                "cal_api_key": {
+                    "type": "string",
+                    "description": "Your Cal.com API key."
+                },
+                "cal_id": {
+                    "type": "string",
+                    "description": "The Cal.com event type id to book."
+                },
+                "cal_timezone": {
+                    "type": "string",
+                    "description": "IANA time zone for the bookings, such as `America/New_York`."
+                }
+            },
+            "required": [
+                "cal_api_key",
+                "cal_id",
+                "cal_timezone",
+                "name"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/integrations/cal",
         "path_params": [],
         "query_params": []
     },
@@ -2188,6 +2373,167 @@ _TOOLS_JSON = r"""[
         },
         "method": "POST",
         "path": "/voices",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "createCustomApiIntegration",
+        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration. Attach it to an agent with `attachAgentIntegration`, and the agent calls the endpoint during a call when the conversation needs it, then uses the response in its reply. Parameters marked `isLLMGenerated` are filled in by the agent from the conversation.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "A name for the integration."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "What the endpoint does. The agent reads this to decide\nwhen to call it, so say what it returns and when it is useful.\n"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE"
+                    ]
+                },
+                "headers": {
+                    "type": "array",
+                    "description": "Fixed headers sent on every request.",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "key",
+                            "value"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "query_params": {
+                    "type": "array",
+                    "description": "Query string parameters.",
+                    "items": {
+                        "type": "object",
+                        "description": "One query or body parameter of a custom API. With `isLLMGenerated`\ntrue the agent fills the value from the conversation, guided by\n`description`. With it false, the text in `description` is sent as a\nfixed value.\n",
+                        "required": [
+                            "key"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "The parameter name your endpoint expects."
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "What the agent should put here, or the fixed value when `isLLMGenerated` is false."
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "object",
+                                    "array"
+                                ],
+                                "default": "string"
+                            },
+                            "required": {
+                                "type": "boolean",
+                                "description": "Whether the agent must supply this parameter."
+                            },
+                            "isLLMGenerated": {
+                                "type": "boolean",
+                                "default": true,
+                                "description": "Let the agent fill this value from the conversation."
+                            },
+                            "children": {
+                                "type": "array",
+                                "description": "Nested fields of an `object` or `array` body parameter. Query parameters have no children.",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "body_params": {
+                    "type": "array",
+                    "description": "Request body fields, sent as JSON. A GET request sends no\nbody. Every request with a body also carries the call's\n`from_number`, `to_number` and `call_sid`.\n",
+                    "items": {
+                        "type": "object",
+                        "description": "One query or body parameter of a custom API. With `isLLMGenerated`\ntrue the agent fills the value from the conversation, guided by\n`description`. With it false, the text in `description` is sent as a\nfixed value.\n",
+                        "required": [
+                            "key"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "The parameter name your endpoint expects."
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "What the agent should put here, or the fixed value when `isLLMGenerated` is false."
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "object",
+                                    "array"
+                                ],
+                                "default": "string"
+                            },
+                            "required": {
+                                "type": "boolean",
+                                "description": "Whether the agent must supply this parameter."
+                            },
+                            "isLLMGenerated": {
+                                "type": "boolean",
+                                "default": true,
+                                "description": "Let the agent fill this value from the conversation."
+                            },
+                            "children": {
+                                "type": "array",
+                                "description": "Nested fields of an `object` or `array` body parameter. Query parameters have no children.",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "request_timeout": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Seconds to wait for your endpoint before the agent moves on."
+                }
+            },
+            "required": [
+                "method",
+                "name",
+                "url"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/integrations/custom-api",
         "path_params": [],
         "query_params": []
     },
@@ -3132,6 +3478,66 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "createWhatsappCampaign",
+        "description": "Create a campaign. Create a campaign as a draft. It sends nothing until you launch it. Add\ncontacts and launch it in the next calls. Only an approved template can\nbe used, so every campaign starts with one. Scheduling is not offered.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "phone_number_id": {
+                    "type": "integer"
+                },
+                "template_id": {
+                    "type": "integer",
+                    "description": "An approved template on that number."
+                },
+                "campaign_mode": {
+                    "type": "string",
+                    "enum": [
+                        "broadcast",
+                        "broadcast_reply"
+                    ],
+                    "default": "broadcast",
+                    "description": "`broadcast_reply` lets the agent answer replies. It needs an agent."
+                },
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The agent that answers replies."
+                },
+                "data_source": {
+                    "type": "string",
+                    "enum": [
+                        "csv",
+                        "webhook"
+                    ],
+                    "default": "csv"
+                },
+                "is_dynamic": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "variable_mapping": {
+                    "type": "object",
+                    "description": "Template field to contact field or static text.",
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "name",
+                "phone_number_id",
+                "template_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns",
+        "path_params": [],
+        "query_params": []
+    },
+    {
         "name": "createWorkflow",
         "description": "Create a workflow. Create a workflow with a draft. Without `graph`, the draft holds one `trigger` node, ready for `editWorkflow` ops. Pass `graph` only to start from a complete graph. The response carries the `revision` you need to edit.",
         "input_schema": {
@@ -3394,6 +3800,35 @@ _TOOLS_JSON = r"""[
         "path": "/workflows/{workflow_id}",
         "path_params": [
             "workflow_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "detachAgentIntegration",
+        "description": "Detach an integration from an agent. Remove the integration from the agent. The integration itself is kept and stays available to attach again.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "integration_id": {
+                    "type": "integer",
+                    "description": "The ID of the integration to detach."
+                }
+            },
+            "required": [
+                "agent_id",
+                "integration_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/agents/{agent_id}/integrations/{integration_id}",
+        "path_params": [
+            "agent_id",
+            "integration_id"
         ],
         "query_params": []
     },
@@ -4741,6 +5176,121 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "getWhatsappCalling",
+        "description": "Get calling settings. Whether calling is on for this number and whether it can be turned on,\nwith the list of checks. A failing check does not fail the request: the\nresponse stays `200` and names the check that blocks. Meta Cloud numbers\nonly. Calling must be included in your plan.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/calling",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "getWhatsappCampaign",
+        "description": "Get a campaign. One campaign with its counts and analytics: per-source figures and the\nfailed contacts grouped by reason. `delivery_rate` and `read_rate` are\nnull on a number that does not report receipts.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns/{campaign_id}",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "getWhatsappConversation",
+        "description": "Get a conversation. One conversation: who owns it, the 24-hour window, whether the customer\nopted out, and the unread count. Poll it while a person is answering.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/conversations/{conversation_id}",
+        "path_params": [
+            "conversation_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "getWhatsappMessage",
+        "description": "Get a message. One message with its `timeline`: the delivery and read steps, oldest\nfirst. Poll it after a send to learn whether the message was delivered\nand read. Also shows what the send cost once it is charged.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "message_id": {
+                    "type": "integer",
+                    "description": "Id of a message, from `listWhatsappMessages` or a send response."
+                }
+            },
+            "required": [
+                "message_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/messages/{message_id}",
+        "path_params": [
+            "message_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "getWhatsappNumber",
+        "description": "Get a WhatsApp number. One number, with its status, quality and messaging limit, and what it\ncan send. A number in another workspace answers `404`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": []
+    },
+    {
         "name": "getWorkflow",
         "description": "Get a workflow. One workflow with its draft, status and `revision`. Call it before every edit to get the current `revision`. Use `view=structure` to see nodes and edges without config on a large workflow. Secrets read back as `********`.",
         "input_schema": {
@@ -4836,6 +5386,29 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "detail"
         ]
+    },
+    {
+        "name": "handBackWhatsappConversation",
+        "description": "Hand a conversation back. Give the conversation back to the agent, and clear a pause. The agent\nanswers the customer's next message. Repeating it changes nothing.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/conversations/{conversation_id}/hand_back",
+        "path_params": [
+            "conversation_id"
+        ],
+        "query_params": []
     },
     {
         "name": "importExotelNumber",
@@ -4985,6 +5558,126 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/twilio",
         "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "importWhatsappNumbers",
+        "description": "Connect WhatsApp numbers. Connects numbers from your own WhatsApp Business Account with your Meta\naccess token. List them first with\n[Preview numbers](/docs/api-reference/whatsapp/previewWhatsappNumbers),\nthen pass the ids you want.\n\nThe token must never expire and must carry both WhatsApp permissions\n(`whatsapp_business_management` and `whatsapp_business_messaging`). A\nsystem user token does. Add `app_secret` to receive replies. Without\nit the number can send but not receive.\n\nConnecting a number again updates it: send a new `access_token` or\n`app_secret` the same way to change either. One number failing does\nnot stop the others. It is listed in `failed` with the reason.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "waba_id": {
+                    "type": "string",
+                    "description": "Your WhatsApp Business Account id, from WhatsApp Manager."
+                },
+                "access_token": {
+                    "type": "string",
+                    "description": "A Meta access token that never expires, with both WhatsApp permissions. Stored, never returned."
+                },
+                "phone_number_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Meta's ids for the numbers to connect, as Preview numbers lists them."
+                },
+                "app_secret": {
+                    "type": "string",
+                    "description": "Your Meta app's secret. Turns on replies. Stored, never returned."
+                }
+            },
+            "required": [
+                "access_token",
+                "phone_number_ids",
+                "waba_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "launchWhatsappCampaign",
+        "description": "Launch a campaign. Start a draft campaign: every pending contact is queued once. Needs at\nleast one contact, unless the campaign's `data_source` is `webhook`. The\nplan's monthly broadcast allowance and the wallet balance are checked\nhere. `Idempotency-Key` is required, so a retry does not start it twice.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`.\n"
+                }
+            },
+            "required": [
+                "Idempotency-Key",
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/launch",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "liftWhatsappOptOut",
+        "description": "Lift a block. Lift a block you added, or a marketing block made in WhatsApp. The entry\nstays in the list with `active: false`. A customer's own STOP cannot be\nlifted over the API: only the customer lifting it in WhatsApp, or\nmessaging you again, brings them back.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "opt_out_id": {
+                    "type": "integer",
+                    "description": "Id of an active opt-out entry, from `listWhatsappOptOuts`."
+                }
+            },
+            "required": [
+                "number_id",
+                "opt_out_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs/{opt_out_id}",
+        "path_params": [
+            "number_id",
+            "opt_out_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "listAgentIntegrations",
+        "description": "List an agent's integrations. List the integrations attached to the agent. Stored credentials read `********`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/integrations",
+        "path_params": [
+            "agent_id"
+        ],
         "query_params": []
     },
     {
@@ -5438,6 +6131,332 @@ _TOOLS_JSON = r"""[
         ]
     },
     {
+        "name": "listWhatsappCampaignContacts",
+        "description": "List campaign contacts. Per-contact status for a campaign, oldest first. A contact that read the\nmessage and then replied STOP counts as read and opted out.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "sent",
+                        "delivered",
+                        "read",
+                        "replied",
+                        "failed",
+                        "skipped",
+                        "opted_out"
+                    ],
+                    "description": "Show only contacts in this state."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns/{campaign_id}/contacts",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [
+            "status",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappCampaigns",
+        "description": "List campaigns. Your WhatsApp campaigns, oldest first. Filter by status or by number.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "in_progress",
+                        "paused",
+                        "completed",
+                        "failed",
+                        "cancelled"
+                    ],
+                    "description": "Show only campaigns in this state."
+                },
+                "phone_number_id": {
+                    "type": "integer",
+                    "description": "Show only campaigns on this number."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns",
+        "path_params": [],
+        "query_params": [
+            "status",
+            "phone_number_id",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappConversations",
+        "description": "List conversations. A number's inbox, newest activity first. Poll it with `updated_since`\nfor changes since your last call, or page it with `cursor`. There are no\nevent webhooks, so polling is how an integration learns about new\nmessages.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "filter": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "unread",
+                        "needs_person",
+                        "agent",
+                        "failed",
+                        "window_closed",
+                        "campaign_replies"
+                    ],
+                    "default": "all",
+                    "description": "`needs_person` is a person-owned or paused conversation. `window_closed` is one you can only reach with a template."
+                },
+                "q": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Search the customer's name, phone number and message text."
+                },
+                "updated_since": {
+                    "type": "string",
+                    "description": "An ISO 8601 date and time, such as `2026-10-01T09:00:00+00:00`. Returns\nconversations with a change at or after it. No offset means UTC.\n"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/conversations",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "filter",
+            "q",
+            "updated_since",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappMessages",
+        "description": "List messages. One conversation's messages, newest first. Poll forward with `after`\n(the id of the newest message you already have) to get only new ones.\nPage backward through history with `cursor`. Do not pass both.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "The conversation to read."
+                },
+                "after": {
+                    "type": "integer",
+                    "description": "Return messages newer than this message id. `next_cursor` is null in this mode."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page. Do not combine it with `after`."
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/messages",
+        "path_params": [],
+        "query_params": [
+            "conversation_id",
+            "after",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappNumbers",
+        "description": "List WhatsApp numbers. The WhatsApp numbers your API key can see, oldest first. Use it to find\na number id, then pass that id to the other routes. Each number carries\n`capabilities`, which says what it can send. Archived numbers are left\nout.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page. Omit it on the first request and pass it back unchanged."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers",
+        "path_params": [],
+        "query_params": [
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappOptOuts",
+        "description": "List opt-outs. Who opted out of messages from this number, oldest first. By default it\nlists active opt-outs only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "active": {
+                    "type": "string",
+                    "enum": [
+                        true,
+                        false,
+                        "all"
+                    ],
+                    "default": "true",
+                    "description": "`true` for active only, `false` for lifted only, `all` for both."
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "Find one customer by any spelling of their number."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "active",
+            "customer",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
+        "name": "listWhatsappTemplates",
+        "description": "List templates. The number's message templates, as last synced, oldest first. Pass\n`status=approved` to see exactly the templates a send accepts. Sync the\nlist with `syncWhatsappTemplates` first if a template you expect is\nmissing.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Show only templates with this review status, such as `approved`,\n`pending` or `rejected`. Lower-case; omit it for all.\n"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/templates",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "status",
+            "limit",
+            "cursor"
+        ]
+    },
+    {
         "name": "listWorkflowFieldOptions",
         "description": "List choices for a node field. The choices for one `ref` field of a node type, such as the phone numbers, agents or integrations in your account. Call it for every `ref` field and never guess an id. If it returns `400 no_options`, the field is not chosen from a list, so ask the user for the value.",
         "input_schema": {
@@ -5533,6 +6552,55 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ]
+    },
+    {
+        "name": "pauseWhatsappCampaign",
+        "description": "Pause a campaign. Stop sending until you resume. Only a running campaign can be paused. A\npause you make by hand is never resumed automatically.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/pause",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "previewWhatsappNumbers",
+        "description": "Preview numbers to connect. Lists the numbers on your WhatsApp Business Account with their health,\nand connects nothing. The access token is checked first, against the\nsame rules as connecting, so a preview that passes can connect.\n\nConnect a number with `needs_migration` or `needs_registration` only\nafter fixing it in WhatsApp Manager, or its sends fail.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "waba_id": {
+                    "type": "string",
+                    "description": "Your WhatsApp Business Account id, from WhatsApp Manager."
+                },
+                "access_token": {
+                    "type": "string",
+                    "description": "A Meta access token that never expires, with both WhatsApp permissions."
+                }
+            },
+            "required": [
+                "access_token",
+                "waba_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/preview",
+        "path_params": [],
+        "query_params": []
     },
     {
         "name": "publishWorkflow",
@@ -5712,6 +6780,29 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "resumeWhatsappCampaign",
+        "description": "Resume a campaign. Resume a paused campaign. Contacts still pending are sent; a contact\nalready sent is never sent again. The wallet and allowance are checked\nagain, so a resume can answer `402`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/resume",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": []
+    },
+    {
         "name": "retryBulkCall",
         "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without creating a new campaign.\n\nUse it after a campaign finishes with more no-answers than you expected,\nor when the reason was on your side (a bad window, a number that was\nhaving a bad day). Retried contacts keep their original variables.",
         "input_schema": {
@@ -5797,6 +6888,97 @@ _TOOLS_JSON = r"""[
             "page",
             "limit"
         ]
+    },
+    {
+        "name": "sendWhatsappMessage",
+        "description": "Send a message. Send one message through `phone_number_id` to a customer, in a text,\na template, an image or a document. Set `type` and the matching field.\n\nOutside the 24-hour window, only a template goes through. A text, image\nor document send is refused with `409 window_closed`. A template send\nworks any time and can start a new conversation.\n\nThe send does not take the conversation over, so the agent keeps\nanswering. Set `take_over: true` to stop the agent and answer yourself.\n\n`Idempotency-Key` is required. The same key with the same body replays\nthe first answer instead of sending again.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`.\n"
+                },
+                "phone_number_id": {
+                    "type": "integer",
+                    "description": "The number to send from."
+                },
+                "to": {
+                    "type": "string",
+                    "description": "The customer's number in international format, such as `+15551234567`."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "text",
+                        "template",
+                        "image",
+                        "document"
+                    ]
+                },
+                "text": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Required when `type` is `text`."
+                },
+                "template": {
+                    "type": "object",
+                    "description": "Required when `type` is `template`.",
+                    "required": [
+                        "id"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "An approved template on this number, from `listWhatsappTemplates`."
+                        },
+                        "params": {
+                            "type": "object",
+                            "description": "One value per field in the template's `fields`. Keys are\nthose field keys. String, number or null values.\n",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "media": {
+                    "type": "object",
+                    "description": "Required when `type` is `image` or `document`.",
+                    "required": [
+                        "media_id"
+                    ],
+                    "properties": {
+                        "media_id": {
+                            "type": "string",
+                            "description": "The `media_id` from `uploadWhatsappMedia`, uploaded within the last 24 hours."
+                        },
+                        "caption": {
+                            "type": "string",
+                            "maxLength": 1024
+                        }
+                    }
+                },
+                "reply_to": {
+                    "type": "integer",
+                    "description": "A message id in the same conversation to quote. Not allowed with a template."
+                },
+                "take_over": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Stop the agent answering this conversation and let a person run it."
+                }
+            },
+            "required": [
+                "Idempotency-Key",
+                "phone_number_id",
+                "to",
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/messages",
+        "path_params": [],
+        "query_params": []
     },
     {
         "name": "setBulkCallConcurrency",
@@ -5919,6 +7101,62 @@ _TOOLS_JSON = r"""[
         "query_params": []
     },
     {
+        "name": "setPhoneNumberAutoRenew",
+        "description": "Switch auto-renew on a phone number. Turn auto-renew off or back on for a number bought from the number shop.\nWith auto-renew off, the number is not charged again: it keeps working\nuntil the end of the period already paid for and is then released. Turn\nit back on before that date and it renews as normal. Sending the value\nthe number already has changes nothing and still succeeds.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to switch.",
+                    "example": "+15551234567"
+                },
+                "auto_renew": {
+                    "type": "boolean",
+                    "description": "`false` stops renewal, `true` turns it back on. Must be a JSON boolean: a string such as `\"false\"`, a number, or a missing value is refused.",
+                    "example": false
+                }
+            },
+            "required": [
+                "auto_renew",
+                "phone_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/phone_number/auto_renew",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "setWhatsappCalling",
+        "description": "Turn calling on or off. Turn calling on or off for a Meta Cloud number. A customer calls this\nnumber; it does not place calls. Turning it on requires every blocking\ncheck to pass, or the request answers `409`. Turning it off is always\nallowed.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "`true` to turn calling on, `false` to turn it off."
+                }
+            },
+            "required": [
+                "enabled",
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PATCH",
+        "path": "/whatsapp/numbers/{number_id}/calling",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": []
+    },
+    {
         "name": "startBulkCall",
         "description": "Start a draft campaign. Start a campaign that was created with `save_as_draft: true`.\n\nDrafts let you build a campaign over several requests: create it, add\ncontacts in batches, set the number pool, set concurrency, then start\nwhen everything is in place. A campaign that is already running,\nscheduled, or finished cannot be started.",
         "input_schema": {
@@ -5938,6 +7176,52 @@ _TOOLS_JSON = r"""[
         "path": "/calls/bulk_call/{bulk_call_id}/start",
         "path_params": [
             "bulk_call_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "syncWhatsappTemplates",
+        "description": "Sync templates. Pull the number's templates and their review statuses from WhatsApp into\nyour list. Run it after you create or edit a template in Meta. It runs\nat most once a minute per number: a second call inside that minute\nanswers `429`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/{number_id}/templates/sync",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": []
+    },
+    {
+        "name": "takeOverWhatsappConversation",
+        "description": "Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers. Repeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/conversations/{conversation_id}/take_over",
+        "path_params": [
+            "conversation_id"
         ],
         "query_params": []
     },
@@ -6195,8 +7479,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -7557,6 +8841,19 @@ _TOOLS_JSON = r"""[
         },
         "method": "POST",
         "path": "/knowledge_base/create",
+        "path_params": [],
+        "query_params": []
+    },
+    {
+        "name": "uploadWhatsappMedia",
+        "description": "Upload media. Upload an image or a document, then send it by its `media_id` on\n`sendWhatsappMessage`. Uploading costs nothing; only the send is\ncharged. The `media_id` works for 24 hours and only for the number and\ntype it was uploaded for.\n\nImages can be JPEG, PNG or WebP up to 5 MB. Documents can be PDF, DOCX,\nXLSX or plain text up to 16 MB. The file's type is read from its bytes,\nnot its name.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/media",
         "path_params": [],
         "query_params": []
     },
