@@ -6,6 +6,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.tracing import current_trace_id
+
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(
@@ -13,7 +15,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        request_id = request.headers.get("x-request-id") or uuid4().hex
+        # The server span exists only when tracing is on and the path is traced.
+        request_id = (
+            current_trace_id() or request.headers.get("x-request-id") or uuid4().hex
+        )
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=request_id)
         try:
