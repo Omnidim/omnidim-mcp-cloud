@@ -218,6 +218,8 @@ async def dispatch_tool(
         "Authorization": f"Bearer {token.odoo_api_key_value}",
         "User-Agent": USER_AGENT,
     }
+    if request_id := structlog.contextvars.get_contextvars().get("request_id"):
+        headers["X-Request-ID"] = request_id
     method = tool["method"]
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
