@@ -111,8 +111,9 @@ async def _log_error(request: Request, response: JSONResponse, token: ResolvedTo
     params: dict[str, Any] = raw_params if isinstance(raw_params, dict) else {}
     log.warning(
         "mcp_error",
-        method=method,
-        tool=params.get("name") if method == "tools/call" else None,
+        # Both come from the caller: cap them like the message.
+        method=str(method)[:100] if method is not None else None,
+        tool=str(params.get("name"))[:100] if method == "tools/call" else None,
         code=error.get("code"),
         message=str(error.get("message"))[:200],
         client_id=token.client_id,
