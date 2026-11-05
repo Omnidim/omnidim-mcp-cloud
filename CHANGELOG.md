@@ -4,6 +4,12 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-05
+
+### Changed
+
+- Every tool call now records how it ended and how long it took, so failing or slow tools are found and fixed sooner.
+
 ## [0.12.1] - 2026-10-26
 
 ### Fixed
