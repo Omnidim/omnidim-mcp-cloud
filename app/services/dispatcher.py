@@ -302,7 +302,7 @@ async def dispatch_tool(
             {"mcp.tool": name, "mcp.outcome": outcome, "omni.client_name": token.client_name or ""}
         )
         if outcome in ("server_error", "timeout", "network_error"):
-            span.set_status(StatusCode.ERROR, outcome)
+            span.set_status(StatusCode.ERROR)
         log.info(
             "tool_result",
             tool=name,

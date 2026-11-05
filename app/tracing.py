@@ -6,6 +6,8 @@ The request id is the trace id: the server span adopts the caller's traceparent,
 
 import os
 import re
+from collections.abc import Sequence
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -24,9 +26,10 @@ from opentelemetry.propagators.textmap import (
     default_setter,
 )
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
+from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
+from opentelemetry.trace import Status
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 SERVICE_NAME = "omnidim-mcp-cloud"
@@ -71,6 +74,62 @@ class _RequestIdPropagator(TextMapPropagator):
         return set()
 
 
+_URL_KEYS = ("url.full", "http.url")
+_DROP_KEYS = ("url.path", "url.query", "http.target")
+_DROP_PREFIXES = (
+    "http.request.header.",
+    "http.response.header.",
+    "http.request.body",
+    "http.response.body",
+)
+
+
+def _scrub(span: ReadableSpan) -> ReadableSpan:
+    """Keep method, route template and status. Drop paths, queries, bodies, headers, events."""
+    attrs = {}
+    for key, value in (span.attributes or {}).items():
+        if key in _DROP_KEYS or key.startswith(_DROP_PREFIXES):
+            continue
+        if key in _URL_KEYS and isinstance(value, str):
+            parts = urlsplit(value)
+            value = f"{parts.scheme}://{parts.hostname or ''}" + (
+                f":{parts.port}" if parts.port else ""
+            )
+        attrs[key] = value
+    # The class name comes from the exception event, which is dropped with the message.
+    exc_type = next((e.attributes.get("exception.type") for e in span.events if e.attributes), None)
+    status = Status(span.status.status_code, str(exc_type) if exc_type else None)
+    clean = ReadableSpan(
+        name=span.name,
+        context=span.context,
+        parent=span.parent,
+        resource=span.resource,
+        attributes=attrs,
+        events=(),
+        links=span.links,
+        kind=span.kind,
+        instrumentation_scope=span.instrumentation_scope,
+        status=status,
+        start_time=span.start_time,
+        end_time=span.end_time,
+    )
+    return clean
+
+
+class _ScrubbingExporter(SpanExporter):
+    def __init__(self, inner: SpanExporter) -> None:
+        self._inner = inner
+
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
+        return self._inner.export([_scrub(s) for s in spans])
+
+    def shutdown(self) -> None:
+        self._inner.shutdown()
+
+    def force_flush(self, timeout_millis: int = 30000) -> bool:
+        return self._inner.force_flush(timeout_millis)
+
+
 def tracing_endpoint() -> str:
     return os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
 
@@ -80,7 +139,7 @@ def setup_tracing(app: FastAPI, exporter: SpanExporter | None = None) -> TracerP
     provider = TracerProvider(resource=Resource.create({"service.name": SERVICE_NAME}))
     provider.add_span_processor(
         BatchSpanProcessor(
-            exporter or OTLPSpanExporter(timeout=2),
+            _ScrubbingExporter(exporter or OTLPSpanExporter(timeout=2)),
             max_queue_size=2048,
             export_timeout_millis=2000,
         )
