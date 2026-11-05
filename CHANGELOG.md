@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Changed
+
+- Errors an AI app hits before a tool runs (bad arguments, unknown tools, expired sign-ins) are now recorded with the app's name, so we can fix the tools and descriptions apps struggle with.
+
 ## [0.12.2] - 2026-11-05
 
 ### Changed

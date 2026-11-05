@@ -230,6 +230,7 @@ async def dispatch_tool(
         method=method,
         path=path,
         client_id=token.client_id,
+        client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
@@ -299,5 +300,6 @@ async def dispatch_tool(
             status=status,
             duration_ms=round((time.monotonic() - started) * 1000),
             client_id=token.client_id,
+            client_name=token.client_name,
             odoo_user_id=token.odoo_user_id,
         )

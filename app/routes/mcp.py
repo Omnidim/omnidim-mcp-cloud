@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any
 
 import structlog
@@ -83,8 +84,45 @@ async def mcp_endpoint(
         async with factory() as session:
             token: ResolvedToken = await resolve_bearer(session, authorization)
     except BearerError as exc:
+        # A first request without a token is the normal start of sign-in; the reason tells
+        # that apart from expired or revoked tokens.
+        log.info("mcp_auth_failed", reason=exc.description)
         return _bearer_challenge(exc)
 
+    response = await _answer(request, token)
+    await _log_error(request, response, token)
+    return response
+
+
+async def _log_error(request: Request, response: JSONResponse, token: ResolvedToken) -> None:
+    """One mcp_error line for every JSON-RPC error we send back, so failures that happen
+    before a tool runs (bad arguments, unknown tool or method) show on the MCP board."""
+    payload = json.loads(bytes(response.body))
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return
+    try:
+        raw = await request.json()
+    except ValueError:
+        raw = None
+    body: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    method = body.get("method")
+    raw_params = body.get("params")
+    params: dict[str, Any] = raw_params if isinstance(raw_params, dict) else {}
+    log.warning(
+        "mcp_error",
+        # Both come from the caller: cap them like the message.
+        method=str(method)[:100] if method is not None else None,
+        tool=str(params.get("name"))[:100] if method == "tools/call" else None,
+        code=error.get("code"),
+        message=str(error.get("message"))[:200],
+        client_id=token.client_id,
+        client_name=token.client_name,
+        odoo_user_id=token.odoo_user_id,
+    )
+
+
+async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
     try:
         body = await request.json()
     except Exception:
@@ -107,6 +145,7 @@ async def mcp_endpoint(
         "mcp_request",
         method=method,
         client_id=token.client_id,
+        client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
