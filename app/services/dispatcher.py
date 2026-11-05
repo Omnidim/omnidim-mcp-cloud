@@ -10,6 +10,8 @@ from urllib.parse import quote
 
 import httpx
 import structlog
+from opentelemetry import trace
+from opentelemetry.trace import StatusCode
 
 from app._generated.tools import TOOLS
 from app.procedures import EXTRA_TOOLS
@@ -295,6 +297,12 @@ async def dispatch_tool(
         outcome = "ok"
         return _trim(payload)
     finally:
+        span = trace.get_current_span()
+        span.set_attributes(
+            {"mcp.tool": name, "mcp.outcome": outcome, "omni.client_name": token.client_name or ""}
+        )
+        if outcome in ("server_error", "timeout", "network_error"):
+            span.set_status(StatusCode.ERROR, outcome)
         log.info(
             "tool_result",
             tool=name,

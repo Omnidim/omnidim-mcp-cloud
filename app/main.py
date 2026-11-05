@@ -10,6 +10,7 @@ from app.errors import install_oauth_error_handler
 from app.logging import configure_logging
 from app.middleware import RequestIdMiddleware
 from app.routes import authorize, health, internal, mcp, register, telemetry, token, wellknown
+from app.tracing import setup_tracing, tracing_endpoint
 
 
 @asynccontextmanager
@@ -48,6 +49,8 @@ def create_app() -> FastAPI:
     app.include_router(token.router)
     app.include_router(mcp.router)
     app.include_router(telemetry.router)
+    if tracing_endpoint():
+        setup_tracing(app)
     return app
 
 

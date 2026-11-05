@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- Optional traces. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to send OpenTelemetry traces of each request and its API calls. The request id equals the trace id, so one id finds the logs and the trace. Health checks are not traced. Unset, nothing changes.
+
 ## [0.12.4] - 2026-11-05
 
 ### Changed
