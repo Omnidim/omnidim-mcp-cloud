@@ -6,11 +6,12 @@ way a call can end must produce exactly one of them.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable, Iterator
+from typing import Any
 
 import httpx
 import pytest
-from structlog.testing import capture_logs
 
 from app.services import dispatcher
 from app.services.bearer import ResolvedToken
@@ -30,17 +31,31 @@ def backend() -> Iterator[Callable[[Callable[[httpx.Request], httpx.Response]], 
     dispatcher.reset_client_factory()
 
 
+class _Recorder:
+    """Stands in for the dispatcher's logger. structlog's capture_logs misses a logger that
+    another test already cached, so record the calls themselves."""
+
+    def __init__(self) -> None:
+        self.lines: list[dict[str, Any]] = []
+
+    def _record(self, event: str, **fields: Any) -> None:
+        self.lines.append({"event": event, **fields})
+
+    info = warning = error = _record
+
+
 async def _result_lines(
     backend: Callable[[Callable[[httpx.Request], httpx.Response]], None],
     handler: Callable[[httpx.Request], httpx.Response],
-) -> list[dict[str, object]]:
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[dict[str, Any]]:
     backend(handler)
-    with capture_logs() as logs:
-        try:
-            await dispatcher.dispatch_tool(name="listAgents", arguments={}, token=TOKEN)
-        except dispatcher.DispatchError:
-            pass
-    return [entry for entry in logs if entry["event"] == "tool_result"]
+    recorder = _Recorder()
+    monkeypatch.setattr(dispatcher, "log", recorder)
+    # Timeouts and network errors end in DispatchError by design; the line is what we test.
+    with contextlib.suppress(dispatcher.DispatchError):
+        await dispatcher.dispatch_tool(name="listAgents", arguments={}, token=TOKEN)
+    return [line for line in recorder.lines if line["event"] == "tool_result"]
 
 
 def _raise_timeout(req: httpx.Request) -> httpx.Response:
@@ -62,8 +77,10 @@ def _raise_network(req: httpx.Request) -> httpx.Response:
         (_raise_network, "network_error", None),
     ],
 )
-async def test_each_outcome_logs_one_result_line(backend, handler, outcome, status) -> None:
-    lines = await _result_lines(backend, handler)
+async def test_each_outcome_logs_one_result_line(
+    backend, handler, outcome, status, monkeypatch
+) -> None:
+    lines = await _result_lines(backend, handler, monkeypatch)
 
     assert len(lines) == 1
     line = lines[0]
