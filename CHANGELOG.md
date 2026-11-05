@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Changed
+
+- Every call to the OmniDimension API now carries the request id of the tool call, so one id links an MCP call to the API logs.
+
 ## [0.12.3] - 2026-11-05
 
 ### Changed
