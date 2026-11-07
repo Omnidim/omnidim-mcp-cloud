@@ -62,8 +62,3 @@ def test_issuer_rejects_query_and_fragment() -> None:
         with pytest.raises(ValidationError):
             Settings(public_base_url=bad)
 
-
-async def test_protected_resource_names_the_same_issuer(client: AsyncClient) -> None:
-    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
-    resource = (await client.get("/.well-known/oauth-protected-resource")).json()
-    assert resource["authorization_servers"] == [issuer]

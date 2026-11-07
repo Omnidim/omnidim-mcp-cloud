@@ -3,6 +3,8 @@ import hashlib
 import secrets
 
 from httpx import AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 def _make_pkce() -> tuple[str, str]:
@@ -367,3 +369,50 @@ async def test_deny_rejects_malformed_body(client: AsyncClient) -> None:
         json={"request_id": "x", "redirect_uri": "https://evil.example/cb"},
     )
     assert res.status_code == 422
+
+
+async def test_deny_rejects_expired_request(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    request_hash = hashlib.sha256(request_id.encode("utf-8")).hexdigest()
+    async with session_factory() as session:
+        await session.execute(
+            text(
+                "UPDATE oauth_authorization_request SET expires_at = now() - interval '1 second'"
+                " WHERE request_id_hash = :h"
+            ),
+            {"h": request_hash},
+        )
+        await session.commit()
+    res = await client.post(
+        "/internal/deny",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={"request_id": request_id},
+    )
+    assert res.status_code == 400
+    assert res.json()["detail"]["error_description"] == "request expired"
+
+
+async def test_pending_request_locks_row_until_commit(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    # A second approve or deny waits on the first, then sees the request consumed.
+    import asyncio
+    from datetime import UTC, datetime
+
+    import pytest
+
+    from app.services.issue_code import _pending_request
+
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    async with session_factory() as first, session_factory() as second:
+        await _pending_request(first, request_id, datetime.now(UTC))
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(
+                _pending_request(second, request_id, datetime.now(UTC)), timeout=0.5
+            )

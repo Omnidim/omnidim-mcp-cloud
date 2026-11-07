@@ -57,11 +57,12 @@ def authorization_response_url(
 async def _pending_request(
     session: AsyncSession, request_id: str, now: datetime
 ) -> AuthorizationRequest:
+    # Row lock: approve and deny on one request must not both pass the consumed check.
     req: AuthorizationRequest | None = (
         await session.execute(
-            select(AuthorizationRequest).where(
-                AuthorizationRequest.request_id_hash == _hash(request_id)
-            )
+            select(AuthorizationRequest)
+            .where(AuthorizationRequest.request_id_hash == _hash(request_id))
+            .with_for_update()
         )
     ).scalar_one_or_none()
 
