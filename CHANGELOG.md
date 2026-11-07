@@ -4,6 +4,14 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- Sign-in from Codex and other clients that check the `iss` parameter now succeeds. Every redirect back to the client (approve, deny and error) carries the issuer.
+
+### Security
+
+- Denying consent now closes the authorization request, so the same consent page cannot be approved afterwards.
+
 ## [0.12.4] - 2026-11-05
 
 ### Changed
