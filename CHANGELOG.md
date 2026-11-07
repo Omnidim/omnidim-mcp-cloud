@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-11-07
+
 ### Fixed
 
 - Sign-in from Codex and other clients that check the `iss` parameter now succeeds. Every redirect back to the client (approve, deny and error) carries the issuer.
