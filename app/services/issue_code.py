@@ -45,6 +45,7 @@ def _generate_code() -> str:
 async def issue_code(
     session: AsyncSession,
     *,
+    issuer: str,
     request_id: str,
     odoo_user_id: int,
     odoo_api_key_id: int,
@@ -99,6 +100,8 @@ async def issue_code(
     params = {"code": code}
     if req.state is not None:
         params["state"] = req.state
+    # RFC 9207: discovery advertises authorization_response_iss_parameter_supported.
+    params["iss"] = issuer
     sep = "&" if "?" in req.redirect_uri else "?"
     redirect_to = f"{req.redirect_uri}{sep}{urlencode(params)}"
 

@@ -85,11 +85,13 @@ async def get_authorization_request(
 async def post_issue_code(
     body: IssueCodeRequest,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> IssueCodeResponse:
     try:
         async with factory() as session:
             issued = await issue_code(
                 session,
+                issuer=settings.public_base_url.rstrip("/"),
                 request_id=body.request_id,
                 odoo_user_id=body.odoo_user_id,
                 odoo_api_key_id=body.odoo_api_key_id,

@@ -271,3 +271,28 @@ async def test_issue_code_consumes_request_once(client: AsyncClient) -> None:
     assert res1.status_code == 200
     res2 = await client.post("/internal/issue-code", headers=headers, json=payload)
     assert res2.status_code == 400
+
+
+async def test_issue_code_redirect_carries_issuer(client: AsyncClient) -> None:
+    # RFC 9207: strict clients (e.g. Codex) reject the callback without a matching iss.
+    from urllib.parse import parse_qs, urlparse
+
+    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    res = await client.post(
+        "/internal/issue-code",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={
+            "request_id": request_id,
+            "odoo_user_id": 2943,
+            "odoo_api_key_id": 1,
+            "odoo_api_key_value": "fake-upstream-key",
+            "approved_scope": "omnidim:all",
+        },
+    )
+    assert res.status_code == 200, res.text
+    query = parse_qs(urlparse(res.json()["redirect_to"]).query)
+    assert query["iss"] == [issuer]
+    assert query["state"] == ["abc"]

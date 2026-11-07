@@ -178,3 +178,19 @@ async def test_internal_fetch_unknown_id_returns_404(client: AsyncClient) -> Non
         headers={"X-Internal-Secret": "test-shared-secret"},
     )
     assert res.status_code == 404
+
+
+async def test_authorize_error_redirect_carries_issuer(client: AsyncClient) -> None:
+    # RFC 9207: error responses must carry iss too.
+    from urllib.parse import parse_qs, urlparse
+
+    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
+    client_id = await _register_public_client(client)
+    res = await client.get(
+        "/authorize",
+        params=_base_params(client_id, response_type="token"),
+        follow_redirects=False,
+    )
+    assert res.status_code == 302
+    query = parse_qs(urlparse(res.headers["location"]).query)
+    assert query["iss"] == [issuer]
