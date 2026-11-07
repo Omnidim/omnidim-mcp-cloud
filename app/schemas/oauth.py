@@ -87,6 +87,16 @@ class IssueCodeResponse(BaseModel):
     redirect_to: str
 
 
+class DenyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: str
+
+
+class DenyResponse(BaseModel):
+    redirect_to: str
+
+
 class ClientRegistrationResponse(BaseModel):
     client_id: str
     client_id_issued_at: int

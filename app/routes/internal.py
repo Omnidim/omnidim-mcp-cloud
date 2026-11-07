@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.config import Settings, get_settings
 from app.dependencies import get_session_factory
 from app.models import AuthorizationRequest, OAuthClient
-from app.schemas.oauth import IssueCodeRequest, IssueCodeResponse
-from app.services.issue_code import IssueCodeError, issue_code
+from app.schemas.oauth import DenyRequest, DenyResponse, IssueCodeRequest, IssueCodeResponse
+from app.services.issue_code import IssueCodeError, deny_request, issue_code
 
 router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=False)
 
@@ -91,7 +91,7 @@ async def post_issue_code(
         async with factory() as session:
             issued = await issue_code(
                 session,
-                issuer=settings.public_base_url.rstrip("/"),
+                issuer=settings.issuer,
                 request_id=body.request_id,
                 odoo_user_id=body.odoo_user_id,
                 odoo_api_key_id=body.odoo_api_key_id,
@@ -105,3 +105,27 @@ async def post_issue_code(
             detail={"error": exc.code, "error_description": exc.description},
         ) from exc
     return IssueCodeResponse(code=issued.code, redirect_to=issued.redirect_to)
+
+
+@router.post(
+    "/deny",
+    dependencies=[Depends(_require_shared_secret)],
+    response_model=DenyResponse,
+)
+async def post_deny(
+    body: DenyRequest,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> DenyResponse:
+    try:
+        async with factory() as session:
+            redirect_to = await deny_request(
+                session, issuer=settings.issuer, request_id=body.request_id
+            )
+            await session.commit()
+    except IssueCodeError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"error": exc.code, "error_description": exc.description},
+        ) from exc
+    return DenyResponse(redirect_to=redirect_to)

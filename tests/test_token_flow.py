@@ -296,3 +296,74 @@ async def test_issue_code_redirect_carries_issuer(client: AsyncClient) -> None:
     query = parse_qs(urlparse(res.json()["redirect_to"]).query)
     assert query["iss"] == [issuer]
     assert query["state"] == ["abc"]
+
+
+async def test_deny_redirect_carries_error_state_and_issuer(client: AsyncClient) -> None:
+    from urllib.parse import parse_qs, urlparse
+
+    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    res = await client.post(
+        "/internal/deny",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={"request_id": request_id},
+    )
+    assert res.status_code == 200, res.text
+    location = urlparse(res.json()["redirect_to"])
+    assert f"{location.scheme}://{location.netloc}{location.path}" == "https://example.com/cb"
+    query = parse_qs(location.query)
+    assert query["error"] == ["access_denied"]
+    assert query["state"] == ["abc"]
+    assert query["iss"] == [issuer]
+
+
+async def test_deny_consumes_request_so_it_cannot_be_approved(client: AsyncClient) -> None:
+    client_id = await _register(client)
+    _, challenge = _make_pkce()
+    request_id = await _authorize(client, client_id, challenge)
+    headers = {"X-Internal-Secret": "test-shared-secret"}
+    deny = await client.post("/internal/deny", headers=headers, json={"request_id": request_id})
+    assert deny.status_code == 200
+    approve = await client.post(
+        "/internal/issue-code",
+        headers=headers,
+        json={
+            "request_id": request_id,
+            "odoo_user_id": 2943,
+            "odoo_api_key_id": 1,
+            "odoo_api_key_value": "fake-upstream-key",
+            "approved_scope": "omnidim:all",
+        },
+    )
+    assert approve.status_code == 400
+    again = await client.post("/internal/deny", headers=headers, json={"request_id": request_id})
+    assert again.status_code == 400
+
+
+async def test_deny_requires_shared_secret(client: AsyncClient) -> None:
+    res = await client.post(
+        "/internal/deny",
+        headers={"X-Internal-Secret": "wrong"},
+        json={"request_id": "anything"},
+    )
+    assert res.status_code == 401
+
+
+async def test_deny_unknown_request_returns_404(client: AsyncClient) -> None:
+    res = await client.post(
+        "/internal/deny",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={"request_id": "does-not-exist"},
+    )
+    assert res.status_code == 404
+
+
+async def test_deny_rejects_malformed_body(client: AsyncClient) -> None:
+    res = await client.post(
+        "/internal/deny",
+        headers={"X-Internal-Secret": "test-shared-secret"},
+        json={"request_id": "x", "redirect_uri": "https://evil.example/cb"},
+    )
+    assert res.status_code == 422

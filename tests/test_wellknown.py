@@ -43,3 +43,27 @@ async def test_protected_resource_metadata_shape(client: AsyncClient) -> None:
 
     assert body["bearer_methods_supported"] == ["header"]
     assert res.headers.get("cache-control") == "public, max-age=3600"
+
+
+def test_issuer_drops_trailing_slash() -> None:
+    from app.config import Settings
+
+    assert Settings(public_base_url="https://mcp.example.com/").issuer == "https://mcp.example.com"
+
+
+def test_issuer_rejects_query_and_fragment() -> None:
+    # RFC 8414 section 2: the issuer has no query or fragment component.
+    import pytest
+    from pydantic import ValidationError
+
+    from app.config import Settings
+
+    for bad in ("https://mcp.example.com/?a=1", "https://mcp.example.com/#x"):
+        with pytest.raises(ValidationError):
+            Settings(public_base_url=bad)
+
+
+async def test_protected_resource_names_the_same_issuer(client: AsyncClient) -> None:
+    issuer = (await client.get("/.well-known/oauth-authorization-server")).json()["issuer"]
+    resource = (await client.get("/.well-known/oauth-protected-resource")).json()
+    assert resource["authorization_servers"] == [issuer]

@@ -17,7 +17,7 @@ async def authorization_server_metadata(
     response: Response,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, object]:
-    base = settings.public_base_url.rstrip("/")
+    base = settings.issuer
     auth_methods = ["client_secret_basic", "client_secret_post", "none"]
     for k, v in _CACHE_HEADERS.items():
         response.headers[k] = v
@@ -46,7 +46,7 @@ async def protected_resource_metadata(
     response: Response,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, object]:
-    base = settings.public_base_url.rstrip("/")
+    base = settings.issuer
     for k, v in _CACHE_HEADERS.items():
         response.headers[k] = v
     return {

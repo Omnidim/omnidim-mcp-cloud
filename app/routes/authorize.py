@@ -1,5 +1,4 @@
 from typing import Annotated
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -12,20 +11,9 @@ from app.services.authorize import (
     AuthorizeParams,
     begin_authorization,
 )
+from app.services.issue_code import authorization_response_url
 
 router = APIRouter(tags=["oauth"])
-
-
-def _error_redirect(
-    redirect_uri: str, code: str, description: str, state: str | None, issuer: str
-) -> str:
-    params = {"error": code, "error_description": description}
-    if state is not None:
-        params["state"] = state
-    # RFC 9207: discovery advertises authorization_response_iss_parameter_supported.
-    params["iss"] = issuer
-    sep = "&" if "?" in redirect_uri else "?"
-    return f"{redirect_uri}{sep}{urlencode(params)}"
 
 
 @router.get("/authorize", response_model=None)
@@ -61,12 +49,11 @@ async def authorize(
     except AuthorizeError as exc:
         if exc.redirectable:
             return RedirectResponse(
-                _error_redirect(
+                authorization_response_url(
                     redirect_uri,
-                    exc.code,
-                    exc.description,
-                    state,
-                    settings.public_base_url.rstrip("/"),
+                    {"error": exc.code, "error_description": exc.description},
+                    state=state,
+                    issuer=settings.issuer,
                 ),
                 status_code=status.HTTP_302_FOUND,
             )

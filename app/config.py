@@ -1,7 +1,8 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +29,20 @@ class Settings(BaseSettings):
 
     loki_push_url: str = ""
     loki_labels: str = "service=omni-mcp-server"
+
+    @field_validator("public_base_url")
+    @classmethod
+    def _issuer_shape(cls, value: str) -> str:
+        # RFC 8414 section 2: the issuer has no query or fragment component.
+        parts = urlsplit(value)
+        if parts.query or parts.fragment or not parts.netloc:
+            raise ValueError("public_base_url must be an origin or path with no query or fragment")
+        return value
+
+    @property
+    def issuer(self) -> str:
+        """OAuth issuer. Discovery and every authorization response must use this exact string."""
+        return self.public_base_url.rstrip("/")
 
 
 @lru_cache
