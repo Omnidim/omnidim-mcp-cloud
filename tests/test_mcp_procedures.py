@@ -169,13 +169,40 @@ async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> 
         assert token_str in text
 
 
+async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
+    # New accounts lack Azure STT and ElevenLabs TTS; the guide steering Claude to them
+    # caused 43 of 55 failed MCP agent saves (2026-11-08..11). Defaults lead, the rest
+    # are marked plan-dependent, and a refusal is not retried.
+    token = await _mint_access_token(client)
+    stack = await _read_resource(client, token, "omnidim://reference/recommended-stack")
+    cfg = await _read_resource(client, token, "omnidim://reference/agent-config")
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    for text in (stack, routing):
+        assert "not available for your organization" in text
+    assert '"provider": "azure_stream"' not in cfg
+    assert '"provider": "eleven_labs"' not in cfg
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "prompts/get",
+            "params": {"name": "provision_agent", "arguments": {"purpose": "support"}},
+        },
+    )
+    provision = res.json()["result"]["messages"][0]["content"]["text"]
+    assert '"provider": "eleven_labs"' not in provision
+    assert '"provider": "soniox"' in provision
+
+
 async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
     # The cloud server takes flat args, so the example must NOT wrap in a
     # requestBody object (the prose may still mention the word to say "no wrapper").
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/agent-config")
     assert '"requestBody": {' not in text
-    assert '"transcriber": { "provider": "azure_stream" }' in text
+    assert '"transcriber": { "provider": "soniox" }' in text
 
 
 async def test_speech_speed_range_is_documented(client: AsyncClient) -> None:

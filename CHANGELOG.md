@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- Agents set up through the assistant now use voices and transcribers every account has, and the assistant stops retrying when a plan does not include a model.
+
 ## [0.12.5] - 2026-11-07
 
 ### Fixed

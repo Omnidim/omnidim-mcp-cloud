@@ -86,7 +86,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
 3. **The agent's numeric `voice` field is not used for speech.** It can read
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
-4. **Set a transcriber** (e.g. `deepgram_stream` / `nova-3` / `en-US`).
+4. **Use the platform defaults unless the user asks otherwise:** transcriber
+   `soniox`, voice `cartesia` (model `sonic-3.5`), model `gpt-4.1-mini`. Every
+   account has these.
 5. **`dispatchCall` returning `success: true` does NOT mean a call
    connected.** It means the request was accepted. Proof of a real call is a
    resulting entry in `listCallLogs` whose `getCallLog` shows a non-empty
@@ -108,6 +110,11 @@ give it a **phone number** and optionally a **knowledge base**, then place
     `1.0`; only set it when the user wants faster/slower speech. For
     `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
     silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
+12. **Some models depend on the account's plan.** `azure_stream` (STT) and
+    `eleven_labs` (TTS) are not on every account. A save that picks one the
+    account lacks fails with "... is not available for your organization".
+    Do not retry the same payload: switch to the defaults in rule 4, or tell
+    the user to ask their administrator.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
@@ -117,8 +124,8 @@ _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level 
      "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
      "call_type": "Outgoing",
      "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
-     "voice": { "provider": "eleven_labs", "voice_id": "<voice name>" },
-     "transcriber": { "provider": "deepgram_stream", "model": "nova-3", "language": "en-US" }
+     "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "<voice id>" },
+     "transcriber": { "provider": "soniox" }
    }
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
 3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
@@ -369,14 +376,21 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 
 ## By caller language
 
-- **Indian English (en-IN):** transcriber `azure_stream`; voice `cartesia`
-  (default), `eleven_labs`, or `google`.
+- **Indian English (en-IN):** transcriber `soniox`; voice `cartesia`
+  (default) or `google`.
 - **Hindi / Hinglish (mixed Hindi and English):** transcriber `soniox`
-  (handles code-mixed speech in one stream); voice `cartesia` or `eleven_labs`.
+  (handles code-mixed speech in one stream); voice `cartesia`.
 - **Other Indian languages (Telugu, Bengali, etc.):** transcriber `soniox` or
   `sarvam` (tuned for Indian languages); voice `cartesia` or `sarvam`.
-- **US / UK English:** transcriber `azure_stream` or `deepgram_stream`; voice
-  `cartesia` or `eleven_labs`.
+- **US / UK English:** transcriber `soniox` or `deepgram_stream`; voice
+  `cartesia`.
+
+## Models that depend on the plan
+
+`azure_stream` (STT) and `eleven_labs` (TTS) are not on every account. If a
+save fails with "... is not available for your organization", do not retry
+it: switch to `soniox` and `cartesia`, or tell the user to ask their
+administrator to enable the model.
 
 ## Field notes
 
@@ -409,7 +423,7 @@ By provider:
   `model` such as `sonic-3.5`. Example voice_id
   `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
 - **`eleven_labs`** -- premium, expressive voices; the model is implied by the
-  voice. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
+  voice. Not on every plan: if the account lacks it, use `cartesia`. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
 - **`sarvam`** -- natural prosody for Indian languages.
 - **`google`** -- broad language coverage.
 """
@@ -446,7 +460,7 @@ wrapper; see the routing guide). The fields:
   "call_type": "Incoming",
   "model": { "model": "gpt-4.1-mini" },
   "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
-  "transcriber": { "provider": "azure_stream" }
+  "transcriber": { "provider": "soniox" }
 }
 
 ## Example: Hindi / Hinglish appointment reminder (outbound)
