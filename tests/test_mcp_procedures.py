@@ -171,14 +171,14 @@ async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> 
 
 async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
     # New accounts lack Azure STT and ElevenLabs TTS; the guide steering Claude to them
-    # caused 43 of 55 failed MCP agent saves (2026-11-08..11). Defaults lead, the rest
-    # are marked plan-dependent, and a refusal is not retried.
+    # caused 43 of 55 failed MCP agent saves (2026-11-08..11). The guides recommend the
+    # platform defaults, which every account has.
     token = await _mint_access_token(client)
     stack = await _read_resource(client, token, "omnidim://reference/recommended-stack")
     cfg = await _read_resource(client, token, "omnidim://reference/agent-config")
     routing = await _read_resource(client, token, "omnidim://guide/routing")
-    for text in (stack, routing):
-        assert "not available for your organization" in text
+    assert "Use the platform defaults" in routing
+    assert "transcriber `azure_stream`;" not in stack
     assert '"provider": "azure_stream"' not in cfg
     assert '"provider": "eleven_labs"' not in cfg
     res = await client.post(

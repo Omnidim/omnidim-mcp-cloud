@@ -6,7 +6,7 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ### Fixed
 
-- Agents set up through the assistant now use voices and transcribers every account has, and the assistant stops retrying when a plan does not include a model.
+- Agents set up through the assistant now use the platform default voice, transcriber and model, which every account has.
 - Cloning a voice through the assistant now sends you to the voice cloning page to upload your recording, then the assistant attaches the new voice to your agent.
 
 ## [0.12.5] - 2026-11-07

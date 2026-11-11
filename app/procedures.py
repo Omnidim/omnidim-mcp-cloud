@@ -86,9 +86,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
 3. **The agent's numeric `voice` field is not used for speech.** It can read
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
-4. **Use the platform defaults unless the user asks otherwise:** transcriber
-   `soniox`, voice `cartesia` (model `sonic-3.5`), model `gpt-4.1-mini`. Every
-   account has these.
+4. **Use the platform defaults:** transcriber `soniox`, voice `cartesia`
+   (model `sonic-3.5`), model `gpt-4.1-mini`. Pick another provider only when
+   the user names one.
 5. **`dispatchCall` returning `success: true` does NOT mean a call
    connected.** It means the request was accepted. Proof of a real call is a
    resulting entry in `listCallLogs` whose `getCallLog` shows a non-empty
@@ -110,12 +110,7 @@ give it a **phone number** and optionally a **knowledge base**, then place
     `1.0`; only set it when the user wants faster/slower speech. For
     `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
     silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
-12. **Some models depend on the account's plan.** `azure_stream` (STT) and
-    `eleven_labs` (TTS) are not on every account. A save that picks one the
-    account lacks fails with "... is not available for your organization".
-    Do not retry the same payload: switch to the defaults in rule 4, or tell
-    the user to ask their administrator.
-13. **Cloning a voice: the user uploads the clip at
+12. **Cloning a voice: the user uploads the clip at
     https://omnidim.io/clone-voice.** A tool call cannot carry a real audio
     file: a 30 s clip is about 840,000 characters of Base64, too long to
     write out and corrupted by one wrong character. Send the user that link,
@@ -394,13 +389,6 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 - **US / UK English:** transcriber `soniox` or `deepgram_stream`; voice
   `cartesia`.
 
-## Models that depend on the plan
-
-`azure_stream` (STT) and `eleven_labs` (TTS) are not on every account. If a
-save fails with "... is not available for your organization", do not retry
-it: switch to `soniox` and `cartesia`, or tell the user to ask their
-administrator to enable the model.
-
 ## Field notes
 
 - `transcriber.provider` is one of `deepgram_stream`, `azure_stream`, `soniox`,
@@ -432,8 +420,7 @@ By provider:
   `model` such as `sonic-3.5`. Example voice_id
   `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
 - **`eleven_labs`** -- premium, expressive voices; the model is implied by the
-  voice. Not on every plan: if the account lacks it, use `cartesia`.
-  Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
+  voice. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
 - **`sarvam`** -- natural prosody for Indian languages.
 - **`google`** -- broad language coverage.
 """
