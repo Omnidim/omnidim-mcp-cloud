@@ -910,19 +910,6 @@ _RESOURCES: list[dict[str, str]] = [
 ]
 
 
-_CLONE_UPLOAD_NOTE = (
-    "Do not Base64 a recording yourself: a real clip is far too long to send in a tool call. "
-    "Ask the user to upload it at https://omnidim.io/clone-voice, then find it with "
-    "listClonedVoices.\n\n"
-)
-
-
-def tool_description(name: str, generated: str) -> str:
-    if name == "createClonedVoice":
-        return _CLONE_UPLOAD_NOTE + generated
-    return generated
-
-
 def tool_meta(name: str) -> dict[str, Any] | None:
     if name == "showWorkflow":
         return {"ui": {"resourceUri": WORKFLOW_CANVAS_URI}}

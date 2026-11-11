@@ -4,7 +4,7 @@ Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 or mcp-config.yaml changes.
 
 Source spec:   openapi.yaml   sha256=2a35849a45ef
-Config:        mcp-config.yaml  sha256=eaf21f879f19
+Config:        mcp-config.yaml  sha256=85659a617170
 """
 from __future__ import annotations
 
@@ -2128,66 +2128,6 @@ _TOOLS_JSON = r"""[
         },
         "method": "POST",
         "path": "/calls/bulk_call/create",
-        "path_params": [],
-        "query_params": []
-    },
-    {
-        "name": "createClonedVoice",
-        "description": "Create a cloned voice. Clone a voice from an audio sample. The sample must be Base64 encoded and\n1 KB to 25 MB. MP3, WAV and WebM are accepted; a non-audio body is\nrefused.\n\nCreation is asynchronous. This call returns `202` at once with\n`status: processing`. Poll `GET /voices/{voice_id}` until `status` is\n`ready` or `failed`, then use the `voice_id` in an agent's `voice` config with\n`voice.provider: cartesia`.\n\nYou must send `consent: true`: you confirm you have the right to clone\nthis voice. The attestation is recorded against the clone.\n\nLimits apply per user: 5 clones an hour, 20 a day, and 200 stored\n(processing plus ready). A request over a limit is refused with `429`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "Idempotency-Key": {
-                    "type": "string",
-                    "description": "Optional. Send a unique value per clone; a retry with the same key\nand body returns the first clone instead of creating a second. Every\nclone costs money at the provider, so this makes a retry safe. Up to\n255 printable characters.\n"
-                },
-                "name": {
-                    "type": "string",
-                    "description": "A name for the cloned voice, 1 to 100 characters.",
-                    "example": "Front desk"
-                },
-                "clip": {
-                    "type": "string",
-                    "description": "Base64-encoded audio, 1 KB to 25 MB (MP3, WAV or WebM)."
-                },
-                "filename": {
-                    "type": "string",
-                    "description": "Optional original filename, for your reference.",
-                    "example": "sample.mp3"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Optional description."
-                },
-                "language": {
-                    "type": "string",
-                    "description": "A short language code for the voice. Defaults to `en`.",
-                    "example": "en"
-                },
-                "gender": {
-                    "type": "string",
-                    "enum": [
-                        "male",
-                        "female"
-                    ],
-                    "default": "female",
-                    "description": "The voice's gender. Defaults to `female`."
-                },
-                "consent": {
-                    "type": "boolean",
-                    "description": "Required and must be `true`: you confirm you have the right\nto clone this voice.\n",
-                    "example": true
-                }
-            },
-            "required": [
-                "clip",
-                "consent",
-                "name"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/voices",
         "path_params": [],
         "query_params": []
     },
