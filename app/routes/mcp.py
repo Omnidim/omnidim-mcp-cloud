@@ -17,6 +17,7 @@ from app.procedures import (
     prompts_for_listing,
     read_resource,
     resources_for_listing,
+    tool_description,
     tool_meta,
 )
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
@@ -55,7 +56,7 @@ def _tools_for_listing() -> list[dict[str, Any]]:
     for t in (*TOOLS, *EXTRA_TOOLS):
         tool: dict[str, Any] = {
             "name": t["name"],
-            "description": t["description"],
+            "description": tool_description(t["name"], t["description"]),
             "inputSchema": t["input_schema"],
             "annotations": tool_annotations(t["name"], t["method"]),
         }

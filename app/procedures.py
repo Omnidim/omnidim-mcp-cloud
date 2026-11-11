@@ -115,6 +115,15 @@ give it a **phone number** and optionally a **knowledge base**, then place
     account lacks fails with "... is not available for your organization".
     Do not retry the same payload: switch to the defaults in rule 4, or tell
     the user to ask their administrator.
+13. **Cloning a voice: the user uploads the clip at
+    https://omnidim.io/clone-voice.** A tool call cannot carry a real audio
+    file: a 30 s clip is about 840,000 characters of Base64, too long to
+    write out and corrupted by one wrong character. Send the user that link,
+    then call `listClonedVoices` and wait for `status: ready`. Use its
+    `voice_id` with `voice.provider: cartesia`. A `403` with
+    `feature_not_enabled` or `permission_denied` on a voice tool means the
+    user's plan or role has no voice cloning: tell them to upgrade or ask
+    their administrator.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
@@ -914,6 +923,19 @@ _RESOURCES: list[dict[str, str]] = [
         "text": _WORKFLOW_CANVAS_HTML,
     },
 ]
+
+
+_CLONE_UPLOAD_NOTE = (
+    "Do not Base64 a recording yourself: a real clip is far too long to send in a tool call. "
+    "Ask the user to upload it at https://omnidim.io/clone-voice, then find it with "
+    "listClonedVoices.\n\n"
+)
+
+
+def tool_description(name: str, generated: str) -> str:
+    if name == "createClonedVoice":
+        return _CLONE_UPLOAD_NOTE + generated
+    return generated
 
 
 def tool_meta(name: str) -> dict[str, Any] | None:

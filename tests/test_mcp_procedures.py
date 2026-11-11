@@ -366,3 +366,21 @@ def test_workflow_guide_warns_against_breaking_a_live_workflow():
     guide = resource["contents"][0]["text"]
     assert "## Do not break a workflow that is already running" in guide
     assert "overwrites" in guide
+
+
+async def test_cloning_sends_users_to_the_dashboard_upload(client: AsyncClient) -> None:
+    # A model cannot type a real clip as Base64 (a 30 s clip is ~840k characters), so
+    # the tool and the guide send the user to the dashboard upload and pick the clone up after.
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 10, "method": "tools/list"},
+    )
+    tools = {t["name"]: t for t in res.json()["result"]["tools"]}
+    create = tools["createClonedVoice"]["description"]
+    assert "https://omnidim.io/clone-voice" in create
+    assert "listClonedVoices" in create
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    assert "https://omnidim.io/clone-voice" in routing
+    assert "feature_not_enabled" in routing
