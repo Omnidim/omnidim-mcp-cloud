@@ -423,7 +423,8 @@ By provider:
   `model` such as `sonic-3.5`. Example voice_id
   `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
 - **`eleven_labs`** -- premium, expressive voices; the model is implied by the
-  voice. Not on every plan: if the account lacks it, use `cartesia`. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
+  voice. Not on every plan: if the account lacks it, use `cartesia`.
+  Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
 - **`sarvam`** -- natural prosody for Indian languages.
 - **`google`** -- broad language coverage.
 """
