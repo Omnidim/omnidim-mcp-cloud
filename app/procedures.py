@@ -119,6 +119,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
     `feature_not_enabled` or `permission_denied` on a voice tool means the
     user's plan or role has no voice cloning: tell them to upgrade or ask
     their administrator.
+13. **Knowledge-base files over a few KB: the user uploads them at
+    https://omnidim.io/files.** `uploadKnowledgeBaseFile` takes the PDF as
+    Base64 in the call, so use it only for a small file. Then find the file
+    with `listKnowledgeBaseFiles` and attach it with `attachKnowledgeBaseFiles`.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):

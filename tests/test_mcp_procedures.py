@@ -387,3 +387,5 @@ async def test_cloning_sends_users_to_the_dashboard_upload(client: AsyncClient) 
     routing = await _read_resource(client, token, "omnidim://guide/routing")
     assert "https://omnidim.io/clone-voice" in routing
     assert "feature_not_enabled" in routing
+    # Knowledge-base upload stays (small PDFs work), with the dashboard for larger files.
+    assert "https://omnidim.io/files" in routing
