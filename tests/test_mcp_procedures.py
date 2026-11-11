@@ -179,6 +179,10 @@ async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> 
     routing = await _read_resource(client, token, "omnidim://guide/routing")
     assert "Use the platform defaults" in routing
     assert "transcriber `azure_stream`;" not in stack
+    # The backend ignores voice.model; the call handler pins the Cartesia model.
+    voices = await _read_resource(client, token, "omnidim://reference/voices")
+    for text in (stack, cfg, routing, voices):
+        assert "sonic-" not in text
     assert '"provider": "azure_stream"' not in cfg
     assert '"provider": "eleven_labs"' not in cfg
     res = await client.post(

@@ -86,8 +86,8 @@ give it a **phone number** and optionally a **knowledge base**, then place
 3. **The agent's numeric `voice` field is not used for speech.** It can read
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
-4. **Use the platform defaults:** transcriber `soniox`, voice `cartesia`
-   (model `sonic-3.5`), model `gpt-4.1-mini`. Pick another provider only when
+4. **Use the platform defaults:** transcriber `soniox`, a `cartesia` voice,
+   model `gpt-4.1-mini`. Pick another provider only when
    the user names one.
 5. **`dispatchCall` returning `success: true` does NOT mean a call
    connected.** It means the request was accepted. Proof of a real call is a
@@ -128,7 +128,7 @@ _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level 
      "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
      "call_type": "Outgoing",
      "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
-     "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "<voice id>" },
+     "voice": { "provider": "cartesia", "voice_id": "<voice id>" },
      "transcriber": { "provider": "soniox" }
    }
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
@@ -395,8 +395,7 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
   `sarvam`, `cartesia`. `deepgram_stream` also needs a `model` (`nova-3` or
   `nova-2`); the others do not.
 - `voice.provider` is one of `cartesia`, `eleven_labs`, `google`, `sarvam`.
-  `cartesia` voices need a `model` such as `sonic-3.5`; for `eleven_labs` the
-  model is implied by the voice.
+  Send only `provider` and `voice_id`: the platform picks the voice model.
 
 ## Responsiveness
 
@@ -416,8 +415,8 @@ Filter `listVoices` by `provider` (`cartesia`, `eleven_labs`, `google`,
 
 By provider:
 
-- **`cartesia`** -- low-latency multilingual voices; the platform default. Pass a
-  `model` such as `sonic-3.5`. Example voice_id
+- **`cartesia`** -- low-latency multilingual voices; the platform default.
+  Example voice_id
   `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
 - **`eleven_labs`** -- premium, expressive voices; the model is implied by the
   voice. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
@@ -436,8 +435,7 @@ wrapper; see the routing guide). The fields:
   agent's instructions.
 - `call_type` -- "Incoming" or "Outgoing".
 - `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
-- `voice` -- `{ provider, voice_id, model?, speech_speed? }`. `model` (e.g.
-  `sonic-3.5`) is only needed for `cartesia`. `speech_speed` is a playback
+- `voice` -- `{ provider, voice_id, speech_speed? }`. `speech_speed` is a playback
   multiplier (default `1.0`); leave it out unless the user asks for faster or
   slower speech. If you do set it, stay in the provider's playable range or the
   call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
@@ -456,7 +454,7 @@ wrapper; see the routing guide). The fields:
   ],
   "call_type": "Incoming",
   "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
+  "voice": { "provider": "cartesia", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
   "transcriber": { "provider": "soniox" }
 }
 
@@ -470,7 +468,7 @@ wrapper; see the routing guide). The fields:
   ],
   "call_type": "Outgoing",
   "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "<pick one from listVoices>" },
+  "voice": { "provider": "cartesia", "voice_id": "<pick one from listVoices>" },
   "transcriber": { "provider": "soniox" }
 }
 
