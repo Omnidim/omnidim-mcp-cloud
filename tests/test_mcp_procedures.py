@@ -169,13 +169,44 @@ async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> 
         assert token_str in text
 
 
+async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
+    # New accounts lack Azure STT and ElevenLabs TTS; the guide steering Claude to them
+    # caused 43 of 55 failed MCP agent saves (2026-11-08..11). The guides recommend the
+    # platform defaults, which every account has.
+    token = await _mint_access_token(client)
+    stack = await _read_resource(client, token, "omnidim://reference/recommended-stack")
+    cfg = await _read_resource(client, token, "omnidim://reference/agent-config")
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    assert "Use the platform defaults" in routing
+    assert "transcriber `azure_stream`;" not in stack
+    # The backend ignores voice.model; the call handler pins the Cartesia model.
+    voices = await _read_resource(client, token, "omnidim://reference/voices")
+    for text in (stack, cfg, routing, voices):
+        assert "sonic-" not in text
+    assert '"provider": "azure_stream"' not in cfg
+    assert '"provider": "eleven_labs"' not in cfg
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "prompts/get",
+            "params": {"name": "provision_agent", "arguments": {"purpose": "support"}},
+        },
+    )
+    provision = res.json()["result"]["messages"][0]["content"]["text"]
+    assert '"provider": "eleven_labs"' not in provision
+    assert '"provider": "soniox"' in provision
+
+
 async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
     # The cloud server takes flat args, so the example must NOT wrap in a
     # requestBody object (the prose may still mention the word to say "no wrapper").
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/agent-config")
     assert '"requestBody": {' not in text
-    assert '"transcriber": { "provider": "azure_stream" }' in text
+    assert '"transcriber": { "provider": "soniox" }' in text
 
 
 async def test_speech_speed_range_is_documented(client: AsyncClient) -> None:
@@ -339,3 +370,22 @@ def test_workflow_guide_warns_against_breaking_a_live_workflow():
     guide = resource["contents"][0]["text"]
     assert "## Do not break a workflow that is already running" in guide
     assert "overwrites" in guide
+
+
+async def test_cloning_sends_users_to_the_dashboard_upload(client: AsyncClient) -> None:
+    # A model cannot type a real clip as Base64 (a 30 s clip is ~840k characters), so the
+    # create tool is off the MCP and the guide sends the user to the dashboard upload.
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 10, "method": "tools/list"},
+    )
+    tools = {t["name"]: t for t in res.json()["result"]["tools"]}
+    assert "createClonedVoice" not in tools
+    assert "listClonedVoices" in tools
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    assert "https://omnidim.io/clone-voice" in routing
+    assert "feature_not_enabled" in routing
+    # Knowledge-base upload stays (small PDFs work), with the dashboard for larger files.
+    assert "https://omnidim.io/files" in routing

@@ -4,6 +4,14 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.6] - 2026-11-12
+
+### Fixed
+
+- Agents set up through the assistant now use the platform default voice, transcriber and model, which every account has.
+- Cloning a voice through the assistant now sends you to the voice cloning page to upload your recording, then the assistant attaches the new voice to your agent.
+- Large knowledge-base files go through the files page instead of the chat.
+
 ## [0.12.5] - 2026-11-07
 
 ### Fixed

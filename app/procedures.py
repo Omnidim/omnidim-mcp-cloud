@@ -86,7 +86,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
 3. **The agent's numeric `voice` field is not used for speech.** It can read
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
-4. **Set a transcriber** (e.g. `deepgram_stream` / `nova-3` / `en-US`).
+4. **Use the platform defaults:** transcriber `soniox`, a `cartesia` voice,
+   model `gpt-4.1-mini`. Pick another provider only when
+   the user names one.
 5. **`dispatchCall` returning `success: true` does NOT mean a call
    connected.** It means the request was accepted. Proof of a real call is a
    resulting entry in `listCallLogs` whose `getCallLog` shows a non-empty
@@ -108,6 +110,19 @@ give it a **phone number** and optionally a **knowledge base**, then place
     `1.0`; only set it when the user wants faster/slower speech. For
     `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
     silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
+12. **Cloning a voice: the user uploads the clip at
+    https://omnidim.io/clone-voice.** A tool call cannot carry a real audio
+    file: a 30 s clip is about 840,000 characters of Base64, too long to
+    write out and corrupted by one wrong character. Send the user that link,
+    then call `listClonedVoices` and wait for `status: ready`. Use its
+    `voice_id` with `voice.provider: cartesia`. A `403` with
+    `feature_not_enabled` or `permission_denied` on a voice tool means the
+    user's plan or role has no voice cloning: tell them to upgrade or ask
+    their administrator.
+13. **Knowledge-base files over a few KB: the user uploads them at
+    https://omnidim.io/files.** `uploadKnowledgeBaseFile` takes the PDF as
+    Base64 in the call, so use it only for a small file. Then find the file
+    with `listKnowledgeBaseFiles` and attach it with `attachKnowledgeBaseFiles`.
 """
 
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
@@ -117,8 +132,8 @@ _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level 
      "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
      "call_type": "Outgoing",
      "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
-     "voice": { "provider": "eleven_labs", "voice_id": "<voice name>" },
-     "transcriber": { "provider": "deepgram_stream", "model": "nova-3", "language": "en-US" }
+     "voice": { "provider": "cartesia", "voice_id": "<voice id>" },
+     "transcriber": { "provider": "soniox" }
    }
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
 3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
@@ -369,14 +384,14 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 
 ## By caller language
 
-- **Indian English (en-IN):** transcriber `azure_stream`; voice `cartesia`
-  (default), `eleven_labs`, or `google`.
+- **Indian English (en-IN):** transcriber `soniox`; voice `cartesia`
+  (default) or `google`.
 - **Hindi / Hinglish (mixed Hindi and English):** transcriber `soniox`
-  (handles code-mixed speech in one stream); voice `cartesia` or `eleven_labs`.
+  (handles code-mixed speech in one stream); voice `cartesia`.
 - **Other Indian languages (Telugu, Bengali, etc.):** transcriber `soniox` or
   `sarvam` (tuned for Indian languages); voice `cartesia` or `sarvam`.
-- **US / UK English:** transcriber `azure_stream` or `deepgram_stream`; voice
-  `cartesia` or `eleven_labs`.
+- **US / UK English:** transcriber `soniox` or `deepgram_stream`; voice
+  `cartesia`.
 
 ## Field notes
 
@@ -384,8 +399,7 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
   `sarvam`, `cartesia`. `deepgram_stream` also needs a `model` (`nova-3` or
   `nova-2`); the others do not.
 - `voice.provider` is one of `cartesia`, `eleven_labs`, `google`, `sarvam`.
-  `cartesia` voices need a `model` such as `sonic-3.5`; for `eleven_labs` the
-  model is implied by the voice.
+  Send only `provider` and `voice_id`: the platform picks the voice model.
 
 ## Responsiveness
 
@@ -405,8 +419,8 @@ Filter `listVoices` by `provider` (`cartesia`, `eleven_labs`, `google`,
 
 By provider:
 
-- **`cartesia`** -- low-latency multilingual voices; the platform default. Pass a
-  `model` such as `sonic-3.5`. Example voice_id
+- **`cartesia`** -- low-latency multilingual voices; the platform default.
+  Example voice_id
   `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
 - **`eleven_labs`** -- premium, expressive voices; the model is implied by the
   voice. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
@@ -425,8 +439,7 @@ wrapper; see the routing guide). The fields:
   agent's instructions.
 - `call_type` -- "Incoming" or "Outgoing".
 - `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
-- `voice` -- `{ provider, voice_id, model?, speech_speed? }`. `model` (e.g.
-  `sonic-3.5`) is only needed for `cartesia`. `speech_speed` is a playback
+- `voice` -- `{ provider, voice_id, speech_speed? }`. `speech_speed` is a playback
   multiplier (default `1.0`); leave it out unless the user asks for faster or
   slower speech. If you do set it, stay in the provider's playable range or the
   call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
@@ -445,8 +458,8 @@ wrapper; see the routing guide). The fields:
   ],
   "call_type": "Incoming",
   "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
-  "transcriber": { "provider": "azure_stream" }
+  "voice": { "provider": "cartesia", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
+  "transcriber": { "provider": "soniox" }
 }
 
 ## Example: Hindi / Hinglish appointment reminder (outbound)
@@ -459,7 +472,7 @@ wrapper; see the routing guide). The fields:
   ],
   "call_type": "Outgoing",
   "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "model": "sonic-3.5", "voice_id": "<pick one from listVoices>" },
+  "voice": { "provider": "cartesia", "voice_id": "<pick one from listVoices>" },
   "transcriber": { "provider": "soniox" }
 }
 
