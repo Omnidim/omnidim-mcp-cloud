@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Fixed
+
+- New agents get the platform default voice (Cartesia) instead of a voice provider the account may not have.
+
 ## [0.12.7] - 2026-11-12
 
 ### Fixed

@@ -788,13 +788,13 @@ _TOOLS_JSON = r"""[
                         "provider": {
                             "type": "string",
                             "enum": [
+                                "cartesia",
                                 "eleven_labs",
                                 "google",
-                                "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
-                            "example": "eleven_labs"
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "example": "cartesia"
                         },
                         "voice_id": {
                             "type": "string",
@@ -6119,13 +6119,13 @@ _TOOLS_JSON = r"""[
                         "provider": {
                             "type": "string",
                             "enum": [
+                                "cartesia",
                                 "eleven_labs",
                                 "google",
-                                "cartesia",
                                 "sarvam"
                             ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it.",
-                            "example": "eleven_labs"
+                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "example": "cartesia"
                         },
                         "voice_id": {
                             "type": "string",
