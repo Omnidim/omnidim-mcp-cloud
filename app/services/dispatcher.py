@@ -18,7 +18,7 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.12.6"
+USER_AGENT: Final = "omnidim-mcp-cloud/0.12.7"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
@@ -221,6 +221,20 @@ async def dispatch_tool(
     if request_id := structlog.contextvars.get_contextvars().get("request_id"):
         headers["X-Request-ID"] = request_id
     method = tool["method"]
+    # Every PUT and PATCH tool changes fields; with none, the API gets no body at all.
+    if method in ("PUT", "PATCH") and not body:
+        log.info(
+            "tool_result",
+            tool=name,
+            outcome="no_fields",
+            status=None,
+            duration_ms=0,
+            client_id=token.client_id,
+            client_name=token.client_name,
+            odoo_user_id=token.odoo_user_id,
+        )
+        error = {"error": f"{name} needs at least one field to change besides the ids."}
+        return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
     if method != "GET" and body:
