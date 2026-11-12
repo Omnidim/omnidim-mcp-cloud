@@ -4,6 +4,8 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.12.7] - 2026-11-12
+
 ### Fixed
 
 - An update call with nothing to change now tells the assistant to pass a field, instead of failing with a server error.
