@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- Tools for WhatsApp numbers, templates, conversations, opt-outs and campaigns, for agent integrations, for campaign number rotation, and for phone number auto-renew. Clients that support confirmations ask before a tool sends a WhatsApp message, launches or resumes a campaign, lifts an opt-out, or connects an agent to an outside URL.
+
 ### Security
 
 - A reseller's assistant can no longer act on a client account by adding `user_id` to a tool call. The tools never offered it, and the server now drops it before the request.

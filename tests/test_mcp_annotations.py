@@ -89,6 +89,36 @@ def test_phone_number_purchase_and_release_are_destructive_and_open_world() -> N
         assert a["openWorldHint"] is True, name
 
 
+def test_messaging_and_outside_url_tools_are_destructive_and_open_world() -> None:
+    for name in (
+        "sendWhatsappMessage",
+        "launchWhatsappCampaign",
+        "resumeWhatsappCampaign",
+        "addWhatsappCampaignContacts",
+        "importWhatsappNumbers",
+        "attachAgentIntegration",
+    ):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is True, name
+
+
+def test_opt_out_lift_cancel_and_auto_renew_are_destructive() -> None:
+    for name in (
+        "liftWhatsappOptOut",
+        "cancelWhatsappCampaign",
+        "detachAgentIntegration",
+        "setPhoneNumberAutoRenew",
+    ):
+        a = tool_annotations(name, "POST")
+        assert a["destructiveHint"] is True, name
+        assert a["openWorldHint"] is False, name
+
+
+def test_whatsapp_import_preview_is_read_only() -> None:
+    assert tool_annotations("previewWhatsappNumbers", "POST")["readOnlyHint"] is True
+
+
 def test_phone_number_search_is_read_only() -> None:
     a = tool_annotations("searchPhoneNumbers", "GET")
     assert a["readOnlyHint"] is True
