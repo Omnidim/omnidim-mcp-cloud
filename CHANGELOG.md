@@ -4,6 +4,10 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Security
+
+- A reseller's assistant can no longer act on a client account by adding `user_id` to a tool call. The tools never offered it, and the server now drops it before the request.
+
 ### Fixed
 
 - The assistant now suggests Cartesia, the platform default voice, when it sets up an agent, instead of a voice provider the account may not have.

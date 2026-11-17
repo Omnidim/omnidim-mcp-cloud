@@ -207,6 +207,9 @@ async def dispatch_tool(
     if not token.odoo_api_key_value:
         raise DispatchError(-32000, "missing upstream credential")
 
+    # Schemas allow extra keys: drop the reseller switch regen strips (acts on a client).
+    if "user_id" not in tool["input_schema"].get("properties", {}):
+        arguments = {k: v for k, v in arguments.items() if k != "user_id"}
     arguments = _coerce_args(arguments, tool["input_schema"])
     path = _substitute_path(
         tool["path"], arguments, tool["path_params"], tool["input_schema"]
