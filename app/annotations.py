@@ -89,7 +89,6 @@ _TITLES: dict[str, str] = {
     "updatePostCallAction": "Update a post-call action",
     "listIntegrations": "List integrations",
     "createCustomApiIntegration": "Create custom API integration",
-    "createCalIntegration": "Connect Cal.com",
     "listAgentIntegrations": "List agent integrations",
     "attachAgentIntegration": "Attach integration to agent",
     "detachAgentIntegration": "Detach integration from agent",
