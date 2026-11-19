@@ -1120,7 +1120,7 @@ wheels = [
 
 [[package]]
 name = "omnidim-mcp-cloud"
-version = "0.12.7"
+version = "0.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
