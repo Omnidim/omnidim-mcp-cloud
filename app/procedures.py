@@ -55,7 +55,10 @@ _DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
     },
     "timezone": {
         "type": "string",
-        "description": "The person's IANA timezone, e.g. Asia/Kolkata or America/New_York.",
+        "description": (
+            "The person's IANA timezone, e.g. Asia/Kolkata or America/New_York. Ask for it, and "
+            "confirm any you work out from a city."
+        ),
     },
     "guests": {
         "type": "array",
@@ -66,8 +69,10 @@ _DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
         "type": "object",
         "additionalProperties": {"type": "string"},
         "description": (
-            "Every other question from `getDemoQuestions`, keyed by its `label`. For a choice "
-            "question, the answer is one of its `choices`, copied exactly."
+            "The answers to the `getDemoQuestions` questions with `source: calendly`, keyed by "
+            "each one's `label`. Name, email and guests go in their own fields. For a choice "
+            "question, use one of its `choices`, copied exactly. A phone number has its country "
+            "code, like +14155550123. Only answers the user gave: never guess one."
         ),
     },
 }
@@ -106,18 +111,24 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "getDemoQuestions",
         "GET",
         "/demo/questions",
-        "Start booking a demo call with the OmniDimension team. Returns every question the "
-        "booking asks, in order, with the allowed choices. Follow the `book_demo` prompt: ask the "
-        "user all of them, then call `requestDemo`.",
+        "Start booking a demo call with the OmniDimension team. Use it when the user asks for a "
+        "demo or a call with the team, or wants help with pricing, an enterprise plan, white-label "
+        "or a partnership. Do not offer it unasked. Returns every question the booking asks, in "
+        "order, with the allowed choices. Ask the user each one, plus their timezone, then call "
+        "`requestDemo`. Never guess an answer. The `book_demo` prompt has the same steps.",
     ),
     _demo_tool(
         "requestDemo",
         "POST",
         "/demo/request",
-        "Send the user's answers. The server picks the route from their monthly call volume. "
-        "`route: calendar` returns free start times (UTC) to offer the user, and `next_after` "
-        "to pass back as `after` for later times. `route: ai_call` means the request is filed "
-        "and nothing more is needed: tell the user the `message`. A 422 lists every answer to fix.",
+        "Send the user's answers. Confirm their phone number first: on the `ai_call` route a "
+        "call goes to it. The server picks the route from their monthly call volume. "
+        "`route: ai_call`: the request is filed. Tell the user the `message` and stop, without "
+        "promising a meeting or a time. `route: calendar`: `slots` are free start times in UTC. "
+        "Show some in the user's timezone with the day and date, and ask them to pick one. If "
+        "none suit them or `slots` is empty, call again with `after` set to `next_after`. After "
+        "three empty replies in a row, tell the user and stop. A 422 lists every answer to fix: ask only "
+        "for those.",
         {
             **_DEMO_ANSWERS_SCHEMA,
             "after": {
@@ -132,11 +143,13 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "POST",
         "/demo/book",
         "Book the start time the user picked from `requestDemo`, with the same answers. Only after "
-        "the user chose that time. Returns the meeting: start and end, join link, hosts, guests, "
-        "when it was booked, the answers, and the reschedule and cancel links. Calendly emails the "
-        "invite. 409 `slot_taken`: call `requestDemo` again and offer other times. 429: too many "
-        "demo requests from this account, wait a few minutes. Any other failure may still have booked it: do "
-        "not retry, ask the user to check their email for an invite.",
+        "the user chose that time and confirmed the answers. Returns the meeting: start and end, "
+        "join link, hosts, guests, when it was booked, the answers, and the reschedule and cancel "
+        "links. Show the times in the user's timezone. Calendly emails the invite. 409 "
+        "`slot_taken`: call `requestDemo` again with the same answers and no `after`, and offer "
+        "other times. 429: too many demo requests from this account, wait a few minutes. Any "
+        "other failure may still have booked it: do not call `bookDemo` again yourself. Ask the "
+        "user to check their email for an invite, and book again only if they say none arrived.",
         {
             **_DEMO_ANSWERS_SCHEMA,
             "start_time": {
@@ -173,6 +186,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
   `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
 - "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
   call tools.
+- "Book a demo / talk to the team", or questions about pricing, an enterprise
+  plan, white-label or a partnership -> the `book_demo` prompt:
+  `getDemoQuestions`, `requestDemo`, then `bookDemo`. Only when the user asks.
 
 ## Rules that are easy to get wrong (proven against the live API)
 
@@ -412,7 +428,8 @@ def _book_demo(args: dict[str, Any]) -> str:
         "choice question, show the choices and use the exact text of the one they pick. If you "
         "already know their name or email, offer it and let them confirm. Ask for their timezone if "
         "you do not know it, and confirm it.\n"
-        "2. Call `requestDemo` with all the answers (`answers` keyed by each question's `label`). "
+        "2. Confirm their phone number, then call `requestDemo` with all the answers (`answers` "
+        "keyed by each question's `label`). "
         "Never fill in an answer the user did not give.\n"
         "3. If it returns 422, ask again only for the fields it lists, then call `requestDemo` again.\n"
         "4. If `route` is `ai_call`: tell the user the `message` and stop. Do not promise a "
@@ -428,8 +445,9 @@ def _book_demo(args: dict[str, Any]) -> str:
         "cancel links. Calendly sends the invite by email.\n"
         "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken and go back to "
         "step 5. If it returns 429, this account sent too many demo requests: ask them to wait a "
-        "few minutes, and point them to their invite email if they already booked. If it fails any other way, do not call it again: "
-        "the booking may have gone through, so ask them to check their email for an invite."
+        "few minutes, and point them to their invite email if they already booked. If it fails any "
+        "other way, do not call it again yourself: the booking may have gone through. Ask them to "
+        "check their email for an invite, and book again only if they say none arrived."
     )
 
 
