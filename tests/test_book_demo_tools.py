@@ -61,6 +61,22 @@ def test_every_hand_written_tool_has_a_title() -> None:
     assert missing == []
 
 
+def test_only_the_answers_are_required() -> None:
+    assert _tool("getDemoQuestions")["input_schema"]["required"] == []
+    request = _tool("requestDemo")["input_schema"]
+    assert "after" in request["properties"]
+    assert "after" not in request["required"]
+    assert set(_tool("bookDemo")["input_schema"]["required"]) == {
+        "name", "email", "timezone", "answers", "start_time"
+    }
+
+
+def test_the_procedure_never_dead_ends_on_an_empty_week() -> None:
+    text = build_prompt("book_demo", {})["messages"][0]["content"]["text"]
+    assert "next_after" in text
+    assert "next_after" in _tool("requestDemo")["description"]
+
+
 async def test_book_demo_sends_the_answers_and_the_picked_slot(seen: list[httpx.Request]) -> None:
     args = {**ANSWERS, "start_time": "2026-11-21T09:30:00Z"}
     result = await dispatcher.dispatch_tool(name="bookDemo", arguments=args, token=TOKEN)

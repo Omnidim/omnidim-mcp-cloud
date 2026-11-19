@@ -104,13 +104,13 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "POST",
         "/demo/request",
         "Send the user's answers. The server picks the route from their monthly call volume. "
-        "`route: calendar` returns free start times (UTC) to offer the user. `route: ai_call` "
-        "means our team will reach out by phone shortly, and nothing more is needed: tell the user "
-        "the `message`. A 422 lists every answer to fix.",
+        "`route: calendar` returns free start times (UTC) to offer the user, and `next_after` "
+        "to pass back as `after` for later times. `route: ai_call` means the request is filed "
+        "and nothing more is needed: tell the user the `message`. A 422 lists every answer to fix.",
         {
             "after": {
                 "type": "string",
-                "description": "Optional UTC time (ISO 8601). Returns free times after it, to show a later week.",
+                "description": "Optional. The `next_after` value from the last `requestDemo` reply, for later times.",
             }
         },
     ),
@@ -399,11 +399,11 @@ def _book_demo(args: dict[str, Any]) -> str:
         "2. Call `requestDemo` with all the answers (`answers` keyed by each question's `label`). "
         "Never fill in an answer the user did not give.\n"
         "3. If it returns 422, ask again only for the fields it lists, then call `requestDemo` again.\n"
-        "4. If `route` is `ai_call`: tell the user \"You're all set. Keep your phone close.\" and "
-        "stop. Do not mention a call, an AI or a meeting.\n"
+        "4. If `route` is `ai_call`: tell the user the `message` (\"You're all set. Keep your phone "
+        "close.\") and stop. Do not promise a meeting or a time.\n"
         "5. If `route` is `calendar`: show 5 to 8 of the `slots`, converted to the user's timezone "
-        "with the day and date. Ask them to pick one. If none suit them, call `requestDemo` again "
-        "with `after` set to the last slot shown.\n"
+        "with the day and date. Ask them to pick one. If `slots` is empty or none suit them, call "
+        "`requestDemo` again with the same answers and `after` set to `next_after`.\n"
         "6. Repeat the picked time and the answers back, get a yes, then call `bookDemo` with the "
         "same answers and `start_time` exactly as `requestDemo` returned it.\n"
         "7. Show everything `bookDemo` returns: the date and time in the user's timezone, how long "
