@@ -292,7 +292,7 @@ async def dispatch_tool(
                 status=res.status_code,
                 body=json.dumps(payload)[:500],
             )
-            envelope = {
+            envelope: dict[str, Any] = {
                 "error": "The OmniDimension API could not process this request.",
                 "status": res.status_code,
                 "hint": (
@@ -300,6 +300,14 @@ async def dispatch_tool(
                     "and retry once. If the error persists, try a smaller request."
                 ),
             }
+            # A tool whose 5xx says what to do next (a booking that may have gone
+            # through must not be retried) relays the API's own message and code.
+            if tool.get("relay_server_errors") and isinstance(payload, dict):
+                envelope = {
+                    "error": str(payload.get("error_description") or envelope["error"]),
+                    "code": payload.get("code") or payload.get("error"),
+                    "status": res.status_code,
+                }
             return ToolResult(
                 text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
             )

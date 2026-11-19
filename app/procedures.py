@@ -47,7 +47,121 @@ def _show_workflow_tool() -> dict[str, Any]:
     }
 
 
-EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool()]
+_DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
+    "name": {"type": "string", "description": "The person's full name."},
+    "email": {
+        "type": "string",
+        "description": "Their work email. Personal addresses such as Gmail are refused.",
+    },
+    "timezone": {
+        "type": "string",
+        "description": (
+            "The person's IANA timezone, e.g. Asia/Kolkata or America/New_York. Ask for it, and "
+            "confirm any you work out from a city."
+        ),
+    },
+    "guests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Optional. More emails to invite.",
+    },
+    "answers": {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
+        "description": (
+            "The answers to the `getDemoQuestions` questions with `source: calendly`, keyed by "
+            "each one's `label`. Name, email and guests go in their own fields. For a choice "
+            "question, use one of its `choices`, copied exactly. A phone number has its country "
+            "code, like +14155550123. Only answers the user gave: never guess one."
+        ),
+    },
+}
+
+
+_DEMO_ANSWERS_REQUIRED = ["name", "email", "timezone", "answers"]
+
+
+def _demo_tool(
+    name: str,
+    method: str,
+    path: str,
+    description: str,
+    properties: dict[str, Any] | None = None,
+    required: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "description": description + "\n\n(Tags: Demo)",
+        "input_schema": {
+            "type": "object",
+            "properties": properties or {},
+            "required": required or [],
+        },
+        "method": method,
+        "path": path,
+        "path_params": [],
+        "query_params": [],
+        # 502 booking_unconfirmed says not to retry; the generic 5xx hint says retry once.
+        "relay_server_errors": True,
+    }
+
+
+_DEMO_TOOLS: list[dict[str, Any]] = [
+    _demo_tool(
+        "getDemoQuestions",
+        "GET",
+        "/demo/questions",
+        "Start booking a demo call with the OmniDimension team. Use it when the user asks for a "
+        "demo or a call with the team, or wants help with pricing, an enterprise plan, white-label "
+        "or a partnership. Do not offer it unasked. Returns every question the booking asks, in "
+        "order, with the allowed choices. Ask the user each one, plus their timezone, then call "
+        "`requestDemo`. Never guess an answer. The `book_demo` prompt has the same steps.",
+    ),
+    _demo_tool(
+        "requestDemo",
+        "POST",
+        "/demo/request",
+        "Send the user's answers. Confirm their phone number first: on the `ai_call` route a "
+        "call goes to it. The server picks the route from their monthly call volume. "
+        "`route: ai_call`: the request is filed. Tell the user the `message` and stop, without "
+        "promising a meeting or a time. `route: calendar`: `slots` are free start times in UTC. "
+        "Show some in the user's timezone with the day and date, and ask them to pick one. If "
+        "none suit them or `slots` is empty, call again with `after` set to `next_after`. After "
+        "three empty replies in a row, tell the user and stop. A 422 lists every answer to fix: ask only "
+        "for those.",
+        {
+            **_DEMO_ANSWERS_SCHEMA,
+            "after": {
+                "type": "string",
+                "description": "Optional. The `next_after` value from the last `requestDemo` reply, for later times.",
+            },
+        },
+        _DEMO_ANSWERS_REQUIRED,
+    ),
+    _demo_tool(
+        "bookDemo",
+        "POST",
+        "/demo/book",
+        "Book the start time the user picked from `requestDemo`, with the same answers. Only after "
+        "the user chose that time and confirmed the answers. Returns the meeting: start and end, "
+        "join link, hosts, guests, when it was booked, the answers, and the reschedule and cancel "
+        "links. Show the times in the user's timezone. Calendly emails the invite. 409 "
+        "`slot_taken`: call `requestDemo` again with the same answers and no `after`, and offer "
+        "other times. 429: too many demo requests from this account, wait a few minutes. Any "
+        "other failure may still have booked it: do not call `bookDemo` again yourself. Ask the "
+        "user to check their email for an invite, and book again only if they say none arrived.",
+        {
+            **_DEMO_ANSWERS_SCHEMA,
+            "start_time": {
+                "type": "string",
+                "description": "The picked start time, exactly as `requestDemo` returned it.",
+            },
+        },
+        [*_DEMO_ANSWERS_REQUIRED, "start_time"],
+    ),
+]
+
+EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool(), *_DEMO_TOOLS]
 
 ROUTING_GUIDE = """# OmniDimension routing guide
 
@@ -72,6 +186,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
   `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
 - "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
   call tools.
+- "Book a demo / talk to the team", or questions about pricing, an enterprise
+  plan, white-label or a partnership -> the `book_demo` prompt:
+  `getDemoQuestions`, `requestDemo`, then `bookDemo`. Only when the user asks.
 
 ## Rules that are easy to get wrong (proven against the live API)
 
@@ -304,7 +421,46 @@ def _build_workflow(args: dict[str, Any]) -> str:
     )
 
 
+def _book_demo(args: dict[str, Any]) -> str:
+    return (
+        "Book a demo call between the user and the OmniDimension team. Follow these steps in order.\n\n"
+        "1. Call `getDemoQuestions`. Ask the user every question it returns, in that order. For a "
+        "choice question, show the choices and use the exact text of the one they pick. If you "
+        "already know their name or email, offer it and let them confirm. Ask for their timezone if "
+        "you do not know it, and confirm it.\n"
+        "2. Confirm their phone number, then call `requestDemo` with all the answers (`answers` "
+        "keyed by each question's `label`). "
+        "Never fill in an answer the user did not give.\n"
+        "3. If it returns 422, ask again only for the fields it lists, then call `requestDemo` again.\n"
+        "4. If `route` is `ai_call`: tell the user the `message` and stop. Do not promise a "
+        "meeting or a time.\n"
+        "5. If `route` is `calendar`: show 5 to 8 of the `slots`, converted to the user's timezone "
+        "with the day and date. Ask them to pick one. If `slots` is empty or none suit them, call "
+        "`requestDemo` again with the same answers and `after` set to `next_after`.\n"
+        "6. Repeat the picked time and the answers back, get a yes, then call `bookDemo` with the "
+        "same answers and `start_time` exactly as `requestDemo` returned it.\n"
+        "7. Show everything `bookDemo` returns: the date and time in the user's timezone, how long "
+        "it is, the join link (if it is empty, say the join link is in the calendar invite email), "
+        "who is in the meeting (hosts and guests), when it was booked, and the reschedule and "
+        "cancel links. Calendly sends the invite by email.\n"
+        "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken and go back to "
+        "step 5. If it returns 429, this account sent too many demo requests: ask them to wait a "
+        "few minutes, and point them to their invite email if they already booked. If it fails any "
+        "other way, do not call it again yourself: the booking may have gone through. Ask them to "
+        "check their email for an invite, and book again only if they say none arrived."
+    )
+
+
 _PROMPTS: list[dict[str, Any]] = [
+    {
+        "name": "book_demo",
+        "description": (
+            "Book a demo call with the OmniDimension team: ask every booking question, route by "
+            "call volume, offer free times, book the picked one, and show the meeting details."
+        ),
+        "arguments": [],
+        "build": _book_demo,
+    },
     {
         "name": "build_workflow",
         "description": (

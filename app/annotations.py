@@ -9,6 +9,9 @@ from typing import Any
 
 # Human-readable display names, separate from the machine name the model sees.
 _TITLES: dict[str, str] = {
+    "getDemoQuestions": "Get demo booking questions",
+    "requestDemo": "Request a demo",
+    "bookDemo": "Book a demo",
     "listAgents": "List agents",
     "createAgent": "Create agent",
     "getAgent": "Get agent",
@@ -172,6 +175,8 @@ _DESTRUCTIVE: frozenset[str] = frozenset(
 # (attachAgentIntegration) a live agent calling a caller-supplied URL.
 _OPEN_WORLD: frozenset[str] = frozenset(
     {
+        "requestDemo",
+        "bookDemo",
         "testWorkflow",
         "dispatchCall",
         "createBulkCall",
