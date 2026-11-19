@@ -7,7 +7,7 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 ### Added
 
 - Tools for WhatsApp numbers, templates, conversations, opt-outs and campaigns, for agent integrations, for campaign number rotation, and for phone number auto-renew. Clients that support confirmations ask before a tool sends a WhatsApp message, launches or resumes a campaign, lifts an opt-out, or connects an agent to an outside URL.
-- Book a demo with the OmniDimension team from chat: `getDemoQuestions`, `requestDemo` and `bookDemo`, plus a `book_demo` prompt. The assistant asks every booking question, then either offers free times and books the one the user picks, returning the time, join link, attendees and reschedule and cancel links, or tells the user the team will be in touch. Not offered to accounts managed by an account administrator.
+- Book a demo with the OmniDimension team from chat: `getDemoQuestions`, `requestDemo` and `bookDemo`, plus a `book_demo` prompt. The assistant asks every booking question, then either offers free times and books the one the user picks, returning the time, join link, attendees and reschedule and cancel links, or tells the user the team will be in touch. Accounts managed by an account administrator get a refusal that points them to that administrator.
 
 ### Security
 

@@ -60,8 +60,7 @@ _DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
     "guests": {
         "type": "array",
         "items": {"type": "string"},
-        "maxItems": 10,
-        "description": "Optional. Up to 10 more emails to invite.",
+        "description": "Optional. More emails to invite.",
     },
     "answers": {
         "type": "object",
