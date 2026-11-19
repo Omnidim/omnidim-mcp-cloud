@@ -122,7 +122,8 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "the user chose that time. Returns the meeting: start and end, join link, hosts, guests, "
         "when it was booked, the answers, and the reschedule and cancel links. Calendly emails the "
         "invite. 409 `slot_taken`: call `requestDemo` again and offer other times. 429: this "
-        "account already booked a demo today.",
+        "account already booked a demo today. Any other failure may still have booked it: do "
+        "not retry, ask the user to check their email for an invite.",
         {
             "start_time": {
                 "type": "string",
@@ -412,7 +413,8 @@ def _book_demo(args: dict[str, Any]) -> str:
         "cancel links. Calendly sends the invite by email.\n"
         "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken and go back to "
         "step 5. If it returns 429, this account already booked a demo today: point them to the "
-        "reschedule link in their invite email."
+        "reschedule link in their invite email. If it fails any other way, do not call it again: "
+        "the booking may have gone through, so ask them to check their email for an invite."
     )
 
 
