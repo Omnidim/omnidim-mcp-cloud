@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AccessToken
+from app.models import AccessToken, OAuthClient
 from app.security import decrypt_secret
 
 
@@ -18,6 +18,8 @@ class ResolvedToken:
     odoo_api_key_value: str | None
     client_id: str
     scope: str
+    # The app's self-declared name (Claude, ChatGPT, Cursor, ...), for logs only.
+    client_name: str | None = None
 
 
 class BearerError(Exception):
@@ -48,17 +50,20 @@ def parse_authorization_header(header_value: str | None) -> str:
 
 async def resolve_bearer(session: AsyncSession, header_value: str | None) -> ResolvedToken:
     token = parse_authorization_header(header_value)
-    row: AccessToken | None = (
+    found = (
         await session.execute(
-            select(AccessToken).where(AccessToken.token_hash == _hash(token))
+            select(AccessToken, OAuthClient.client_name)
+            .outerjoin(OAuthClient, OAuthClient.client_id == AccessToken.client_id)
+            .where(AccessToken.token_hash == _hash(token))
         )
-    ).scalar_one_or_none()
+    ).one_or_none()
 
-    if row is None:
+    if found is None:
         raise BearerError(
             'Bearer realm="mcp.omnidim.io", error="invalid_token"',
             "access token not recognised",
         )
+    row, client_name = found
     now = datetime.now(UTC)
     if row.revoked_at is not None:
         raise BearerError(
@@ -79,4 +84,5 @@ async def resolve_bearer(session: AsyncSession, header_value: str | None) -> Res
         odoo_api_key_value=plaintext,
         client_id=row.client_id,
         scope=row.scope,
+        client_name=client_name,
     )

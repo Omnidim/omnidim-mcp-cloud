@@ -42,21 +42,27 @@ def _generate_code() -> str:
     return secrets.token_urlsafe(32)
 
 
-async def issue_code(
-    session: AsyncSession,
-    *,
-    request_id: str,
-    odoo_user_id: int,
-    odoo_api_key_id: int,
-    odoo_api_key_value: str | None,
-    approved_scope: str,
-) -> IssuedCode:
-    now = datetime.now(UTC)
+def authorization_response_url(
+    redirect_uri: str, params: dict[str, str], *, state: str | None, issuer: str
+) -> str:
+    """Every redirect back to a client goes through here, so each one carries iss (RFC 9207)."""
+    params = dict(params)
+    if state is not None:
+        params["state"] = state
+    params["iss"] = issuer
+    sep = "&" if "?" in redirect_uri else "?"
+    return f"{redirect_uri}{sep}{urlencode(params)}"
+
+
+async def _pending_request(
+    session: AsyncSession, request_id: str, now: datetime
+) -> AuthorizationRequest:
+    # Row lock: approve and deny on one request must not both pass the consumed check.
     req: AuthorizationRequest | None = (
         await session.execute(
-            select(AuthorizationRequest).where(
-                AuthorizationRequest.request_id_hash == _hash(request_id)
-            )
+            select(AuthorizationRequest)
+            .where(AuthorizationRequest.request_id_hash == _hash(request_id))
+            .with_for_update()
         )
     ).scalar_one_or_none()
 
@@ -66,6 +72,34 @@ async def issue_code(
         raise IssueCodeError("invalid_request", "request already consumed")
     if req.expires_at <= now:
         raise IssueCodeError("invalid_request", "request expired")
+    return req
+
+
+async def deny_request(session: AsyncSession, *, issuer: str, request_id: str) -> str:
+    """Consume the request so a denied consent page cannot be approved later."""
+    req = await _pending_request(session, request_id, datetime.now(UTC))
+    req.consumed_at = datetime.now(UTC)
+    log.info("authorization_request_denied", client_id=req.client_id)
+    return authorization_response_url(
+        req.redirect_uri,
+        {"error": "access_denied", "error_description": "user denied consent"},
+        state=req.state,
+        issuer=issuer,
+    )
+
+
+async def issue_code(
+    session: AsyncSession,
+    *,
+    issuer: str,
+    request_id: str,
+    odoo_user_id: int,
+    odoo_api_key_id: int,
+    odoo_api_key_value: str | None,
+    approved_scope: str,
+) -> IssuedCode:
+    now = datetime.now(UTC)
+    req = await _pending_request(session, request_id, now)
 
     requested = parse_scope(req.scope)
     approved = parse_scope(approved_scope)
@@ -96,11 +130,9 @@ async def issue_code(
     session.add(auth_code)
     req.consumed_at = now
 
-    params = {"code": code}
-    if req.state is not None:
-        params["state"] = req.state
-    sep = "&" if "?" in req.redirect_uri else "?"
-    redirect_to = f"{req.redirect_uri}{sep}{urlencode(params)}"
+    redirect_to = authorization_response_url(
+        req.redirect_uri, {"code": code}, state=req.state, issuer=issuer
+    )
 
     log.info(
         "authorization_code_issued",

@@ -4,6 +4,60 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- Tools for WhatsApp numbers, templates, conversations, opt-outs and campaigns, for agent integrations, for campaign number rotation, and for phone number auto-renew. Clients that support confirmations ask before a tool sends a WhatsApp message, launches or resumes a campaign, lifts an opt-out, or connects an agent to an outside URL.
+
+### Security
+
+- A reseller's assistant can no longer act on a client account by adding `user_id` to a tool call. The tools never offered it, and the server now drops it before the request.
+
+### Fixed
+
+- The assistant now suggests Cartesia, the platform default voice, when it sets up an agent, instead of a voice provider the account may not have.
+
+## [0.12.7] - 2026-11-12
+
+### Fixed
+
+- An update call with nothing to change now tells the assistant to pass a field, instead of failing with a server error.
+
+## [0.12.6] - 2026-11-12
+
+### Fixed
+
+- Agents set up through the assistant now use the platform default voice, transcriber and model, which every account has.
+- Cloning a voice through the assistant now sends you to the voice cloning page to upload your recording, then the assistant attaches the new voice to your agent.
+- Large knowledge-base files go through the files page instead of the chat.
+
+## [0.12.5] - 2026-11-07
+
+### Fixed
+
+- Sign-in from Codex and other clients that check the `iss` parameter now succeeds. Every redirect back to the client (approve, deny and error) carries the issuer.
+
+### Security
+
+- Denying consent now closes the authorization request, so the same consent page cannot be approved afterwards.
+
+## [0.12.4] - 2026-11-05
+
+### Changed
+
+- Every call to the OmniDimension API now carries the request id of the tool call, so one id links an MCP call to the API logs.
+
+## [0.12.3] - 2026-11-05
+
+### Changed
+
+- Errors an AI app hits before a tool runs (bad arguments, unknown tools, expired sign-ins) are now recorded with the app's name, so we can fix the tools and descriptions apps struggle with.
+
+## [0.12.2] - 2026-11-05
+
+### Changed
+
+- Every tool call now records how it ended and how long it took, so failing or slow tools are found and fixed sooner.
+
 ## [0.12.1] - 2026-10-26
 
 ### Fixed

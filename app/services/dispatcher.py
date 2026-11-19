@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Final
@@ -17,7 +18,7 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.12.1"
+USER_AGENT: Final = "omnidim-mcp-cloud/0.12.7"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
@@ -220,6 +221,9 @@ async def dispatch_tool(
     if not token.odoo_api_key_value:
         raise DispatchError(-32000, "missing upstream credential")
 
+    # Schemas allow extra keys: drop the reseller switch regen strips (acts on a client).
+    if "user_id" not in tool["input_schema"].get("properties", {}):
+        arguments = {k: v for k, v in arguments.items() if k != "user_id"}
     arguments = _coerce_args(arguments, tool["input_schema"])
     path = _substitute_path(
         tool["path"], arguments, tool["path_params"], tool["input_schema"]
@@ -231,7 +235,23 @@ async def dispatch_tool(
         "Authorization": f"Bearer {token.odoo_api_key_value}",
         "User-Agent": USER_AGENT,
     }
+    if request_id := structlog.contextvars.get_contextvars().get("request_id"):
+        headers["X-Request-ID"] = request_id
     method = tool["method"]
+    # Every PUT and PATCH tool changes fields; with none, the API gets no body at all.
+    if method in ("PUT", "PATCH") and not body:
+        log.info(
+            "tool_result",
+            tool=name,
+            outcome="no_fields",
+            status=None,
+            duration_ms=0,
+            client_id=token.client_id,
+            client_name=token.client_name,
+            odoo_user_id=token.odoo_user_id,
+        )
+        error = {"error": f"{name} needs at least one field to change besides the ids."}
+        return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
     if method != "GET" and body:
@@ -243,57 +263,79 @@ async def dispatch_tool(
         method=method,
         path=path,
         client_id=token.client_id,
+        client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
+    # One tool_result line per call, however it ends: Grafana's MCP board reads outcome,
+    # status and duration_ms from it.
+    started = time.monotonic()
+    outcome, status = "network_error", None
     try:
-        if _client_factory is _default_client_factory and _worker_client is not None:
-            res = await _worker_client.request(method, url, headers=headers, **request_kwargs)
-        else:
-            async with _client_factory() as client:
-                res = await client.request(method, url, headers=headers, **request_kwargs)
-    except httpx.TimeoutException as exc:
-        raise DispatchError(-32000, "upstream timeout", {"tool": name}) from exc
-    except httpx.HTTPError as exc:
-        raise DispatchError(-32000, "upstream network error", {"tool": name}) from exc
+        try:
+            if _client_factory is _default_client_factory and _worker_client is not None:
+                res = await _worker_client.request(method, url, headers=headers, **request_kwargs)
+            else:
+                async with _client_factory() as client:
+                    res = await client.request(method, url, headers=headers, **request_kwargs)
+        except httpx.TimeoutException as exc:
+            outcome = "timeout"
+            raise DispatchError(-32000, "upstream timeout", {"tool": name}) from exc
+        except httpx.HTTPError as exc:
+            raise DispatchError(-32000, "upstream network error", {"tool": name}) from exc
 
-    ctype = res.headers.get("content-type", "")
-    if "application/json" not in ctype:
-        snippet = res.text[:200].strip().replace("\n", " ")
-        raise DispatchError(
-            -32000,
-            f"upstream returned non-JSON ({res.status_code})",
-            {"snippet": snippet},
-        )
+        outcome, status = "bad_response", res.status_code
+        ctype = res.headers.get("content-type", "")
+        if "application/json" not in ctype:
+            snippet = res.text[:200].strip().replace("\n", " ")
+            raise DispatchError(
+                -32000,
+                f"upstream returned non-JSON ({res.status_code})",
+                {"snippet": snippet},
+            )
 
-    try:
-        payload = res.json()
-    except ValueError as exc:
-        raise DispatchError(-32000, "upstream JSON parse error") from exc
+        try:
+            payload = res.json()
+        except ValueError as exc:
+            raise DispatchError(-32000, "upstream JSON parse error") from exc
 
-    if res.status_code >= 500:
-        # The raw body often carries upstream stack-trace strings; keep
-        # those in our logs and hand the client something actionable.
-        log.warning(
-            "tool_upstream_5xx",
+        if res.status_code >= 500:
+            outcome = "server_error"
+            # The raw body often carries upstream stack-trace strings; keep
+            # those in our logs and hand the client something actionable.
+            log.warning(
+                "tool_upstream_5xx",
+                tool=name,
+                status=res.status_code,
+                body=json.dumps(payload)[:500],
+            )
+            envelope = {
+                "error": "The OmniDimension API could not process this request.",
+                "status": res.status_code,
+                "hint": (
+                    "Check that nested fields match the tool's input schema "
+                    "and retry once. If the error persists, try a smaller request."
+                ),
+            }
+            return ToolResult(
+                text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
+            )
+
+        if res.status_code >= 400:
+            outcome = "client_error"
+            text = json.dumps(payload, indent=2, ensure_ascii=False)
+            return ToolResult(text=text, is_error=True)
+
+        outcome = "ok"
+        return _trim(payload)
+    finally:
+        log.info(
+            "tool_result",
             tool=name,
-            status=res.status_code,
-            body=json.dumps(payload)[:500],
+            outcome=outcome,
+            status=status,
+            duration_ms=round((time.monotonic() - started) * 1000),
+            client_id=token.client_id,
+            client_name=token.client_name,
+            odoo_user_id=token.odoo_user_id,
         )
-        envelope = {
-            "error": "The OmniDimension API could not process this request.",
-            "status": res.status_code,
-            "hint": (
-                "Check that nested fields match the tool's input schema "
-                "and retry once. If the error persists, try a smaller request."
-            ),
-        }
-        return ToolResult(
-            text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
-        )
-
-    if res.status_code >= 400:
-        text = json.dumps(payload, indent=2, ensure_ascii=False)
-        return ToolResult(text=text, is_error=True)
-
-    return _trim(payload)

@@ -26,6 +26,10 @@ exclude:
     - generateAutoScenarios
     # Authoring helper, not a runtime action for an agent to call.
     - enhancePrompt
+    # Takes the clip as Base64 in the call, which a model cannot write for a real
+    # recording (a 30 s clip is ~840k characters). Users upload at
+    # omnidim.io/clone-voice instead; the guide says so.
+    - createClonedVoice
     # Reseller operations: admin-level actions on other people's accounts.
     # Several move money and the KYC ones relay identity documents. Not
     # safe to put behind an LLM.
@@ -59,6 +63,13 @@ exclude:
     # client. Business data for the reseller alone, not agent context.
     - getResellerUsage
     - getResellerClientUsage
+    # A multipart file upload. Tool arguments are JSON, so the request this
+    # tool would send has no form boundary and the API rejects it.
+    - uploadWhatsappMedia
+    # Needs the user's Cal.com API key as an argument, so the key would sit in
+    # the chat transcript. Users connect Cal.com at omnidim.io/integrations,
+    # then attachAgentIntegration links it to an agent.
+    - createCalIntegration
 
   # Parameters to strip from operations that are otherwise exposed.
   # `user_id` on the phone number tools is the reseller "act on a client"
