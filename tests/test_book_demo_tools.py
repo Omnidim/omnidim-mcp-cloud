@@ -100,3 +100,42 @@ def test_the_procedure_asks_everything_then_routes_then_books() -> None:
     # Below the gate the call is meant to arrive unannounced, as on the booking page.
     assert "Keep your phone close" in text
     assert "join link" in text
+
+
+def _answering(status: int, body: dict) -> None:
+    transport = httpx.MockTransport(lambda _req: httpx.Response(status, json=body))
+    dispatcher.set_client_factory(lambda: httpx.AsyncClient(transport=transport))
+
+
+UNCONFIRMED = {
+    "error": "calendly_error",
+    "error_description": (
+        "The calendar did not confirm the booking. "
+        "Check your email for an invite before you try again."
+    ),
+    "code": "booking_unconfirmed",
+}
+
+
+async def test_an_unconfirmed_booking_reaches_the_model_with_its_own_message() -> None:
+    _answering(502, UNCONFIRMED)
+    try:
+        args = {**ANSWERS, "start_time": "2026-11-21T09:30:00Z"}
+        result = await dispatcher.dispatch_tool(name="bookDemo", arguments=args, token=TOKEN)
+    finally:
+        dispatcher.reset_client_factory()
+    body = json.loads(result.text)
+    assert result.is_error
+    assert body["code"] == "booking_unconfirmed"
+    assert "Check your email" in body["error"]
+    # The generic 5xx hint says to retry once, which could book the demo twice.
+    assert "hint" not in body
+
+
+async def test_other_tools_keep_the_generic_server_error() -> None:
+    _answering(502, UNCONFIRMED)
+    try:
+        result = await dispatcher.dispatch_tool(name="listAgents", arguments={}, token=TOKEN)
+    finally:
+        dispatcher.reset_client_factory()
+    assert "could not process this request" in json.loads(result.text)["error"]

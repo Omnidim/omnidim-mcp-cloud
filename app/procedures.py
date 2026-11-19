@@ -87,6 +87,8 @@ def _demo_tool(name: str, method: str, path: str, description: str, extra: dict[
         "path": path,
         "path_params": [],
         "query_params": [],
+        # 502 booking_unconfirmed says not to retry; the generic 5xx hint says retry once.
+        "relay_server_errors": True,
     }
 
 
