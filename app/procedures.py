@@ -74,15 +74,25 @@ _DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
 }
 
 
-def _demo_tool(name: str, method: str, path: str, description: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
-    properties = {} if method == "GET" else {**_DEMO_ANSWERS_SCHEMA, **(extra or {})}
-    required = [] if method == "GET" else ["name", "email", "timezone", "answers", *(extra or {})]
-    if extra and "after" in extra:
-        required.remove("after")
+_DEMO_ANSWERS_REQUIRED = ["name", "email", "timezone", "answers"]
+
+
+def _demo_tool(
+    name: str,
+    method: str,
+    path: str,
+    description: str,
+    properties: dict[str, Any] | None = None,
+    required: list[str] | None = None,
+) -> dict[str, Any]:
     return {
         "name": name,
         "description": description + "\n\n(Tags: Demo)",
-        "input_schema": {"type": "object", "properties": properties, "required": required},
+        "input_schema": {
+            "type": "object",
+            "properties": properties or {},
+            "required": required or [],
+        },
         "method": method,
         "path": path,
         "path_params": [],
@@ -110,11 +120,13 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "to pass back as `after` for later times. `route: ai_call` means the request is filed "
         "and nothing more is needed: tell the user the `message`. A 422 lists every answer to fix.",
         {
+            **_DEMO_ANSWERS_SCHEMA,
             "after": {
                 "type": "string",
                 "description": "Optional. The `next_after` value from the last `requestDemo` reply, for later times.",
-            }
+            },
         },
+        _DEMO_ANSWERS_REQUIRED,
     ),
     _demo_tool(
         "bookDemo",
@@ -127,11 +139,13 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "demo requests from this account, wait a few minutes. Any other failure may still have booked it: do "
         "not retry, ask the user to check their email for an invite.",
         {
+            **_DEMO_ANSWERS_SCHEMA,
             "start_time": {
                 "type": "string",
                 "description": "The picked start time, exactly as `requestDemo` returned it.",
-            }
+            },
         },
+        [*_DEMO_ANSWERS_REQUIRED, "start_time"],
     ),
 ]
 
@@ -402,8 +416,8 @@ def _book_demo(args: dict[str, Any]) -> str:
         "2. Call `requestDemo` with all the answers (`answers` keyed by each question's `label`). "
         "Never fill in an answer the user did not give.\n"
         "3. If it returns 422, ask again only for the fields it lists, then call `requestDemo` again.\n"
-        "4. If `route` is `ai_call`: tell the user the `message` (\"You're all set. Keep your phone "
-        "close.\") and stop. Do not promise a meeting or a time.\n"
+        "4. If `route` is `ai_call`: tell the user the `message` and stop. Do not promise a "
+        "meeting or a time.\n"
         "5. If `route` is `calendar`: show 5 to 8 of the `slots`, converted to the user's timezone "
         "with the day and date. Ask them to pick one. If `slots` is empty or none suit them, call "
         "`requestDemo` again with the same answers and `after` set to `next_after`.\n"

@@ -97,8 +97,8 @@ def test_the_procedure_asks_everything_then_routes_then_books() -> None:
     text = build_prompt("book_demo", {})["messages"][0]["content"]["text"]
     order = [text.index(step) for step in ("getDemoQuestions", "requestDemo", "bookDemo")]
     assert order == sorted(order)
-    # Below the gate the call is meant to arrive unannounced, as on the booking page.
-    assert "Keep your phone close" in text
+    # Below the gate the server's own `message` is the whole reply: no meeting is promised.
+    assert "tell the user the `message` and stop" in text
     assert "join link" in text
 
 
