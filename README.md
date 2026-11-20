@@ -1,6 +1,11 @@
 # omnidim-mcp-cloud
 
-Hosted Model Context Protocol server for [OmniDimension](https://omnidim.io). Connect Claude, ChatGPT, or any MCP-compatible client to your OmniDimension account.
+Source of the hosted Model Context Protocol server at `https://mcp.omnidim.io/mcp` for [OmniDimension](https://omnidim.io). Connect Claude, ChatGPT, or any MCP-compatible client to your OmniDimension account.
+
+**Start at [omnidim-mcp-server](https://github.com/Omnidim/omnidim-mcp-server).** It has the one-click installs, the full tools list, example prompts, and the local server.
+
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=omnidim&config=eyJ1cmwiOiJodHRwczovL21jcC5vbW5pZGltLmlvL21jcCJ9)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_omnidim-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=omnidim&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.omnidim.io%2Fmcp%22%7D)
 
 ## Connect
 
