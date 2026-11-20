@@ -52,9 +52,16 @@ def _error(req_id: object, code: int, message: str, data: Any = None) -> dict[st
     return {"jsonrpc": "2.0", "id": req_id, "error": err}
 
 
-def _tools_for_listing() -> list[dict[str, Any]]:
+_READ_ONLY_TOOLS = frozenset(
+    t["name"] for t in (*TOOLS, *EXTRA_TOOLS) if t["annotations"].get("readOnlyHint")
+)
+
+
+def _tools_for_listing(read_only: bool) -> list[dict[str, Any]]:
     tools = []
     for t in (*TOOLS, *EXTRA_TOOLS):
+        if read_only and t["name"] not in _READ_ONLY_TOOLS:
+            continue
         tool: dict[str, Any] = {
             "name": t["name"],
             "description": t["description"],
@@ -82,6 +89,25 @@ async def mcp_endpoint(
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> JSONResponse:
+    return await _serve(request, factory, authorization, read_only=False)
+
+
+@router.post("/mcp/readonly")
+async def mcp_readonly_endpoint(
+    request: Request,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+) -> JSONResponse:
+    return await _serve(request, factory, authorization, read_only=True)
+
+
+async def _serve(
+    request: Request,
+    factory: async_sessionmaker[AsyncSession],
+    authorization: str | None,
+    *,
+    read_only: bool,
+) -> JSONResponse:
     try:
         async with factory() as session:
             token: ResolvedToken = await resolve_bearer(session, authorization)
@@ -91,12 +117,14 @@ async def mcp_endpoint(
         log.info("mcp_auth_failed", reason=exc.description)
         return _bearer_challenge(exc)
 
-    response = await _answer(request, token)
-    await _log_error(request, response, token)
+    response = await _answer(request, token, read_only=read_only)
+    await _log_error(request, response, token, read_only=read_only)
     return response
 
 
-async def _log_error(request: Request, response: JSONResponse, token: ResolvedToken) -> None:
+async def _log_error(
+    request: Request, response: JSONResponse, token: ResolvedToken, *, read_only: bool
+) -> None:
     """One mcp_error line for every JSON-RPC error we send back, so failures that happen
     before a tool runs (bad arguments, unknown tool or method) show on the MCP board."""
     payload = json.loads(bytes(response.body))
@@ -118,13 +146,14 @@ async def _log_error(request: Request, response: JSONResponse, token: ResolvedTo
         tool=str(params.get("name"))[:100] if method == "tools/call" else None,
         code=error.get("code"),
         message=str(error.get("message"))[:200],
+        read_only=read_only,
         client_id=token.client_id,
         client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
 
-async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
+async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) -> JSONResponse:
     try:
         body = await request.json()
     except Exception:
@@ -146,6 +175,7 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
     log.info(
         "mcp_request",
         method=method,
+        read_only=read_only,
         client_id=token.client_id,
         client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
@@ -172,7 +202,7 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
         return JSONResponse(status_code=202, content={})
 
     if method == "tools/list":
-        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing()}))
+        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing(read_only)}))
 
     if method == "tools/call":
         tool_name = params.get("name")
@@ -183,6 +213,14 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
                     req_id, -32602,
                     "tools/call requires name (str) + arguments (object)",
                 ),
+            )
+        if read_only and tool_name not in _READ_ONLY_TOOLS:
+            return JSONResponse(
+                content=_error(
+                    req_id,
+                    -32602,
+                    f"{tool_name} changes data, so the read-only endpoint does not run it",
+                )
             )
         try:
             result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)

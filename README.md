@@ -22,6 +22,8 @@ You sign in with your OmniDimension account in the browser, so you need no API k
 | Codex | [Codex guide](https://docs.omnidim.io/docs/mcp/connect/codex) |
 | ChatGPT and other clients | Add `https://mcp.omnidim.io/mcp` as a custom connector. See the [MCP overview](https://docs.omnidim.io/docs/mcp) |
 
+To give an agent read access only, connect `https://mcp.omnidim.io/mcp/readonly` instead. It lists only the tools that read data (agents, call logs, campaigns, numbers) and refuses any tool that changes data or places a call.
+
 On the first tool call, your client opens the OmniDimension sign-in in your browser. Approve it, and the client stores its own token. To revoke access, remove the connector in your client or at [omnidim.io/api-management](https://omnidim.io/api-management).
 
 Want a local server that runs with an API key instead? Use [`@omnidim-ai/mcp-server`](https://github.com/Omnidim/omnidim-mcp-server). It has the same tools.
