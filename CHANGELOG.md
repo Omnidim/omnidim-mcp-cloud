@@ -2,6 +2,18 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.15.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.1...v0.15.0) (2026-11-20)
+
+
+### Added
+
+* add WhatsApp, agent integration, number rotation and auto-renew tools ([92be256](https://github.com/Omnidim/omnidim-mcp-cloud/commit/92be256c2354ced68254a9f7b9b912baa6ac32f2))
+
+
+### Fixed
+
+* **dispatcher:** send Idempotency-Key as a header, so WhatsApp sends and campaign launches are accepted ([92be256](https://github.com/Omnidim/omnidim-mcp-cloud/commit/92be256c2354ced68254a9f7b9b912baa6ac32f2))
+
 ## [0.14.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.0...v0.14.1) (2026-11-20)
 
 
