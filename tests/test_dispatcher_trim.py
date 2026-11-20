@@ -59,3 +59,12 @@ def test_a_small_call_log_keeps_its_turn_detail() -> None:
     row = json.loads(_trim(payload).text)["call_log_data"][0]
 
     assert len(row["interactions"]) == 2
+
+
+def test_the_note_says_turn_detail_was_dropped_when_rows_go_too() -> None:
+    payload = _payload([_call_log(i) for i in range(30)])
+
+    text = _trim(payload).text
+
+    assert len(_json_part(text)["call_log_data"]) < 30
+    assert "of 30 items. Left out per-turn detail" in text

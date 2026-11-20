@@ -133,6 +133,7 @@ def _trim(data: Any) -> ToolResult:
 
     # Turn detail goes before rows or a cut, so transcript, recording and cost always arrive.
     slim, dropped = _without_turn_detail(redacted)
+    drop_note = " Left out per-turn detail (interactions)." if dropped else ""
     if dropped:
         slim_text = json.dumps(slim, indent=2, ensure_ascii=False)
         if len(slim_text) <= MAX_LIST_CHARS:
@@ -157,14 +158,15 @@ def _trim(data: Any) -> ToolResult:
             candidate = json.dumps(trimmed, indent=2, ensure_ascii=False)
         if len(candidate) <= MAX_LIST_CHARS:
             note = (
-                f"\n\n[Showing {kept} of {len(arr)} items. Lower pagesize, filter "
+                f"\n\n[Showing {kept} of {len(arr)} items.{drop_note} Lower pagesize, filter "
                 "by name, or fetch a specific item by ID for full detail.]"
             )
             return ToolResult(text=candidate + note)
         kept = max(1, int(kept * 0.6))
 
     return ToolResult(
-        text=full[:MAX_LIST_CHARS] + f"\n\n[Response truncated. Full size: {len(full)} chars.]",
+        text=full[:MAX_LIST_CHARS]
+        + f"\n\n[Response truncated. Full size: {len(full)} chars.{drop_note}]",
     )
 
 
