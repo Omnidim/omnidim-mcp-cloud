@@ -1,10 +1,9 @@
 """Auto-generated MCP tool registry. Do not edit by hand.
 
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
-or mcp-config.yaml changes.
+changes.
 
-Source spec:   openapi.yaml   sha256=c2d9d79d840f
-Config:        mcp-config.yaml  sha256=fe8ccf5514f6
+Source spec:   omnidim.yaml   sha256=c4304fc95186
 """
 from __future__ import annotations
 
@@ -38,7 +37,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Turn workflow on",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "addBulkCallContact",
@@ -91,7 +96,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Add contact to campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "addBulkCallContacts",
@@ -152,7 +163,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Add contacts to campaign in bulk",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "addBulkCallNumber",
@@ -182,7 +199,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Add number to rotation pool",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "addPostCallAction",
@@ -450,7 +473,13 @@ _TOOLS_JSON = r"""[
         "query_params": [],
         "header_params": [
             "Idempotency-Key"
-        ]
+        ],
+        "annotations": {
+            "title": "Add a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "addWhatsappCampaignContacts",
@@ -474,7 +503,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Add contacts to WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "addWhatsappOptOut",
@@ -508,7 +543,13 @@ _TOOLS_JSON = r"""[
             "number_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Add WhatsApp opt-out",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "attachAgentIntegration",
@@ -537,7 +578,13 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Attach integration to agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "attachKnowledgeBaseFiles",
@@ -577,7 +624,13 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/attach",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Attach knowledge base files",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "attachPhoneNumber",
@@ -606,7 +659,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/attach",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Attach phone number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "bulkCallActions",
@@ -651,7 +710,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Control bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "canUploadFile",
@@ -681,7 +746,12 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/can_upload",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Check file upload eligibility",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "cancelBulkCall",
@@ -705,7 +775,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Cancel bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "cancelWhatsappCampaign",
@@ -729,7 +805,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Cancel WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createAgent",
@@ -958,8 +1040,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -2035,7 +2117,13 @@ _TOOLS_JSON = r"""[
         "query_params": [],
         "header_params": [
             "Idempotency-Key"
-        ]
+        ],
+        "annotations": {
+            "title": "Create agent",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createAgentVersion",
@@ -2070,7 +2158,13 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Save agent version",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createBulkCall",
@@ -2183,7 +2277,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30,
+                            "default": 30.0,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2362,12 +2456,12 @@ _TOOLS_JSON = r"""[
                         "retry_unanswered": {
                             "type": "string",
                             "enum": [
-                                "off",
+                                false,
                                 "no_reply",
                                 "no_reply_or_short",
                                 "model"
                             ],
-                            "default": "off",
+                            "default": false,
                             "description": "Also retry calls that connected but got no conversation.\n`no_reply`: the contact never spoke. `no_reply_or_short`:\nthe contact never spoke, or the call lasted at most\n`retry_unanswered_max_seconds`. `model`: the contact\nnever spoke, or post-call analysis read the transcript\nand found no real conversation. Retries follow the same\nschedule or steps as failed calls.\n"
                         },
                         "retry_unanswered_max_seconds": {
@@ -2390,7 +2484,13 @@ _TOOLS_JSON = r"""[
         "path": "/calls/bulk_call/create",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Create bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "createCustomApiIntegration",
@@ -2552,7 +2652,13 @@ _TOOLS_JSON = r"""[
         "path": "/integrations/custom-api",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Create custom API integration",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createSession",
@@ -3514,7 +3620,13 @@ _TOOLS_JSON = r"""[
         "path": "/sessions/create",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Create voice session",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createWhatsappCampaign",
@@ -3575,7 +3687,13 @@ _TOOLS_JSON = r"""[
         "path": "/whatsapp/campaigns",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Create WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createWorkflow",
@@ -3670,7 +3788,13 @@ _TOOLS_JSON = r"""[
         "path": "/workflows",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Create workflow",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deactivateWorkflow",
@@ -3694,7 +3818,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Turn workflow off",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteAgent",
@@ -3718,7 +3848,13 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteAgentVersion",
@@ -3748,7 +3884,13 @@ _TOOLS_JSON = r"""[
             "version_number"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteClonedVoice",
@@ -3772,7 +3914,13 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete cloned voice",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteKnowledgeBaseFile",
@@ -3795,7 +3943,13 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/delete",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete knowledge base file",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deletePostCallAction",
@@ -3825,7 +3979,13 @@ _TOOLS_JSON = r"""[
             "action_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteWorkflow",
@@ -3849,7 +4009,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Delete workflow",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "detachAgentIntegration",
@@ -3879,7 +4045,13 @@ _TOOLS_JSON = r"""[
             "integration_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Detach integration from agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "detachKnowledgeBaseFiles",
@@ -3914,7 +4086,13 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/detach",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Detach knowledge base files",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "detachPhoneNumber",
@@ -3937,7 +4115,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/detach",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Detach phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "diffAgentVersion",
@@ -3973,7 +4157,12 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "against"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Diff agent version",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "dispatchCall",
@@ -4939,7 +5128,13 @@ _TOOLS_JSON = r"""[
         "path": "/calls/dispatch",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Dispatch call",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "editWorkflow",
@@ -5041,7 +5236,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Edit workflow draft",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "fetchBulkCalls",
@@ -5075,7 +5276,12 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "status"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List bulk campaigns",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getAccountBalance",
@@ -5089,7 +5295,12 @@ _TOOLS_JSON = r"""[
         "path": "/account/balance",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get account balance",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getAgent",
@@ -5113,7 +5324,12 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get agent",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getBulkCall",
@@ -5137,7 +5353,12 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get bulk campaign",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getBulkCallLiveStatus",
@@ -5161,7 +5382,12 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get campaign live status",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getCallLog",
@@ -5185,7 +5411,12 @@ _TOOLS_JSON = r"""[
             "call_log_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get call log",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getClonedVoice",
@@ -5209,7 +5440,12 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get cloned voice",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getClonedVoiceSample",
@@ -5233,7 +5469,12 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get cloned voice sample",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getVoice",
@@ -5257,7 +5498,12 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get voice",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWhatsappCalling",
@@ -5281,7 +5527,12 @@ _TOOLS_JSON = r"""[
             "number_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp calling setting",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWhatsappCampaign",
@@ -5305,7 +5556,12 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp campaign",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWhatsappConversation",
@@ -5329,7 +5585,12 @@ _TOOLS_JSON = r"""[
             "conversation_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp conversation",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWhatsappMessage",
@@ -5353,7 +5614,12 @@ _TOOLS_JSON = r"""[
             "message_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp message",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWhatsappNumber",
@@ -5377,7 +5643,12 @@ _TOOLS_JSON = r"""[
             "number_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp number",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflow",
@@ -5412,7 +5683,12 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "view"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflowExecution",
@@ -5442,7 +5718,12 @@ _TOOLS_JSON = r"""[
             "execution_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow run",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflowNodeType",
@@ -5477,7 +5758,12 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "detail"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow node type",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "handBackWhatsappConversation",
@@ -5501,7 +5787,13 @@ _TOOLS_JSON = r"""[
             "conversation_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Hand WhatsApp conversation back to agent",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importExotelNumber",
@@ -5553,7 +5845,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/import/exotel",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Import Exotel number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importSipTrunk",
@@ -5617,7 +5915,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/import/sip",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Import SIP trunk",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importTwilioNumber",
@@ -5654,7 +5958,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/import/twilio",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Import Twilio number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importWhatsappNumbers",
@@ -5694,7 +6004,13 @@ _TOOLS_JSON = r"""[
         "path": "/whatsapp/numbers",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Import WhatsApp numbers",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "launchWhatsappCampaign",
@@ -5726,7 +6042,13 @@ _TOOLS_JSON = r"""[
         "query_params": [],
         "header_params": [
             "Idempotency-Key"
-        ]
+        ],
+        "annotations": {
+            "title": "Launch WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "liftWhatsappOptOut",
@@ -5756,7 +6078,13 @@ _TOOLS_JSON = r"""[
             "opt_out_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Lift WhatsApp opt-out",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAgentIntegrations",
@@ -5780,7 +6108,12 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List agent integrations",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAgentVersions",
@@ -5832,7 +6165,12 @@ _TOOLS_JSON = r"""[
             "search",
             "kind"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List agent versions",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAgents",
@@ -5866,7 +6204,12 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "name"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List agents",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAllProviders",
@@ -5880,7 +6223,12 @@ _TOOLS_JSON = r"""[
         "path": "/providers/all",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List all providers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listBulkCallLines",
@@ -5950,7 +6298,12 @@ _TOOLS_JSON = r"""[
             "search",
             "include_total"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List campaign call results",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listBulkCallNumbers",
@@ -5974,7 +6327,12 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List campaign rotation pool",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listCallLogs",
@@ -6030,7 +6388,12 @@ _TOOLS_JSON = r"""[
             "bulk_call_id",
             "include_details"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List call logs",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listClonedVoices",
@@ -6058,7 +6421,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List cloned voices",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listIntegrations",
@@ -6072,7 +6440,12 @@ _TOOLS_JSON = r"""[
         "path": "/integrations",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List integrations",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listKnowledgeBaseFiles",
@@ -6086,7 +6459,12 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/list",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List knowledge base files",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listLLMProviders",
@@ -6100,7 +6478,12 @@ _TOOLS_JSON = r"""[
         "path": "/providers/llms",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List LLM providers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listPhoneNumbers",
@@ -6129,7 +6512,12 @@ _TOOLS_JSON = r"""[
             "pageno",
             "pagesize"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List phone numbers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listPostCallActions",
@@ -6153,7 +6541,12 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List post-call actions",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listSTTProviders",
@@ -6167,7 +6560,12 @@ _TOOLS_JSON = r"""[
         "path": "/providers/stt",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List speech-to-text providers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listTTSProviders",
@@ -6181,7 +6579,12 @@ _TOOLS_JSON = r"""[
         "path": "/providers/tts",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List text-to-speech providers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listVoices",
@@ -6251,7 +6654,12 @@ _TOOLS_JSON = r"""[
             "page",
             "page_size"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List voices",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappCampaignContacts",
@@ -6304,7 +6712,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp campaign contacts",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappCampaigns",
@@ -6352,7 +6765,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp campaigns",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappConversations",
@@ -6416,7 +6834,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp conversations",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappMessages",
@@ -6458,7 +6881,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp messages",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappNumbers",
@@ -6487,7 +6915,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp numbers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappOptOuts",
@@ -6541,7 +6974,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp opt-outs",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWhatsappTemplates",
@@ -6584,7 +7022,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp templates",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflowFieldOptions",
@@ -6620,7 +7063,12 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "depends"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List choices for a workflow field",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflowNodeTypes",
@@ -6655,7 +7103,12 @@ _TOOLS_JSON = r"""[
             "q",
             "category"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List workflow node types",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflows",
@@ -6684,7 +7137,12 @@ _TOOLS_JSON = r"""[
             "limit",
             "cursor"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "List workflows",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "pauseWhatsappCampaign",
@@ -6708,7 +7166,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Pause WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "previewWhatsappNumbers",
@@ -6735,7 +7199,12 @@ _TOOLS_JSON = r"""[
         "path": "/whatsapp/numbers/preview",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Preview WhatsApp numbers to import",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "publishWorkflow",
@@ -6759,7 +7228,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Publish workflow",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "purchasePhoneNumber",
@@ -6803,7 +7278,13 @@ _TOOLS_JSON = r"""[
         "query_params": [],
         "header_params": [
             "Idempotency-Key"
-        ]
+        ],
+        "annotations": {
+            "title": "Buy phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "regenerateClonedVoiceSample",
@@ -6827,7 +7308,13 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Regenerate cloned voice sample",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "releasePhoneNumber",
@@ -6850,7 +7337,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/release",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Release phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "renameAgentVersion",
@@ -6890,7 +7383,13 @@ _TOOLS_JSON = r"""[
             "version_number"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Rename agent version",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "restoreAgentVersion",
@@ -6920,7 +7419,13 @@ _TOOLS_JSON = r"""[
             "version_number"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Restore agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "resumeWhatsappCampaign",
@@ -6944,7 +7449,13 @@ _TOOLS_JSON = r"""[
             "campaign_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Resume WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "retryBulkCall",
@@ -6991,7 +7502,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Retry unconnected contacts",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "searchPhoneNumbers",
@@ -7044,7 +7561,12 @@ _TOOLS_JSON = r"""[
             "page",
             "limit"
         ],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Search available phone numbers",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "sendWhatsappMessage",
@@ -7138,7 +7660,13 @@ _TOOLS_JSON = r"""[
         "query_params": [],
         "header_params": [
             "Idempotency-Key"
-        ]
+        ],
+        "annotations": {
+            "title": "Send WhatsApp message",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "setBulkCallConcurrency",
@@ -7169,7 +7697,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign concurrency",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setBulkCallDailyTimeControl",
@@ -7225,7 +7759,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign calling hours",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setBulkCallNumberActive",
@@ -7261,7 +7801,13 @@ _TOOLS_JSON = r"""[
             "assignment_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Pause or resume pool number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setBulkCallRotation",
@@ -7319,7 +7865,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign number rotation",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setPhoneNumberAutoRenew",
@@ -7348,7 +7900,13 @@ _TOOLS_JSON = r"""[
         "path": "/phone_number/auto_renew",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Set phone number auto-renew",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setWhatsappCalling",
@@ -7377,7 +7935,13 @@ _TOOLS_JSON = r"""[
             "number_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Turn WhatsApp calling on or off",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": true
+        }
     },
     {
         "name": "startBulkCall",
@@ -7401,7 +7965,13 @@ _TOOLS_JSON = r"""[
             "bulk_call_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Start draft campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "syncWhatsappTemplates",
@@ -7425,7 +7995,13 @@ _TOOLS_JSON = r"""[
             "number_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Sync WhatsApp templates",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "takeOverWhatsappConversation",
@@ -7449,7 +8025,13 @@ _TOOLS_JSON = r"""[
             "conversation_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Take over WhatsApp conversation",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "testWorkflow",
@@ -7478,7 +8060,13 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Test workflow (runs for real)",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "updateAgent",
@@ -7706,8 +8294,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -8782,7 +9370,13 @@ _TOOLS_JSON = r"""[
             "agent_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Update agent",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "updateClonedVoice",
@@ -8820,7 +9414,13 @@ _TOOLS_JSON = r"""[
             "voice_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Update cloned voice",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "updatePostCallAction",
@@ -9087,7 +9687,13 @@ _TOOLS_JSON = r"""[
             "action_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Update a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "uploadKnowledgeBaseFile",
@@ -9115,7 +9721,13 @@ _TOOLS_JSON = r"""[
         "path": "/knowledge_base/create",
         "path_params": [],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Upload knowledge base file",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "validateWorkflow",
@@ -9139,7 +9751,12 @@ _TOOLS_JSON = r"""[
             "workflow_id"
         ],
         "query_params": [],
-        "header_params": []
+        "header_params": [],
+        "annotations": {
+            "title": "Validate workflow",
+            "readOnlyHint": true,
+            "openWorldHint": false
+        }
     }
 ]"""
 

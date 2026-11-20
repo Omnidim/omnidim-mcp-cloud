@@ -7,13 +7,16 @@ on an allowed host) to override.
 
 Reads:
   https://docs.omnidim.io/openapi.yaml          (spec; or $SPEC override)
-  mcp-config.yaml                               (which operations to exclude)
+
+Each operation's x-mcp block decides its tool: title, effect (read, write or
+destructive), open-world, hide-params, or hidden. An operation without one
+fails the regen, so nothing reaches agents before someone decides how.
 
 Writes:
   app/_generated/tools.py                       (Python tool registry)
-  app/_generated/.spec.yml                      (sha256 of spec + config)
+  app/_generated/.spec.yml                      (sha256 of the spec)
 
-Run after the upstream spec or mcp-config.yaml changes:
+Run after the upstream spec changes:
   ./.venv/bin/python scripts/regen.py
 
 Pass --check to compare against the committed output instead of writing it.
@@ -42,17 +45,9 @@ ALLOWED_SPEC_HOSTS = {"docs.omnidim.io"}
 MAX_SPEC_BYTES = 8 * 1024 * 1024
 
 SPEC_SOURCE = os.environ.get("SPEC", DEFAULT_SPEC_URL)
-CONFIG_PATH = Path(os.environ.get("MCP_CONFIG", ROOT / "mcp-config.yaml"))
 
 OUT_TOOLS = ROOT / "app" / "_generated" / "tools.py"
 OUT_HASH = ROOT / "app" / "_generated" / ".spec.yml"
-
-
-def load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        sys.stderr.write(f"missing file: {path}\n")
-        sys.exit(1)
-    return yaml.safe_load(path.read_text())
 
 
 def _checked_url(raw: str) -> str:
@@ -256,13 +251,12 @@ def build_tool(
     }
 
 
-def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
+def strip_params(op: dict[str, Any], names: list[str]) -> int:
     """Drop named parameters from an operation that is otherwise exposed.
 
     Done on the spec object before build_tool sees it, so the field leaves the
     input schema and the execution parameters together.
     """
-    names = (exclude.get("parameters") or {}).get(op.get("operationId")) or []
     if not names:
         return 0
     dropped = 0
@@ -287,15 +281,75 @@ def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
     return dropped
 
 
-def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
-    if path in (exclude.get("paths") or []):
-        return True
-    if op_id in (exclude.get("operation_ids") or []):
-        return True
-    return False
+_MCP_KEYS = {"title", "effect", "open-world", "hide-params", "hidden"}
+_EFFECTS = {"read", "write", "destructive"}
 
 
-def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
+def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
+    """The operation's x-mcp block, checked. Exits on a missing or bad one."""
+    marks = op.get("x-mcp")
+    if marks is None:
+        raise SystemExit(f"{op_id} has no x-mcp block: add one to the spec")
+
+    def bad(why: str) -> SystemExit:
+        return SystemExit(f"bad x-mcp on {op_id}: {why}")
+
+    if not isinstance(marks, dict):
+        raise bad("not a mapping")
+    if unknown := set(marks) - _MCP_KEYS:
+        raise bad(f"unknown keys {sorted(unknown)}")
+    if "hidden" in marks:
+        if set(marks) != {"hidden"} or not str(marks["hidden"]).strip():
+            raise bad("hidden takes a reason and no other keys")
+        return marks
+    if not str(marks.get("title", "")).strip():
+        raise bad("title is required")
+    if marks.get("effect") not in _EFFECTS:
+        raise bad(f"effect must be one of {sorted(_EFFECTS)}")
+    if method == "get" and marks["effect"] != "read":
+        raise bad("a GET is a read")
+    if marks.get("open-world") not in (None, True) or (
+        marks.get("open-world") and marks["effect"] == "read"
+    ):
+        raise bad("open-world is true on a write, or absent")
+    return marks
+
+
+def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
+    """MCP annotations, set explicitly because the spec defaults are conservative."""
+    if marks["effect"] == "read":
+        return {"title": marks["title"], "readOnlyHint": True, "openWorldHint": False}
+    return {
+        "title": marks["title"],
+        "readOnlyHint": False,
+        "destructiveHint": marks["effect"] == "destructive",
+        "openWorldHint": bool(marks.get("open-world")),
+    }
+
+
+def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Every exposed tool, sorted by name, and the operations left off."""
+    tools: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    for path, methods in spec.get("paths", {}).items():
+        path_item_params = methods.get("parameters", []) or []
+        for method, op in methods.items():
+            if method not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            op_id = op.get("operationId") or slug(f"{method}_{path}")
+            marks = mcp_marks(op_id, method, op)
+            if "hidden" in marks:
+                skipped.append(f"{method.upper()} {path}")
+                continue
+            strip_params(op, list(marks.get("hide-params") or []))
+            tool = build_tool(path, method, op, path_item_params, spec)
+            tool["annotations"] = annotations_for(marks)
+            tools.append(tool)
+    tools.sort(key=lambda t: t["name"])
+    return tools, skipped
+
+
+def check(spec_hash: str, tools: list[dict[str, Any]]) -> int:
     """Compare a fresh generation against the committed sentinel + registry."""
     # Imported here so a plain regen never depends on the committed output.
     from app._generated.tools import TOOLS as committed
@@ -311,8 +365,6 @@ def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
             f"spec moved: committed {sentinel.get('openapi_spec_sha256', '?')[:12]}, "
             f"upstream {spec_hash[:12]}"
         )
-    if sentinel.get("mcp_config_sha256") != config_hash:
-        problems.append("mcp-config.yaml changed since the last regen")
 
     fresh_names = {t["name"] for t in tools}
     committed_names = {t["name"] for t in committed}
@@ -335,34 +387,14 @@ def main() -> int:
     spec = yaml.safe_load(spec_bytes)
     spec_name = spec_source.rsplit("/", 1)[-1]
     spec_is_url = spec_source.startswith("http")
-    config = load_yaml(CONFIG_PATH)
-    exclude = config.get("exclude", {}) or {}
+    tools, skipped = build_tools(spec)
 
-    tools: list[dict[str, Any]] = []
-    skipped: list[str] = []
-
-    stripped = 0
-    for path, methods in spec.get("paths", {}).items():
-        path_item_params = methods.get("parameters", []) or []
-        for method, op in methods.items():
-            if method not in {"get", "post", "put", "patch", "delete"}:
-                continue
-            op_id = op.get("operationId") or slug(f"{method}_{path}")
-            if is_excluded(path, op_id, exclude):
-                skipped.append(f"{method.upper()} {path}")
-                continue
-            stripped += strip_params(op, exclude)
-            tools.append(build_tool(path, method, op, path_item_params, spec))
-
-    tools.sort(key=lambda t: t["name"])
-
-    # Drift sentinel: hash the spec + config so a checkout can verify
-    # tools.py is in sync with the source of truth.
+    # Drift sentinel: hash the spec so a checkout can verify tools.py is in
+    # sync with the source of truth.
     spec_hash = hashlib.sha256(spec_bytes).hexdigest()
-    config_hash = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
 
     if "--check" in sys.argv[1:]:
-        return check(spec_hash, config_hash, tools)
+        return check(spec_hash, tools)
 
     # Embed the registry as a JSON string and load it at import time so the
     # generated module stays valid Python regardless of whether descriptions
@@ -371,10 +403,9 @@ def main() -> int:
     body = f'''"""Auto-generated MCP tool registry. Do not edit by hand.
 
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
-or mcp-config.yaml changes.
+changes.
 
 Source spec:   {spec_name}   sha256={spec_hash[:12]}
-Config:        {CONFIG_PATH.name}  sha256={config_hash[:12]}
 """
 from __future__ import annotations
 
@@ -397,8 +428,6 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
         meta_lines.append(f"openapi_spec_url: {spec_source}")
     meta_lines += [
         f"openapi_spec_sha256: {spec_hash}",
-        f"mcp_config: {CONFIG_PATH.name}",
-        f"mcp_config_sha256: {config_hash}",
         f"tool_count: {len(tools)}",
     ]
     OUT_HASH.write_text("\n".join(meta_lines) + "\n")
@@ -408,7 +437,6 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
         for s in skipped:
             print(f"  skipped: {s}")
     print(f"  spec hash: {spec_hash[:12]}")
-    print(f"  config hash: {config_hash[:12]}")
     return 0
 
 
