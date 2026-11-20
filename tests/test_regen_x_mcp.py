@@ -8,6 +8,7 @@ so a new endpoint cannot reach agents before someone decides how it should.
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 from typing import Any
 
@@ -141,3 +142,58 @@ def test_hide_params_drops_query_and_body_inputs() -> None:
     assert set(tool["input_schema"]["properties"]) == {"number"}
     assert tool["input_schema"]["required"] == ["number"]
     assert tool["query_params"] == []
+
+
+_BRIEF = "Post-call actions. Add them with addPostCallAction."
+
+
+def _briefed_spec(brief: Any = _BRIEF) -> dict[str, Any]:
+    big = {
+        "type": "object",
+        "x-mcp-brief": brief,
+        "properties": {
+            f"field{i}": {"type": "string", "description": "x" * 200} for i in range(40)
+        },
+    }
+    body = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "actions": {"$ref": "#/components/schemas/Big"},
+            "per_call": {
+                "allOf": [{"$ref": "#/components/schemas/Big"}],
+                "description": "For this call only.",
+            },
+        },
+    }
+    spec = _spec_with(
+        createThing={
+            "x-mcp": {"title": "Create thing", "effect": "write"},
+            "requestBody": {"content": {"application/json": {"schema": body}}},
+        }
+    )
+    spec["components"] = {"schemas": {"Big": big}}
+    return spec
+
+
+def test_a_briefed_schema_becomes_one_free_form_line() -> None:
+    props = _by_name(_briefed_spec())["createThing"]["input_schema"]["properties"]
+
+    for name in ("actions", "per_call"):
+        text = json.dumps(props[name])
+        assert '"properties"' not in text, name
+        assert _BRIEF in text, name
+        assert len(text) < 400, name
+    assert props["actions"] == {
+        "type": "object",
+        "additionalProperties": True,
+        "description": _BRIEF,
+    }
+    assert props["per_call"]["description"] == "For this call only."
+    assert props["name"] == {"type": "string"}
+
+
+@pytest.mark.parametrize("brief", ["", "  ", 3, "two\nlines", "x" * 401])
+def test_a_bad_brief_fails_the_regen(brief: Any) -> None:
+    with pytest.raises(SystemExit, match="x-mcp-brief on Big"):
+        regen.build_tools(_briefed_spec(brief))
