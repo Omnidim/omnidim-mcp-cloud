@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.14.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.0...v0.14.1) (2026-11-20)
+
+
+### Fixed
+
+* **ci:** deploy from the release tag so the production environment accepts it ([#95](https://github.com/Omnidim/omnidim-mcp-cloud/issues/95)) ([ced6b1c](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ced6b1cd810070ed22c059e582951f5225583eb9))
+
 ## [0.14.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.13.0...v0.14.0) (2026-11-20)
 
 
