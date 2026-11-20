@@ -21,11 +21,10 @@ PKCE_MAX_LEN: Final = 128
 
 
 class AuthorizeError(Exception):
-    def __init__(self, code: str, description: str, *, redirectable: bool) -> None:
+    def __init__(self, code: str, description: str) -> None:
         super().__init__(description)
         self.code = code
         self.description = description
-        self.redirectable = redirectable
 
 
 @dataclass(frozen=True)
@@ -70,34 +69,29 @@ async def begin_authorization(
         raise AuthorizeError(
             "invalid_client",
             "unknown client_id",
-            redirectable=False,
         )
 
     if params.redirect_uri not in client.redirect_uris:
         raise AuthorizeError(
             "invalid_request",
             "redirect_uri does not match a registered value",
-            redirectable=False,
         )
 
     if params.response_type != "code":
         raise AuthorizeError(
             "unsupported_response_type",
             "only 'code' is supported",
-            redirectable=True,
         )
 
     if params.code_challenge_method != "S256":
         raise AuthorizeError(
             "invalid_request",
             "code_challenge_method must be 'S256'",
-            redirectable=True,
         )
     if not (PKCE_MIN_LEN <= len(params.code_challenge) <= PKCE_MAX_LEN):
         raise AuthorizeError(
             "invalid_request",
             "code_challenge must be 43-128 characters",
-            redirectable=True,
         )
 
     requested_scopes = parse_scope(params.scope) or [DEFAULT_SCOPE]
@@ -106,7 +100,6 @@ async def begin_authorization(
         raise AuthorizeError(
             "invalid_scope",
             f"unknown scope: {bad[0]}",
-            redirectable=True,
         )
 
     request_id = _generate_request_id()
