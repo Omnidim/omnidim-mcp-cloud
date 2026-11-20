@@ -125,45 +125,17 @@ jobs:
             ghcr.io/omnidim/omnidim-mcp-cloud:${{ needs.release.outputs.tag }}
             ghcr.io/omnidim/omnidim-mcp-cloud:latest
 
-  # The role this job assumes can only run one deploy command, for one tag, on
-  # one host. The migrate, restart, readiness and rollback steps live on the host.
-  deploy:
+  # The production environment only accepts v* tags, and a tag created by this
+  # workflow's token starts no new run, so hand the deploy to deploy.yml on the
+  # tag itself. workflow_dispatch is the one event that token may start.
+  start-deploy:
     runs-on: ubuntu-latest
-    # The host command times out at 10 min, so anything longer is a stuck poll.
-    timeout-minutes: 15
     needs: [release, publish]
     if: needs.release.outputs.created == 'true'
-    environment: production
     permissions:
-      id-token: write
-      contents: read
-    env:
-      AWS_REGION: us-west-1
-      INSTANCE_ID: ${{ secrets.MCP_DEPLOY_INSTANCE_ID }}
+      actions: write
     steps:
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy
-        env:
+      - env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag }}
-        run: |
-          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name mcp-cloud-deploy \
-            --parameters "tag=$TAG" --query Command.CommandId --output text)
-          echo "SSM command $id"
-          status=Pending
-          while [ "$status" = Pending ] || [ "$status" = InProgress ] || [ "$status" = Delayed ] || [ "$status" = Cancelling ]; do
-            sleep 10
-            # InvocationDoesNotExist is normal for a few seconds after send-command; any other error is real.
-            if ! out=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>&1); then
-              case "$out" in *InvocationDoesNotExist*) out=Pending ;; *) echo "$out" >&2; exit 1 ;; esac
-            fi
-            status=$out
-          done
-          # Only $status decides the result; a failed log fetch must not turn a good deploy red.
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text || true
-          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query StandardErrorContent --output text >&2 || true
-          echo "Status: $status"
-          [ "$status" = Success ]
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
