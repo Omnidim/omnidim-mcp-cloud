@@ -243,6 +243,7 @@ def build_tool(
     # Mark which inputs go in the path so the dispatcher can substitute them.
     path_param_names = [p["name"] for p in params if p.get("in") == "path"]
     query_param_names = [p["name"] for p in params if p.get("in") == "query"]
+    header_param_names = [p["name"] for p in params if p.get("in") == "header"]
     return {
         "name": op_id,
         "description": full_desc,
@@ -251,6 +252,7 @@ def build_tool(
         "path": path,
         "path_params": path_param_names,
         "query_params": query_param_names,
+        "header_params": header_param_names,
     }
 
 

@@ -37,7 +37,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "addBulkCallContact",
@@ -89,7 +90,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "addBulkCallContacts",
@@ -149,7 +151,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "addBulkCallNumber",
@@ -178,7 +181,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "addPostCallAction",
@@ -443,7 +447,10 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ]
     },
     {
         "name": "addWhatsappCampaignContacts",
@@ -466,7 +473,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "addWhatsappOptOut",
@@ -499,7 +507,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "number_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "attachAgentIntegration",
@@ -527,7 +536,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "attachKnowledgeBaseFiles",
@@ -566,7 +576,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/attach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "attachPhoneNumber",
@@ -594,7 +605,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/attach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "bulkCallActions",
@@ -638,7 +650,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "canUploadFile",
@@ -667,7 +680,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/can_upload",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "cancelBulkCall",
@@ -690,7 +704,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "cancelWhatsappCampaign",
@@ -713,7 +728,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createAgent",
@@ -2016,7 +2032,10 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/agents/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ]
     },
     {
         "name": "createAgentVersion",
@@ -2050,7 +2069,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createBulkCall",
@@ -2369,7 +2389,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/calls/bulk_call/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createCustomApiIntegration",
@@ -2530,7 +2551,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/integrations/custom-api",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createSession",
@@ -3491,7 +3513,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/sessions/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createWhatsappCampaign",
@@ -3551,7 +3574,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/whatsapp/campaigns",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "createWorkflow",
@@ -3645,7 +3669,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/workflows",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deactivateWorkflow",
@@ -3668,7 +3693,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deleteAgent",
@@ -3691,7 +3717,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deleteAgentVersion",
@@ -3720,7 +3747,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deleteClonedVoice",
@@ -3743,7 +3771,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deleteKnowledgeBaseFile",
@@ -3765,7 +3794,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/delete",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deletePostCallAction",
@@ -3794,7 +3824,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "action_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "deleteWorkflow",
@@ -3817,7 +3848,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "detachAgentIntegration",
@@ -3846,7 +3878,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "integration_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "detachKnowledgeBaseFiles",
@@ -3880,7 +3913,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/detach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "detachPhoneNumber",
@@ -3902,7 +3936,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/detach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "diffAgentVersion",
@@ -3937,7 +3972,8 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "against"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "dispatchCall",
@@ -4902,7 +4938,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/calls/dispatch",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "editWorkflow",
@@ -5003,7 +5040,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "fetchBulkCalls",
@@ -5036,7 +5074,8 @@ _TOOLS_JSON = r"""[
             "pageno",
             "pagesize",
             "status"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "getAccountBalance",
@@ -5049,7 +5088,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/account/balance",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getAgent",
@@ -5072,7 +5112,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getBulkCall",
@@ -5095,7 +5136,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getBulkCallLiveStatus",
@@ -5118,7 +5160,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getCallLog",
@@ -5141,7 +5184,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "call_log_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getClonedVoice",
@@ -5164,7 +5208,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getClonedVoiceSample",
@@ -5187,7 +5232,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getVoice",
@@ -5210,7 +5256,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWhatsappCalling",
@@ -5233,7 +5280,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "number_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWhatsappCampaign",
@@ -5256,7 +5304,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWhatsappConversation",
@@ -5279,7 +5328,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "conversation_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWhatsappMessage",
@@ -5302,7 +5352,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "message_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWhatsappNumber",
@@ -5325,7 +5376,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "number_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWorkflow",
@@ -5359,7 +5411,8 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "view"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "getWorkflowExecution",
@@ -5388,7 +5441,8 @@ _TOOLS_JSON = r"""[
             "workflow_id",
             "execution_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "getWorkflowNodeType",
@@ -5422,7 +5476,8 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "detail"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "handBackWhatsappConversation",
@@ -5445,7 +5500,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "conversation_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "importExotelNumber",
@@ -5496,7 +5552,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/exotel",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "importSipTrunk",
@@ -5559,7 +5616,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/sip",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "importTwilioNumber",
@@ -5595,7 +5653,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/twilio",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "importWhatsappNumbers",
@@ -5634,7 +5693,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/whatsapp/numbers",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "launchWhatsappCampaign",
@@ -5663,7 +5723,10 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ]
     },
     {
         "name": "liftWhatsappOptOut",
@@ -5692,7 +5755,8 @@ _TOOLS_JSON = r"""[
             "number_id",
             "opt_out_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listAgentIntegrations",
@@ -5715,7 +5779,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listAgentVersions",
@@ -5766,7 +5831,8 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "search",
             "kind"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listAgents",
@@ -5799,7 +5865,8 @@ _TOOLS_JSON = r"""[
             "pageno",
             "pagesize",
             "name"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listAllProviders",
@@ -5812,7 +5879,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/all",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listBulkCallLines",
@@ -5881,7 +5949,8 @@ _TOOLS_JSON = r"""[
             "interaction_status",
             "search",
             "include_total"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listBulkCallNumbers",
@@ -5904,7 +5973,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listCallLogs",
@@ -5959,7 +6029,8 @@ _TOOLS_JSON = r"""[
             "call_status",
             "bulk_call_id",
             "include_details"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listClonedVoices",
@@ -5986,7 +6057,8 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listIntegrations",
@@ -5999,7 +6071,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/integrations",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listKnowledgeBaseFiles",
@@ -6012,7 +6085,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/knowledge_base/list",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listLLMProviders",
@@ -6025,7 +6099,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/llms",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listPhoneNumbers",
@@ -6053,7 +6128,8 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "pageno",
             "pagesize"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listPostCallActions",
@@ -6076,7 +6152,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listSTTProviders",
@@ -6089,7 +6166,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/stt",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listTTSProviders",
@@ -6102,7 +6180,8 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/tts",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "listVoices",
@@ -6171,7 +6250,8 @@ _TOOLS_JSON = r"""[
             "gender",
             "page",
             "page_size"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappCampaignContacts",
@@ -6223,7 +6303,8 @@ _TOOLS_JSON = r"""[
             "status",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappCampaigns",
@@ -6270,7 +6351,8 @@ _TOOLS_JSON = r"""[
             "phone_number_id",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappConversations",
@@ -6333,7 +6415,8 @@ _TOOLS_JSON = r"""[
             "updated_since",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappMessages",
@@ -6374,7 +6457,8 @@ _TOOLS_JSON = r"""[
             "after",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappNumbers",
@@ -6402,7 +6486,8 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappOptOuts",
@@ -6455,7 +6540,8 @@ _TOOLS_JSON = r"""[
             "customer",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWhatsappTemplates",
@@ -6497,7 +6583,8 @@ _TOOLS_JSON = r"""[
             "status",
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWorkflowFieldOptions",
@@ -6532,7 +6619,8 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "depends"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWorkflowNodeTypes",
@@ -6566,7 +6654,8 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "q",
             "category"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "listWorkflows",
@@ -6594,7 +6683,8 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "pauseWhatsappCampaign",
@@ -6617,7 +6707,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "previewWhatsappNumbers",
@@ -6643,7 +6734,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/whatsapp/numbers/preview",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "publishWorkflow",
@@ -6666,7 +6758,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "purchasePhoneNumber",
@@ -6707,7 +6800,10 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/purchase",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ]
     },
     {
         "name": "regenerateClonedVoiceSample",
@@ -6730,7 +6826,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "releasePhoneNumber",
@@ -6752,7 +6849,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/release",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "renameAgentVersion",
@@ -6791,7 +6889,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "restoreAgentVersion",
@@ -6820,7 +6919,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "resumeWhatsappCampaign",
@@ -6843,7 +6943,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "retryBulkCall",
@@ -6889,7 +6990,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "searchPhoneNumbers",
@@ -6941,7 +7043,8 @@ _TOOLS_JSON = r"""[
             "pattern",
             "page",
             "limit"
-        ]
+        ],
+        "header_params": []
     },
     {
         "name": "sendWhatsappMessage",
@@ -7032,7 +7135,10 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/whatsapp/messages",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ]
     },
     {
         "name": "setBulkCallConcurrency",
@@ -7062,7 +7168,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "setBulkCallDailyTimeControl",
@@ -7117,7 +7224,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "setBulkCallNumberActive",
@@ -7152,7 +7260,8 @@ _TOOLS_JSON = r"""[
             "bulk_call_id",
             "assignment_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "setBulkCallRotation",
@@ -7209,7 +7318,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "setPhoneNumberAutoRenew",
@@ -7237,7 +7347,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/auto_renew",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "setWhatsappCalling",
@@ -7265,7 +7376,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "number_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "startBulkCall",
@@ -7288,7 +7400,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "syncWhatsappTemplates",
@@ -7311,7 +7424,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "number_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "takeOverWhatsappConversation",
@@ -7334,7 +7448,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "conversation_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "testWorkflow",
@@ -7362,7 +7477,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "updateAgent",
@@ -8665,7 +8781,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "updateClonedVoice",
@@ -8702,7 +8819,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "updatePostCallAction",
@@ -8968,7 +9086,8 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "action_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "uploadKnowledgeBaseFile",
@@ -8995,7 +9114,8 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     },
     {
         "name": "validateWorkflow",
@@ -9018,7 +9138,8 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": []
     }
 ]"""
 

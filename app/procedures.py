@@ -44,6 +44,7 @@ def _show_workflow_tool() -> dict[str, Any]:
             "required": ["workflow_id"],
         },
         "query_params": [],
+        "header_params": [],
     }
 
 
@@ -101,6 +102,7 @@ def _demo_tool(
         "path": path,
         "path_params": [],
         "query_params": [],
+        "header_params": [],
         # 502 booking_unconfirmed says not to retry; the generic 5xx hint says retry once.
         "relay_server_errors": True,
     }
