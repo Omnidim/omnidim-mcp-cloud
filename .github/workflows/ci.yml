@@ -132,10 +132,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release, publish]
     if: needs.release.outputs.created == 'true'
+    # Waits for the deploy, so a failed deploy turns this run red too.
+    timeout-minutes: 25
     permissions:
       actions: write
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag }}
-        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
+        run: |
+          gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
+          # gh workflow run prints no run id, so find the run it started on this tag.
+          id=
+          for _ in $(seq 1 30); do
+            id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow deploy.yml --branch "$TAG" \
+              --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$id" ] && break
+            sleep 5
+          done
+          [ -n "$id" ] || { echo "No deploy run started for $TAG" >&2; exit 1; }
+          gh run watch "$id" --repo "$GITHUB_REPOSITORY" --exit-status

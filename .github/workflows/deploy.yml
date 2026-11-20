@@ -16,6 +16,9 @@ jobs:
     # The host command times out at 10 min, so anything longer is a stuck poll.
     timeout-minutes: 15
     if: startsWith(github.ref, 'refs/tags/v')
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     environment: production
     permissions:
       id-token: write
