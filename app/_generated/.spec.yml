@@ -1,3 +1,4 @@
-openapi_spec: served-like.yaml
+openapi_spec: openapi.yaml
+openapi_spec_url: https://docs.omnidim.io/openapi.yaml
 openapi_spec_sha256: 704fcc158f014903e4c7a96df78ab94ec100e9e68499a5cafbec0078b82a3e83
 tool_count: 111
