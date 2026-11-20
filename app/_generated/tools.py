@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   served-like.yaml   sha256=704fcc158f01
+Source spec:   openapi.yaml   sha256=704fcc158f01
 """
 from __future__ import annotations
 
