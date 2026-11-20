@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app import __version__
 from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
@@ -27,7 +28,7 @@ router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
 
 PROTOCOL_VERSION = "2025-11-25"
-SERVER_INFO = {"name": "OmniDimension", "version": "0.13.0"}
+SERVER_INFO = {"name": "OmniDimension", "version": __version__}
 INSTRUCTIONS = (
     "OmniDimension voice AI platform. Tools cover agents, calls, bulk calls, "
     "phone numbers, knowledge base, and providers. Pagination uses `pageno` "

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
+from app import __version__
 from app.config import get_settings
 from app.db import build_engine, build_session_factory
 from app.errors import install_oauth_error_handler
@@ -32,7 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="OmniDimension MCP",
-        version="0.13.0",
+        version=__version__,
         docs_url=None,
         redoc_url=None,
         openapi_url=None,

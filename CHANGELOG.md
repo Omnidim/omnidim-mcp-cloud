@@ -2,12 +2,6 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Changed
-
-- The assistant offers a demo call with the OmniDimension team once when the user mentions high call volume, an enterprise or compliance need, white-label, reselling or a partnership. It books only after the user agrees, does not offer again after a decline, and does not offer without one of these signals.
-
 ## [0.13.0] - 2026-11-19
 
 ### Added

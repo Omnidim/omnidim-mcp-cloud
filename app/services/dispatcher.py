@@ -11,6 +11,7 @@ from urllib.parse import quote
 import httpx
 import structlog
 
+from app import __version__
 from app._generated.tools import TOOLS
 from app.procedures import EXTRA_TOOLS
 from app.services.bearer import ResolvedToken
@@ -18,7 +19,7 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.13.0"
+USER_AGENT: Final = f"omnidim-mcp-cloud/{__version__}"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
