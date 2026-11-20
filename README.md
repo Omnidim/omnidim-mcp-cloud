@@ -55,6 +55,7 @@ Most tools map to one endpoint of the [OmniDimension API](https://docs.omnidim.i
 | Account | `getAccountBalance` |
 | Sessions | `createSession` |
 | Demo | `getDemoQuestions`, `requestDemo`, `bookDemo` |
+| Docs | `searchDocs`, `readDoc` |
 
 ## Build your own client
 

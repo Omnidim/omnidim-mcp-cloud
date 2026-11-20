@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app._generated.tools import TOOLS
+from app.docs_tools import DOCS_TOOLS
 
 # MCP Apps view; the HTML is the npm server's build output, copied unchanged.
 _WORKFLOW_CANVAS_HTML = (Path(__file__).parent / "views" / "workflow_canvas.html").read_text()
@@ -188,7 +189,7 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
     ),
 ]
 
-EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool(), *_DEMO_TOOLS]
+EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool(), *_DEMO_TOOLS, *DOCS_TOOLS]
 
 ROUTING_GUIDE = """# OmniDimension routing guide
 

@@ -22,6 +22,7 @@ from app.procedures import (
 )
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
+from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
 
 router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
@@ -185,7 +186,10 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
                 ),
             )
         try:
-            result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
+            if tool_name in DOCS_TOOL_NAMES:
+                result = await call_docs_tool(tool_name, arguments, token)
+            else:
+                result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
         except DispatchError as exc:
             return JSONResponse(content=_error(req_id, exc.code, exc.message, exc.data))
         return JSONResponse(
