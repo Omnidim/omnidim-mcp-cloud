@@ -56,6 +56,8 @@ def test_call_placing_tools_are_destructive_and_open_world() -> None:
         "addBulkCallContacts",
         "startBulkCall",
         "retryBulkCall",
+        # Its resume action restarts a paused campaign, which places paid calls.
+        "bulkCallActions",
     ):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
