@@ -119,6 +119,8 @@ async def test_read_doc_returns_the_page_as_markdown(
         "//evil.example/docs/x",
         "http://docs.omnidim.io/docs/x",
         "https://docs.omnidim.io.evil.example/docs/x",
+        "/docs/x%0A",
+        "https://[",
     ],
 )
 async def test_read_doc_refuses_anything_outside_the_docs(
@@ -132,3 +134,16 @@ async def test_read_doc_refuses_anything_outside_the_docs(
 
     assert body["error"]["code"] == -32602
     assert captured == []
+
+
+async def test_read_doc_drops_a_trailing_slash(
+    client: AsyncClient,
+    mock_backend: Backend,  # noqa: F811
+) -> None:
+    # The docs site answers a trailing slash with a 308, which httpx does not follow.
+    captured = mock_backend(lambda req: httpx.Response(200, text="# Page"))
+
+    await _call(client, "readDoc", {"url": "/docs/get-started/quickstart/"})
+
+    (req,) = captured
+    assert req.url.path == "/docs/get-started/quickstart"

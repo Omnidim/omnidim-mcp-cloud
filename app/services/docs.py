@@ -30,14 +30,19 @@ def _doc_path(raw: object) -> str:
     """The /docs/ path of a docs.omnidim.io page url or path, or a -32602 for anything else."""
     if not isinstance(raw, str) or not raw.strip():
         raise DispatchError(-32602, "readDoc needs a url")
-    parts = urlsplit(raw.strip())
+    try:
+        parts = urlsplit(raw.strip())
+    except ValueError as exc:
+        raise DispatchError(-32602, "readDoc needs a docs.omnidim.io url") from exc
     if parts.scheme or parts.netloc:
         if f"{parts.scheme}://{parts.netloc}" != DOCS_ORIGIN:
             raise DispatchError(-32602, "readDoc reads only https://docs.omnidim.io pages")
     path = unquote(parts.path)
-    if not _DOC_PATH_RE.match(path):
+    # fullmatch: match() with $ would let a trailing newline through.
+    if not _DOC_PATH_RE.fullmatch(path):
         raise DispatchError(-32602, "readDoc reads only pages under /docs/")
-    return path
+    # The docs site redirects a trailing slash, and httpx does not follow redirects.
+    return path.rstrip("/") or "/docs"
 
 
 async def _get(url: str, **kwargs: Any) -> httpx.Response:
