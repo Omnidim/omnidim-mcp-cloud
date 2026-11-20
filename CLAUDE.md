@@ -41,21 +41,11 @@ These do not bend without an explicit decision:
 ## Release flow
 
 - `main` is the release branch. Every commit on `main` must pass CI.
-- Production deploys on a `v*` git tag. The deploy job builds the image, pushes it to `ghcr.io/omnidim/omnidim-mcp-cloud`, then asks the deploy host (via a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back to the previous image on failure. No SSH keys in CI.
-- Staging deploys on every merge to `main` once a staging host is provisioned.
-- Never deploy from a laptop. Tag → CI → server.
-- Database migrations are forward-compatible: an old app version must be able to run against the new schema for the rolling-deploy window.
-
-## Changelog discipline
-
-Every release gets an entry in `CHANGELOG.md` before its tag is pushed.
-
-- Format: Keep a Changelog. Sections are `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security` as needed.
-- The `[Unreleased]` section collects entries as work lands on `main`. When tagging `vX.Y.Z`, rename that section to `[X.Y.Z] - YYYY-MM-DD` and start a fresh `[Unreleased]` above it.
-- Entries describe user-visible behaviour, not commit-by-commit history. Group related commits into a single bullet.
-- Breaking changes go under `### Changed` with a **BREAKING** prefix and a migration note.
-- Security fixes belong in `### Security` with a CVE reference if one exists.
-- If a tag goes out without an entry, that's a release process bug — fix it retroactively in the same release.
+- Never bump a version, edit `CHANGELOG.md` or push a `v*` tag by hand. release-please does all three.
+- PRs are squash-merged, and the PR title becomes the commit and the changelog line. Write it as a conventional commit a user can read: `feat:` lands under Added, `fix:` under Fixed, `perf:` under Changed. `ci`, `test`, `build`, `docs` and `chore` stay out. The `pr-title` check rejects other formats. Mark a breaking change with `!` (`feat!:`) and say how to migrate in the PR body.
+- After each merge, release-please updates one open release PR. Merging it is the prod deploy approval: the `release` job tags `vX.Y.Z`, `publish` pushes the image to `ghcr.io/omnidim/omnidim-mcp-cloud`, and `deploy` asks the host (through a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back on failure. Only the approvers team merges release PRs.
+- The only version source is `pyproject.toml`. `app.__version__` reads it from the installed package for serverInfo, the API version and the upstream User-Agent.
+- Never deploy from a laptop. Database migrations are forward-compatible: an old app version must run against the new schema for the rolling-deploy window.
 
 ## Code hygiene
 
