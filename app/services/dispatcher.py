@@ -170,8 +170,20 @@ def _split_args(
     header_params: list[str],
 ) -> tuple[dict[str, Any], dict[str, str], dict[str, Any]]:
     query = {p: args[p] for p in query_params if p in args}
-    headers = {p: str(args[p]) for p in header_params if p in args}
-    routed = {*path_params, *query_params, *header_params}
+    # HTTP header names are case-insensitive, so a model's lowercase key still counts.
+    by_lower = {p.lower(): p for p in header_params}
+    headers: dict[str, str] = {}
+    header_args: set[str] = set()
+    for k, v in args.items():
+        name = by_lower.get(k.lower())
+        if name is None:
+            continue
+        value = str(v)
+        if not value.isascii():
+            raise DispatchError(-32602, f"{name} must be plain ASCII text")
+        headers[name] = value
+        header_args.add(k)
+    routed = {*path_params, *query_params, *header_args}
     body = {k: v for k, v in args.items() if k not in routed}
     return query, headers, body
 

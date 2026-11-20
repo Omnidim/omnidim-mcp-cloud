@@ -10,6 +10,7 @@ import json
 from typing import Any
 
 import httpx
+import pytest
 
 from app.services import dispatcher
 from app.services.bearer import ResolvedToken
@@ -53,9 +54,27 @@ async def test_idempotency_key_is_a_header_with_no_body() -> None:
     assert not req.content
 
 
-async def test_auth_headers_cannot_be_overridden_by_arguments() -> None:
+async def test_a_header_param_cannot_replace_the_credential(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # No spec tool declares Authorization today; a future one must not leak it.
+    tool = dict(dispatcher._TOOLS_BY_NAME["launchWhatsappCampaign"])
+    tool["header_params"] = ["Idempotency-Key", "Authorization"]
+    monkeypatch.setitem(dispatcher._TOOLS_BY_NAME, "launchWhatsappCampaign", tool)
     req = await _sent(
         "launchWhatsappCampaign",
         {"campaign_id": 5, "Idempotency-Key": "k-3", "Authorization": "Bearer other"},
     )
     assert req.headers["Authorization"] == "Bearer key"
+
+
+async def test_header_param_names_match_in_any_case() -> None:
+    req = await _sent("launchWhatsappCampaign", {"campaign_id": 5, "idempotency-key": "k-4"})
+    assert req.headers["Idempotency-Key"] == "k-4"
+    assert not req.content
+
+
+async def test_a_header_value_that_is_not_ascii_is_refused() -> None:
+    with pytest.raises(dispatcher.DispatchError) as err:
+        await _sent("launchWhatsappCampaign", {"campaign_id": 5, "Idempotency-Key": "clé"})
+    assert err.value.code == -32602
