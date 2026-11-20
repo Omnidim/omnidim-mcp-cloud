@@ -299,19 +299,24 @@ def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
     if unknown := set(marks) - _MCP_KEYS:
         raise bad(f"unknown keys {sorted(unknown)}")
     if "hidden" in marks:
-        if set(marks) != {"hidden"} or not str(marks["hidden"]).strip():
-            raise bad("hidden takes a reason and no other keys")
+        reason = marks["hidden"]
+        if set(marks) != {"hidden"} or not isinstance(reason, str) or not reason.strip():
+            raise bad("hidden takes a reason, as text, and no other keys")
         return marks
-    if not str(marks.get("title", "")).strip():
-        raise bad("title is required")
-    if marks.get("effect") not in _EFFECTS:
+    title = marks.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise bad("title is required, as text")
+    effect = marks.get("effect")
+    if not isinstance(effect, str) or effect not in _EFFECTS:
         raise bad(f"effect must be one of {sorted(_EFFECTS)}")
-    if method == "get" and marks["effect"] != "read":
+    if method == "get" and effect != "read":
         raise bad("a GET is a read")
-    if marks.get("open-world") not in (None, True) or (
-        marks.get("open-world") and marks["effect"] == "read"
-    ):
+    open_world = marks.get("open-world")
+    if not (open_world is None or open_world is True) or (open_world and effect == "read"):
         raise bad("open-world is true on a write, or absent")
+    hide = marks.get("hide-params", [])
+    if not isinstance(hide, list) or not all(isinstance(n, str) for n in hide):
+        raise bad("hide-params is a list of input names")
     return marks
 
 

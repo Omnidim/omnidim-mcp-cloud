@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   omnidim.yaml   sha256=c4304fc95186
+Source spec:   served-like.yaml   sha256=704fcc158f01
 """
 from __future__ import annotations
 
@@ -1040,8 +1040,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -2277,7 +2277,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2456,12 +2456,12 @@ _TOOLS_JSON = r"""[
                         "retry_unanswered": {
                             "type": "string",
                             "enum": [
-                                false,
+                                "off",
                                 "no_reply",
                                 "no_reply_or_short",
                                 "model"
                             ],
-                            "default": false,
+                            "default": "off",
                             "description": "Also retry calls that connected but got no conversation.\n`no_reply`: the contact never spoke. `no_reply_or_short`:\nthe contact never spoke, or the call lasted at most\n`retry_unanswered_max_seconds`. `model`: the contact\nnever spoke, or post-call analysis read the transcript\nand found no real conversation. Retries follow the same\nschedule or steps as failed calls.\n"
                         },
                         "retry_unanswered_max_seconds": {
@@ -8294,8 +8294,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }

@@ -48,6 +48,13 @@ def test_an_operation_without_x_mcp_fails_the_regen() -> None:
         {"title": "T", "effect": "write", "colour": "red"},
         {"hidden": ""},
         {"hidden": "why", "title": "T"},
+        {"title": 5, "effect": "write"},
+        {"hidden": None},
+        {"hidden": False},
+        {"title": "T", "effect": "write", "hide-params": "user_id"},
+        {"title": "T", "effect": "write", "hide-params": [1]},
+        {"title": "T", "effect": "write", "open-world": 1},
+        {"title": "T", "effect": ["write"]},
     ],
 )
 def test_a_malformed_block_fails_the_regen(block: dict[str, Any]) -> None:
