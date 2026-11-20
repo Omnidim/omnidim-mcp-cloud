@@ -389,3 +389,31 @@ async def test_cloning_sends_users_to_the_dashboard_upload(client: AsyncClient) 
     assert "feature_not_enabled" in routing
     # Knowledge-base upload stays (small PDFs work), with the dashboard for larger files.
     assert "https://omnidim.io/files" in routing
+
+
+async def test_call_tips_guide_is_served_and_linked(client: AsyncClient) -> None:
+    from app.procedures import build_prompt, read_resource
+
+    guide = read_resource("omnidim://guide/call-tips")
+    assert guide is not None
+    text = guide["contents"][0]["text"]
+    assert "welcome_message" in text
+    for prompt in ("provision_agent", "build_outbound_campaign"):
+        built = build_prompt(prompt, {"purpose": "x", "goal": "x"})
+        assert built is not None
+        assert "omnidim://guide/call-tips" in built["messages"][0]["content"]["text"]
+
+
+def test_outbound_greeting_examples_are_short_name_checks() -> None:
+    import json
+    import re
+
+    from app.procedures import AGENT_CONFIG_GUIDE
+
+    blocks = re.findall(r"^\{\n.*?\n\}$", AGENT_CONFIG_GUIDE, re.M | re.S)
+    examples = [json.loads(m) for m in blocks]
+    outbound = [e for e in examples if e["call_type"] == "Outgoing"]
+    assert outbound
+    for e in outbound:
+        assert len(e["welcome_message"].split()) <= 8
+        assert "[name]" in e["welcome_message"]
