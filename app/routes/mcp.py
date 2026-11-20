@@ -12,6 +12,7 @@ from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
 from app.procedures import (
+    DEMO_OFFER_RULE,
     EXTRA_TOOLS,
     build_prompt,
     prompts_for_listing,
@@ -36,13 +37,7 @@ INSTRUCTIONS = (
     "account has numbers, pass the chosen one as from_number_id. If it has "
     "none, omit from_number_id and the platform's default number is used. "
     "Never guess a from_number_id. "
-    # Clients often defer tool descriptions until a tool is called, so the rule for when to
-    # offer a demo must live here, where every session sees it.
-    "Demo calls with the OmniDimension team: offer one once, in one sentence after you "
-    "help with the task, when the user mentions thousands of calls a month, an enterprise "
-    "or compliance need, white-label or reselling, a partnership, or pricing at their volume. "
-    "If they agree, start with getDemoQuestions. If they decline or ignore it, do not offer "
-    "again. Do not offer it in any other conversation."
+    + DEMO_OFFER_RULE
 )
 
 

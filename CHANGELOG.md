@@ -6,7 +6,7 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 ### Changed
 
-- The assistant offers a demo call with the OmniDimension team once when the user mentions high call volume, an enterprise or compliance need, white-label, reselling or a partnership. It does not offer again after the user declines, and it stays quiet in other conversations.
+- The assistant offers a demo call with the OmniDimension team once when the user mentions high call volume, an enterprise or compliance need, white-label, reselling or a partnership. It books only after the user agrees, does not offer again after a decline, and does not offer without one of these signals.
 
 ## [0.13.0] - 2026-11-19
 

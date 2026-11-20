@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from app.annotations import tool_annotations
-from app.procedures import EXTRA_TOOLS, ROUTING_GUIDE, build_prompt
+from app.procedures import DEMO_OFFER_RULE, EXTRA_TOOLS, ROUTING_GUIDE, build_prompt
 from app.routes.mcp import INSTRUCTIONS
 from app.services import dispatcher
 from app.services.bearer import ResolvedToken
@@ -78,11 +78,21 @@ def test_the_routing_guide_sends_demo_requests_to_the_procedure() -> None:
     assert "Use it when the user asks for a demo" in _tool("getDemoQuestions")["description"]
 
 
-def test_the_server_instructions_say_when_to_offer_a_demo() -> None:
-    # Clients defer tool descriptions, so only the instructions reach every session.
-    assert "getDemoQuestions" in INSTRUCTIONS
-    assert "thousands of calls a month" in INSTRUCTIONS
-    assert "do not offer again" in INSTRUCTIONS
+def test_every_text_a_model_reads_carries_the_whole_offer_rule() -> None:
+    # Clients defer tool descriptions, so the instructions are the one text every session
+    # sees. The tool text and the guide must not say something different.
+    for part in ("once", "one sentence", "only after they agree", "do not offer again"):
+        assert part in DEMO_OFFER_RULE
+    texts = [INSTRUCTIONS, _tool("getDemoQuestions")["description"], ROUTING_GUIDE]
+    for text in texts:
+        assert DEMO_OFFER_RULE in text
+        assert "unasked" not in text
+        assert "Only when the user asks" not in text
+
+
+def test_the_guide_books_only_on_a_request_or_a_yes() -> None:
+    bullet = next(line for line in ROUTING_GUIDE.splitlines() if "Book a demo" in line)
+    assert "pricing" not in bullet
 
 
 def test_the_procedure_never_dead_ends_on_an_empty_week() -> None:
