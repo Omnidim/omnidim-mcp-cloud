@@ -17,11 +17,11 @@ from app.procedures import EXTRA_TOOLS
 SERVED = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS)}
 NOT_TOOLS = {"requestBody"}
 SKILLS = [
-    "audit-calls",
-    "build-agent",
-    "build-workflow",
-    "connect-omnidim",
-    "run-outbound-campaign",
+    "omnidim-audit-calls",
+    "omnidim-build-agent",
+    "omnidim-build-workflow",
+    "omnidim-connect",
+    "omnidim-run-campaign",
 ]
 
 

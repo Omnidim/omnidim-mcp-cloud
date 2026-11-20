@@ -21,14 +21,14 @@ from app.procedures import _RESOURCES, build_prompt
 
 _PREAMBLE = (
     "Needs the OmniDimension MCP server: hosted at `https://mcp.omnidim.io/mcp`, or local with "
-    "`npx -y @omnidim-ai/mcp-server` (see the connect-omnidim skill). If a field, error or "
+    "`npx -y @omnidim-ai/mcp-server` (see the omnidim-connect skill). If a field, error or "
     "feature is unclear, call `searchDocs` before guessing.\n"
 )
 
 # (skill, description, [(prompt, arguments)], guides it always carries)
 _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
     (
-        "build-agent",
+        "omnidim-build-agent",
         "Create an OmniDimension voice agent end to end: configure it, give it a phone number, "
         "test it with a real call, and roll it back to an earlier version if a change broke it. "
         "Use when the user wants a new voice agent, a bot for calls, or to undo agent changes.",
@@ -39,7 +39,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         ["agent-config", "recommended-stack", "voices", "carriers", "agent-versioning"],
     ),
     (
-        "build-workflow",
+        "omnidim-build-workflow",
         "Build an OmniDimension automation workflow from a plain-language goal: pick the trigger "
         "and nodes, wire them, validate, test with consent, then publish. Use when the user wants "
         "something to happen automatically after a call or another event.",
@@ -47,7 +47,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         ["workflows"],
     ),
     (
-        "run-outbound-campaign",
+        "omnidim-run-campaign",
         "Set up and launch an OmniDimension bulk-call campaign: draft it, add contacts in "
         "batches, size concurrency, check calling hours, then start and watch it. Use when the "
         "user wants to call a list of people.",
@@ -55,7 +55,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         ["bulk-campaigns", "carriers"],
     ),
     (
-        "audit-calls",
+        "omnidim-audit-calls",
         "Review OmniDimension call logs: find failed calls, read transcripts and sentiment, and "
         "summarize an agent or a campaign. Use when the user asks how calls went or why calls "
         "fail.",
@@ -66,7 +66,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
 
 _CONNECT = """\
 ---
-name: connect-omnidim
+name: omnidim-connect
 description: "Connect an AI agent to an OmniDimension account through MCP, with the hosted server or a local one. Use when the OmniDimension tools are missing, a tool call fails with 401, or the user asks how to set OmniDimension up."
 ---
 
@@ -126,8 +126,8 @@ def export(out: Path) -> None:
             f"---\nname: {skill}\ndescription: {json.dumps(description)}\n---\n\n{_PREAMBLE}\n"
             f"{_localize(body, 'references/')}\n\n## References\n\n{links}\n"
         )
-    (out / "connect-omnidim").mkdir(exist_ok=True)
-    (out / "connect-omnidim" / "SKILL.md").write_text(_CONNECT)
+    (out / "omnidim-connect").mkdir(exist_ok=True)
+    (out / "omnidim-connect" / "SKILL.md").write_text(_CONNECT)
 
 
 if __name__ == "__main__":
