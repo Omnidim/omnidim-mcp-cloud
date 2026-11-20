@@ -273,13 +273,15 @@ give it a **phone number** and optionally a **knowledge base**, then place
 _CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
    {
      "name": "<short name>",
-     "welcome_message": "<first line the agent speaks>",
+     "welcome_message": "<for outbound, a name check of 8 words or fewer, e.g. Hi, am I speaking with [name]?>",
      "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
      "call_type": "Outgoing",
      "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
      "voice": { "provider": "cartesia", "voice_id": "<voice id>" },
      "transcriber": { "provider": "soniox" }
    }
+   Before you write `welcome_message` and the instructions, read the
+   `omnidim://guide/call-tips` resource: it lists what the best agents do on real calls.
    Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
 3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
    `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
@@ -413,15 +415,20 @@ def _build_outbound_campaign(args: dict[str, Any]) -> str:
         "5. Add contacts with `addBulkCallContacts` in batches of up to 1000:\n"
         '   { bulk_call_id, contacts: [{ to_number: "+1...", custom_variables: {...} }] }.\n'
         "   This shape differs from create's contact_list on purpose; do not mix them. Report anything\n"
-        "   that comes back in `rejected` with its row index.\n"
+        "   that comes back in `rejected` with its row index. Each `custom_variables` key fills the\n"
+        "   matching [placeholder] in the agent's greeting and prompt, so every row needs every key the\n"
+        "   agent uses, or the agent says the placeholder out loud.\n"
         "6. Calling hours: if the goal names a time window, set it with `setBulkCallDailyTimeControl`\n"
         "   (both the stop and start blocks are required) and pass `daily_stop_timezone`/\n"
         "   `daily_start_timezone` for the customers' region; left out they fall back to the campaign's\n"
         "   timezone, and a mismatch dials people at night. Also set the agent's own `timezone` field\n"
         "   (`updateAgent`) so it works with the customers' local time on calls.\n"
-        "7. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
+        "7. Check the agent's greeting against the `omnidim://guide/call-tips` resource (a name check of\n"
+        "   8 words or fewer loses far fewer calls in the first seconds). Suggest changes; never edit the\n"
+        "   agent without the user's yes.\n"
+        "8. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
         "   their explicit go-ahead. Then `startBulkCall`.\n"
-        "8. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
+        "9. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
         "   with `listBulkCallLines` (follow `next_cursor` until null) and offer `retryBulkCall` for\n"
         "   contacts that did not connect.\n\n"
         "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
@@ -650,7 +657,7 @@ wrapper; see the routing guide). The fields:
 
 {
   "name": "Appointment reminder",
-  "welcome_message": "Namaste, main aapke appointment ke baare mein baat karne ke liye call kar rahi hoon.",
+  "welcome_message": "Namaste, kya aap [name] bol rahe hain?",
   "context_breakdown": [
     { "title": "Role", "body": "You remind customers about an upcoming appointment and confirm whether they can attend. Speak naturally in the caller's language, Hindi or English." }
   ],
@@ -1031,6 +1038,86 @@ and tell #sales in Slack."
 5. Tell the user to point the agent's post-call action at this workflow.
 """
 
+CALL_TIPS_GUIDE = """# Tips from real calls: what the best agents do
+
+Measured on answered calls in the 30 days to 20 November 2026: 165 outbound
+agents in 79 accounts and 35 inbound agents in 17 accounts, each with at least
+100 answered calls. "Early drop" is a call the person hangs up within 15
+seconds. "Natural end" is a call the agent ends or transfers when it is done.
+These patterns go with better calls. They are not proof of cause, so test a
+change on a few calls before you roll it out.
+
+## 1. Open with a name check of 8 words or fewer
+
+| Outbound `welcome_message` length | Early drop | Natural end |
+|---|---|---|
+| 8 words or fewer | 31% | 27% |
+| 9 to 15 words | 37% | 15% |
+| 16 to 25 words | 49% | 15% |
+| More than 25 words | 46% | 8% |
+
+In 11 accounts that run both short and long greetings, the short one lost
+fewer early calls in 10 of them. A good first line asks only for the person:
+"Hi, am I speaking with [name]?" Say who you are and why on the next turn,
+after they answer.
+
+## 2. On the second turn, say who, why, and ask for a minute
+
+One sentence: the agent's name, the company, and the thing the person did,
+such as "You asked about our evening course" or "You applied for the sales
+role". Then ask for permission with a time: "Is now a good time for two
+minutes?" If they are busy, ask when to call back, repeat the time, and end
+the call politely.
+
+## 3. Get past call screening
+
+Many phones now answer unknown numbers with a screening assistant ("If you
+record your name and reason for calling..."). Tell the agent to answer with
+one sentence that holds its name, the company and the reason, then wait. If
+the person says "please hold", the agent waits and does not repeat itself.
+
+## 4. Fill in the person's details, and check every placeholder
+
+Put variables in square brackets, like `[name]` or `[course]`. In a campaign
+they come from the contact list columns, so each name must match a column
+header, and every row needs a value. A missing value makes the agent say the
+placeholder out loud.
+
+## 5. Keep the temperature low for scripted calls
+
+Outbound agents with `model.temperature` 0.3 or lower had 37% early drop and
+21% natural end, against 45% and 14% at 0.3 to 0.7.
+
+## 6. One short question per turn
+
+Ask one thing, then listen. Repeat back what you heard in a few words
+("Got it, the evening slot") before the next question. Long turns give the
+person more reasons to hang up.
+
+## 7. Speak the caller's language
+
+Tell the agent to answer in the language the caller uses, and to keep the
+words people really say for products and forms (often English terms inside
+Hindi or another language). Pick the transcriber and voice from the
+`omnidim://reference/recommended-stack` guide for that language.
+
+## 8. End the call on purpose
+
+Set `end_call` with a plain condition, for example "End the call once the
+appointment is confirmed or the person says they are not interested." Agents
+that end calls themselves leave fewer silent calls that time out.
+
+## What did not show a clear pattern
+
+The language model, the prompt length and the speech speed showed no steady
+difference once accounts with very different call types were compared. Pick
+the model by language and cost (`omnidim://reference/recommended-stack`), and
+keep `voice.speech_speed` near 1.0 unless the user asks for a change.
+
+If something here is unclear, call `searchDocs`.
+"""
+
+
 _RESOURCES: list[dict[str, str]] = [
     {
         "uri": "omnidim://guide/routing",
@@ -1059,6 +1146,13 @@ _RESOURCES: list[dict[str, str]] = [
         "description": "The createAgent field shape with two complete, copy-ready example configurations (Indian-English support, Hindi/Hinglish reminder).",
         "mimeType": "text/markdown",
         "text": AGENT_CONFIG_GUIDE,
+    },
+    {
+        "uri": "omnidim://guide/call-tips",
+        "name": "Tips from real calls",
+        "description": "What the best agents do, measured on real calls: a short name-check greeting, who and why on the second turn, call screening, placeholders, temperature, ending calls.",
+        "mimeType": "text/markdown",
+        "text": CALL_TIPS_GUIDE,
     },
     {
         "uri": "omnidim://guide/bulk-campaigns",
