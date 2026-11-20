@@ -44,6 +44,8 @@ def _show_workflow_tool() -> dict[str, Any]:
             "required": ["workflow_id"],
         },
         "query_params": [],
+        "header_params": [],
+        "annotations": {**get["annotations"], "title": "Show workflow canvas"},
     }
 
 
@@ -88,7 +90,15 @@ def _demo_tool(
     description: str,
     properties: dict[str, Any] | None = None,
     required: list[str] | None = None,
+    *,
+    title: str,
 ) -> dict[str, Any]:
+    # A request or booking reaches the OmniDimension team, outside the user's account.
+    annotations: dict[str, Any] = (
+        {"title": title, "readOnlyHint": True, "openWorldHint": False}
+        if method == "GET"
+        else {"title": title, "readOnlyHint": False, "destructiveHint": False, "openWorldHint": True}
+    )
     return {
         "name": name,
         "description": description + "\n\n(Tags: Demo)",
@@ -101,6 +111,8 @@ def _demo_tool(
         "path": path,
         "path_params": [],
         "query_params": [],
+        "header_params": [],
+        "annotations": annotations,
         # 502 booking_unconfirmed says not to retry; the generic 5xx hint says retry once.
         "relay_server_errors": True,
     }
@@ -128,6 +140,7 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         + " Returns every question the booking asks, in "
         "order, with the allowed choices. Ask the user each one, plus their timezone, then call "
         "`requestDemo`. Never guess an answer. The `book_demo` prompt has the same steps.",
+        title="Get demo booking questions",
     ),
     _demo_tool(
         "requestDemo",
@@ -149,6 +162,7 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
             },
         },
         _DEMO_ANSWERS_REQUIRED,
+        title="Request a demo",
     ),
     _demo_tool(
         "bookDemo",
@@ -170,6 +184,7 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
             },
         },
         [*_DEMO_ANSWERS_REQUIRED, "start_time"],
+        title="Book a demo",
     ),
 ]
 

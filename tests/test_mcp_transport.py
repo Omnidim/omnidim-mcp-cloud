@@ -295,7 +295,7 @@ async def test_mcp_tools_call_encodes_path_params(
 
 
 def test_registry_excludes_off_surface_operations() -> None:
-    """The exposure config in mcp-config.yaml is enforced at generation time,
+    """The spec's x-mcp hidden marks are enforced at generation time,
     so a stale committed registry is the only way an excluded operation can
     reach clients. Guard the committed file.
     """

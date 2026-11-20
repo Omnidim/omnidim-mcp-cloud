@@ -1,10 +1,22 @@
 """MCP tool annotations: unit logic + tools/list wiring."""
+from typing import Any
+
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
-from app.annotations import tool_annotations
+from app.procedures import EXTRA_TOOLS
 
 from .test_mcp_transport import _mint_access_token
+
+_BY_NAME = {t["name"]: t for t in (*TOOLS, *EXTRA_TOOLS)}
+
+
+def tool_annotations(name: str, method: str) -> dict[str, Any]:
+    """The marks a tool ships with. Regen writes them from the spec's x-mcp."""
+    tool = _BY_NAME[name]
+    # The old callers passed "POST" for any non-GET; only GET versus not matters.
+    assert (tool["method"] == "GET") == (method.upper() == "GET"), f"{name} is {tool['method']}"
+    return dict(tool["annotations"])
 
 
 def test_every_generated_tool_has_a_title() -> None:

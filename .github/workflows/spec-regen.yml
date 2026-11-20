@@ -97,9 +97,9 @@ jobs:
             If either list is non-empty this changes what agents can do, not
             just how it reads. Anything added is callable by every agent on the
             hosted server once this deploys, so check it belongs on this
-            surface before merging. To keep an operation off, add its
-            `operationId` to `exclude.operation_ids` in `mcp-config.yaml` with
-            a reason and regenerate.
+            surface before merging. To keep an operation off, set
+            `x-mcp: {hidden: "<reason>"}` on it in omnidim-docs
+            `openapi/omnidim.yaml`.
 
             Deploying is still a `v*` tag by hand.
 

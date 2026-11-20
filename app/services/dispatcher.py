@@ -164,11 +164,28 @@ def _substitute_path(
 
 
 def _split_args(
-    args: dict[str, Any], path_params: list[str], query_params: list[str]
-) -> tuple[dict[str, Any], dict[str, Any]]:
+    args: dict[str, Any],
+    path_params: list[str],
+    query_params: list[str],
+    header_params: list[str],
+) -> tuple[dict[str, Any], dict[str, str], dict[str, Any]]:
     query = {p: args[p] for p in query_params if p in args}
-    body = {k: v for k, v in args.items() if k not in path_params and k not in query_params}
-    return query, body
+    # HTTP header names are case-insensitive, so a model's lowercase key still counts.
+    by_lower = {p.lower(): p for p in header_params}
+    headers: dict[str, str] = {}
+    header_args: set[str] = set()
+    for k, v in args.items():
+        name = by_lower.get(k.lower())
+        if name is None:
+            continue
+        value = str(v)
+        if not value.isascii():
+            raise DispatchError(-32602, f"{name} must be plain ASCII text")
+        headers[name] = value
+        header_args.add(k)
+    routed = {*path_params, *query_params, *header_args}
+    body = {k: v for k, v in args.items() if k not in routed}
+    return query, headers, body
 
 
 def _coerce_args(args: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
@@ -215,10 +232,14 @@ async def dispatch_tool(
     path = _substitute_path(
         tool["path"], arguments, tool["path_params"], tool["input_schema"]
     )
-    query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
+    query, spec_headers, body = _split_args(
+        arguments, tool["path_params"], tool["query_params"], tool["header_params"]
+    )
 
     url = f"{BACKEND_BASE_URL}{path}"
+    # Spec headers first, so a tool argument can never replace the credential.
     headers = {
+        **spec_headers,
         "Authorization": f"Bearer {token.odoo_api_key_value}",
         "User-Agent": USER_AGENT,
     }

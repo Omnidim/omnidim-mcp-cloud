@@ -8,7 +8,6 @@ from collections.abc import Iterator
 import httpx
 import pytest
 
-from app.annotations import tool_annotations
 from app.procedures import DEMO_OFFER_RULE, EXTRA_TOOLS, ROUTING_GUIDE, build_prompt
 from app.routes.mcp import INSTRUCTIONS
 from app.services import dispatcher
@@ -45,10 +44,10 @@ def _tool(name: str) -> dict:
 
 
 def test_the_three_demo_tools_have_titles_and_honest_hints() -> None:
-    questions = tool_annotations("getDemoQuestions", _tool("getDemoQuestions")["method"])
+    questions = _tool("getDemoQuestions")["annotations"]
     assert questions["readOnlyHint"] is True
     for name in ("requestDemo", "bookDemo"):
-        hints = tool_annotations(name, _tool(name)["method"])
+        hints = _tool(name)["annotations"]
         assert "title" in hints, name
         # Both reach people outside the chat: a call from our team, or a calendar invite.
         assert hints["readOnlyHint"] is False, name
@@ -57,7 +56,7 @@ def test_the_three_demo_tools_have_titles_and_honest_hints() -> None:
 
 def test_every_hand_written_tool_has_a_title() -> None:
     missing = [
-        t["name"] for t in EXTRA_TOOLS if "title" not in tool_annotations(t["name"], t["method"])
+        t["name"] for t in EXTRA_TOOLS if "title" not in t["annotations"]
     ]
     assert missing == []
 
