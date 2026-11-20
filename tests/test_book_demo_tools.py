@@ -10,6 +10,7 @@ import pytest
 
 from app.annotations import tool_annotations
 from app.procedures import EXTRA_TOOLS, ROUTING_GUIDE, build_prompt
+from app.routes.mcp import INSTRUCTIONS
 from app.services import dispatcher
 from app.services.bearer import ResolvedToken
 
@@ -75,6 +76,13 @@ def test_the_routing_guide_sends_demo_requests_to_the_procedure() -> None:
     # Clients without prompts pick tools from this guide and the tool text alone.
     assert "`book_demo` prompt" in ROUTING_GUIDE
     assert "Use it when the user asks for a demo" in _tool("getDemoQuestions")["description"]
+
+
+def test_the_server_instructions_say_when_to_offer_a_demo() -> None:
+    # Clients defer tool descriptions, so only the instructions reach every session.
+    assert "getDemoQuestions" in INSTRUCTIONS
+    assert "thousands of calls a month" in INSTRUCTIONS
+    assert "do not offer again" in INSTRUCTIONS
 
 
 def test_the_procedure_never_dead_ends_on_an_empty_week() -> None:

@@ -112,8 +112,10 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
         "GET",
         "/demo/questions",
         "Start booking a demo call with the OmniDimension team. Use it when the user asks for a "
-        "demo or a call with the team, or wants help with pricing, an enterprise plan, white-label "
-        "or a partnership. Do not offer it unasked. Returns every question the booking asks, in "
+        "demo or a call with the team, or agrees to one you offered. Offer one once, unasked, "
+        "when the user mentions thousands of calls a month, an enterprise or compliance need, "
+        "white-label or reselling, a partnership, or pricing at their volume. Do not offer it "
+        "again after they decline. Returns every question the booking asks, in "
         "order, with the allowed choices. Ask the user each one, plus their timezone, then call "
         "`requestDemo`. Never guess an answer. The `book_demo` prompt has the same steps.",
     ),
@@ -188,7 +190,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
   call tools.
 - "Book a demo / talk to the team", or questions about pricing, an enterprise
   plan, white-label or a partnership -> the `book_demo` prompt:
-  `getDemoQuestions`, `requestDemo`, then `bookDemo`. Only when the user asks.
+  `getDemoQuestions`, `requestDemo`, then `bookDemo`. If the user mentions
+  thousands of calls a month, an enterprise or compliance need, white-label,
+  reselling or a partnership, offer a demo call once after you help with the
+  task. Do not offer it again after they decline.
 
 ## Rules that are easy to get wrong (proven against the live API)
 
