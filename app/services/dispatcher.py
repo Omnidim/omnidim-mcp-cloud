@@ -109,11 +109,42 @@ def _find_list(data: Any) -> tuple[list[Any], str | None] | None:
     return None
 
 
+def _without_turn_detail(data: Any) -> tuple[Any, bool]:
+    """Call logs without their per-turn `interactions`, which are most of a call log's size."""
+    found = _find_list(data)
+    rows = found[0] if found else [data]
+    if not any(isinstance(r, dict) and "interactions" in r for r in rows):
+        return data, False
+    slim = [
+        {k: v for k, v in r.items() if k != "interactions"} if isinstance(r, dict) else r
+        for r in rows
+    ]
+    if found is None:
+        return slim[0], True
+    key = found[1]
+    return ({**data, key: slim} if key is not None else slim), True
+
+
 def _trim(data: Any) -> ToolResult:
     redacted = _redact(data)
     full = json.dumps(redacted, indent=2, ensure_ascii=False)
+    if len(full) <= MAX_LIST_CHARS:
+        return ToolResult(text=full)
+
+    # Turn detail goes before rows or a cut, so transcript, recording and cost always arrive.
+    slim, dropped = _without_turn_detail(redacted)
+    if dropped:
+        slim_text = json.dumps(slim, indent=2, ensure_ascii=False)
+        if len(slim_text) <= MAX_LIST_CHARS:
+            note = (
+                "\n\n[Left out per-turn detail (interactions) to fit. call_conversation "
+                "has the transcript.]"
+            )
+            return ToolResult(text=slim_text + note)
+        redacted, full = slim, slim_text
+
     found = _find_list(redacted)
-    if found is None or len(full) <= MAX_LIST_CHARS:
+    if found is None:
         return ToolResult(text=full)
 
     arr, key = found
