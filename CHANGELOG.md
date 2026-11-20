@@ -2,6 +2,25 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.16.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.15.0...v0.16.0) (2026-11-20)
+
+
+### Added
+
+* add a call tips guide measured on real calls, and use it when building agents and campaigns ([#109](https://github.com/Omnidim/omnidim-mcp-cloud/issues/109)) ([abed25f](https://github.com/Omnidim/omnidim-mcp-cloud/commit/abed25f920da36bd069af0e14932a81105943628))
+* add a read-only MCP endpoint at /mcp/readonly ([#105](https://github.com/Omnidim/omnidim-mcp-cloud/issues/105)) ([b727a38](https://github.com/Omnidim/omnidim-mcp-cloud/commit/b727a38258fd481f537a4cfb0e4df5e868cf7769))
+* add searchDocs and readDoc tools that answer from docs.omnidim.io ([#106](https://github.com/Omnidim/omnidim-mcp-cloud/issues/106)) ([f6aad21](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f6aad21874d6d6b4ac6d952854278b3ae59b8eea))
+* export the agent prompts and guides as Agent Skills ([#108](https://github.com/Omnidim/omnidim-mcp-cloud/issues/108)) ([9315c30](https://github.com/Omnidim/omnidim-mcp-cloud/commit/9315c300ea3e70feaae4d8e19fbb133e2b7c1887))
+* optional OpenTelemetry traces, request id equals trace id ([#74](https://github.com/Omnidim/omnidim-mcp-cloud/issues/74)) ([3e5d6b1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/3e5d6b1e5129d25f8415ae27aa553b9356cfc855))
+* shrink large repeated schemas in tool inputs with the spec's x-mcp-brief mark ([#110](https://github.com/Omnidim/omnidim-mcp-cloud/issues/110)) ([65fa02e](https://github.com/Omnidim/omnidim-mcp-cloud/commit/65fa02eaead9225a5fd1914a9abf1da6b0d590d8))
+
+
+### Fixed
+
+* answer pre-consent sign-in errors with an error page, never a redirect ([#65](https://github.com/Omnidim/omnidim-mcp-cloud/issues/65)) ([c21e596](https://github.com/Omnidim/omnidim-mcp-cloud/commit/c21e596698c5f19c9d7cae6fd81977b9acf13f23))
+* keep long call logs as valid JSON with transcript, recording and cost ([#104](https://github.com/Omnidim/omnidim-mcp-cloud/issues/104)) ([89204a6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/89204a6ee5496521717bb1148d067ed249449df8))
+* refresh tool descriptions from the updated API spec ([#102](https://github.com/Omnidim/omnidim-mcp-cloud/issues/102)) ([c82d26f](https://github.com/Omnidim/omnidim-mcp-cloud/commit/c82d26fe33adaee8aed06633fa3eb3c3cf05dc2b))
+
 ## [0.15.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.1...v0.15.0) (2026-11-20)
 
 
