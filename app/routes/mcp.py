@@ -12,6 +12,7 @@ from app._generated.tools import TOOLS
 from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
 from app.procedures import (
+    DEMO_OFFER_RULE,
     EXTRA_TOOLS,
     build_prompt,
     prompts_for_listing,
@@ -35,7 +36,8 @@ INSTRUCTIONS = (
     "Dispatching calls: before dispatchCall, run listPhoneNumbers. If the "
     "account has numbers, pass the chosen one as from_number_id. If it has "
     "none, omit from_number_id and the platform's default number is used. "
-    "Never guess a from_number_id."
+    "Never guess a from_number_id. "
+    + DEMO_OFFER_RULE
 )
 
 
