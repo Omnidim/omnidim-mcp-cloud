@@ -2,6 +2,20 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.14.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.13.0...v0.14.0) (2026-11-20)
+
+
+### Added
+
+* offer a demo call once when the user shows volume, enterprise or white-label need ([ae3e3c3](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ae3e3c3996cd4cc10516e363ddc3f3460cde4fac))
+* **procedures:** DEMO_OFFER_RULE offers a demo call once on a sales signal ([fa3aa1b](https://github.com/Omnidim/omnidim-mcp-cloud/commit/fa3aa1b6382d038b3c2e185d95e74d9405c36e0f))
+
+
+### Fixed
+
+* **annotations:** ask before bulkCallActions resumes paid calls ([#92](https://github.com/Omnidim/omnidim-mcp-cloud/issues/92)) ([be3bff6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/be3bff69f528a9e24ab3337f47ba0688918acaab))
+* one demo offer rule shared by instructions, tool text and guide; book only after a yes ([d6693f1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/d6693f1af62ebff19fa645782acebdb923108c60))
+
 ## [0.13.0] - 2026-11-19
 
 ### Added
