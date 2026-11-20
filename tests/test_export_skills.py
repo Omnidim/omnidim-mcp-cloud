@@ -77,3 +77,13 @@ def test_export_is_deterministic(tmp_path: Path) -> None:
     assert files == sorted(p.relative_to(b) for p in b.rglob("*") if p.is_file())
     for f in files:
         assert (a / f).read_text() == (b / f).read_text()
+
+
+@pytest.mark.parametrize("skill", SKILLS)
+def test_skills_read_as_skills_not_mcp_prompts(out: Path, skill: str) -> None:
+    from app.procedures import DEMO_OFFER_RULE
+
+    text = "\n".join(p.read_text() for p in (out / skill).rglob("*.md"))
+    assert not re.search(r"`[a-z_]+` prompt", text), "names an MCP prompt skill users lack"
+    assert DEMO_OFFER_RULE not in text
+    assert "(describe" not in text, "unfilled prompt default"

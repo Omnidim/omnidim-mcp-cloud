@@ -17,7 +17,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.procedures import _RESOURCES, build_prompt
+from app.procedures import _RESOURCES, DEMO_OFFER_RULE, build_prompt
 
 _PREAMBLE = (
     "Needs the OmniDimension MCP server: hosted at `https://mcp.omnidim.io/mcp`, or local with "
@@ -33,8 +33,11 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         "test it with a real call, and roll it back to an earlier version if a change broke it. "
         "Use when the user wants a new voice agent, a bot for calls, or to undo agent changes.",
         [
-            ("provision_agent", {"purpose": "what the user wants the agent to do"}),
-            ("restore_agent_version", {"agent_id": "the agent id from listAgents"}),
+            ("provision_agent", {"purpose": "<what the user wants the agent to do>"}),
+            (
+                "restore_agent_version",
+                {"agent_id": "<agent_id>", "goal": "<the earlier state the user wants back>"},
+            ),
         ],
         ["agent-config", "recommended-stack", "voices", "carriers", "agent-versioning"],
     ),
@@ -43,7 +46,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         "Build an OmniDimension automation workflow from a plain-language goal: pick the trigger "
         "and nodes, wire them, validate, test with consent, then publish. Use when the user wants "
         "something to happen automatically after a call or another event.",
-        [("build_workflow", {"goal": "what should happen and when"})],
+        [("build_workflow", {"goal": "<what should happen and when>"})],
         ["workflows"],
     ),
     (
@@ -51,7 +54,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         "Set up and launch an OmniDimension bulk-call campaign: draft it, add contacts in "
         "batches, size concurrency, check calling hours, then start and watch it. Use when the "
         "user wants to call a list of people.",
-        [("build_outbound_campaign", {"goal": "who to call and why"})],
+        [("build_outbound_campaign", {"goal": "<who to call and why>"})],
         ["bulk-campaigns", "carriers"],
     ),
     (
@@ -59,7 +62,7 @@ _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
         "Review OmniDimension call logs: find failed calls, read transcripts and sentiment, and "
         "summarize an agent or a campaign. Use when the user asks how calls went or why calls "
         "fail.",
-        [("audit_calls", {"focus": "what the user wants to know about their calls"})],
+        [("audit_calls", {"focus": "<what the user wants to know about their calls>"})],
         ["routing"],
     ),
 ]
@@ -90,7 +93,23 @@ def _guides() -> dict[str, str]:
     return {m.group(1): r["text"] for r in _RESOURCES if (m := _REF_RE.fullmatch(r["uri"]))}
 
 
+# MCP prompt names mean nothing to a skill user: point at the matching skill instead.
+_PROMPT_SKILLS = {
+    "provision_agent": "the omnidim-build-agent skill",
+    "restore_agent_version": "the omnidim-build-agent skill",
+    "audit_calls": "the omnidim-audit-calls skill",
+    "build_workflow": "the omnidim-build-workflow skill",
+    "build_outbound_campaign": "the omnidim-run-campaign skill",
+    "book_demo": "the demo booking steps",
+}
+_PROMPT_RE = re.compile(r"(?:the )?`([a-z_]+)` prompt")
+
+
 def _localize(text: str, prefix: str) -> str:
+    # The demo offer is a rule for the hosted server's sessions, not for a coding agent's skill.
+    text = text.replace(f"\n  When to offer one: {DEMO_OFFER_RULE}", "")
+    text = text.replace(DEMO_OFFER_RULE, "")
+    text = _PROMPT_RE.sub(lambda m: _PROMPT_SKILLS.get(m.group(1), m.group(0)), text)
     return _REF_RE.sub(lambda m: f"{prefix}{m.group(1)}.md", text)
 
 
