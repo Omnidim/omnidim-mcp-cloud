@@ -60,9 +60,10 @@ jobs:
           after = set(re.findall(r'"name": "(\w+)"',
                                  pathlib.Path('app/_generated/tools.py').read_text()))
           added, gone = sorted(after - before), sorted(before - after)
-          title = (f"chore: regenerate tools (EXPOSURE CHANGE: +{len(added)} -{len(gone)})"
+          # feat and fix titles land in the changelog and the next release PR.
+          title = (f"feat: regenerate tools (EXPOSURE CHANGE: +{len(added)} -{len(gone)})"
                    if added or gone else
-                   "chore: regenerate the tool registry from the updated spec")
+                   "fix: refresh tool descriptions from the updated API spec")
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f"added={','.join(added)}\n")
               out.write(f"gone={','.join(gone)}\n")
@@ -85,7 +86,7 @@ jobs:
           token: ${{ steps.token.outputs.token }}
           branch: chore/spec-regen
           delete-branch: true
-          commit-message: "chore: regenerate the tool registry from the updated spec"
+          commit-message: ${{ steps.tools.outputs.title }}
           title: ${{ steps.tools.outputs.title }}
           body: |
             The published OpenAPI spec changed and this regenerates the tool
@@ -101,11 +102,10 @@ jobs:
             `operationId` to `exclude.operation_ids` in `mcp-config.yaml` with
             a reason and regenerate.
 
-            Deploying is still a `v*` tag by hand.
-
             With no exposure change this PR sets itself to auto-merge and
             lands once the required checks pass. An exposure change stays open
-            for a person. Either way, publishing is still a `v*` tag by hand.
+            for a person. After it merges, the release PR picks it up, and
+            merging that release PR deploys.
 
       # No EXPOSURE CHANGE in the title means no operation appeared or
       # vanished, so no agent gained or lost a capability and there is nothing
