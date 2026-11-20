@@ -332,8 +332,27 @@ def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def apply_briefs(spec: dict[str, Any]) -> None:
+    """Swap each schema marked x-mcp-brief for a free-form object described by that line.
+
+    A large shape repeated across tools (post-call actions) then costs one line in each.
+    """
+    for name, schema in (spec.get("components", {}).get("schemas") or {}).items():
+        if not isinstance(schema, dict) or "x-mcp-brief" not in schema:
+            continue
+        brief = schema["x-mcp-brief"]
+        if not isinstance(brief, str) or not brief.strip() or "\n" in brief or len(brief) > 400:
+            raise SystemExit(f"bad x-mcp-brief on {name}: one line of text, 400 chars at most")
+        spec["components"]["schemas"][name] = {
+            "type": "object",
+            "additionalProperties": True,
+            "description": brief,
+        }
+
+
 def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """Every exposed tool, sorted by name, and the operations left off."""
+    apply_briefs(spec)
     tools: list[dict[str, Any]] = []
     skipped: list[str] = []
     for path, methods in spec.get("paths", {}).items():
