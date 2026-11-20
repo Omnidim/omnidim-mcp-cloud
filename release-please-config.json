@@ -7,10 +7,29 @@
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "changelog-sections": [
-        { "type": "feat", "section": "Added" },
-        { "type": "fix", "section": "Fixed" },
-        { "type": "perf", "section": "Changed" },
-        { "type": "revert", "section": "Changed" }
+        {
+          "type": "feat",
+          "section": "Added"
+        },
+        {
+          "type": "fix",
+          "section": "Fixed"
+        },
+        {
+          "type": "perf",
+          "section": "Changed"
+        },
+        {
+          "type": "revert",
+          "section": "Changed"
+        }
+      ],
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='omnidim-mcp-cloud')].version"
+        }
       ]
     }
   }
