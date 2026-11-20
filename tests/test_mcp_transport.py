@@ -15,6 +15,7 @@ import pytest
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
+from app.main import create_app
 from app.procedures import EXTRA_TOOLS
 from app.routes.mcp import SERVER_INFO
 from app.services import dispatcher
@@ -326,8 +327,8 @@ def test_registry_matches_regen_sentinel() -> None:
 
 
 def test_reported_version_matches_the_package() -> None:
-    """serverInfo and the upstream User-Agent are hand-written literals. A
-    release that bumps only pyproject leaves clients reading a stale version.
+    """The release PR bumps only pyproject.toml, so every place that reports
+    a version must follow it.
     """
     root = Path(__file__).parent.parent
     declared = next(
@@ -337,6 +338,7 @@ def test_reported_version_matches_the_package() -> None:
     )
     assert SERVER_INFO["version"] == declared
     assert dispatcher.USER_AGENT == f"omnidim-mcp-cloud/{declared}"
+    assert create_app().version == declared
 
 
 def test_registry_order_is_deterministic() -> None:
