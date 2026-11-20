@@ -8,10 +8,6 @@ All notable changes to this project. Format follows [Keep a Changelog](https://k
 
 - The assistant offers a demo call with the OmniDimension team once when the user mentions high call volume, an enterprise or compliance need, white-label, reselling or a partnership. It books only after the user agrees, does not offer again after a decline, and does not offer without one of these signals.
 
-### Fixed
-
-- Clients that support confirmations now ask before `bulkCallActions` resumes a paused campaign, because resuming places paid calls.
-
 ## [0.13.0] - 2026-11-19
 
 ### Added
