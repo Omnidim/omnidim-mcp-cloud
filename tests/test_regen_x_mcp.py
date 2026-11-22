@@ -86,7 +86,12 @@ def test_a_hidden_operation_is_not_a_tool() -> None:
         (
             {"title": "List things", "effect": "read"},
             "get",
-            {"title": "List things", "readOnlyHint": True, "openWorldHint": False},
+            {
+                "title": "List things",
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "openWorldHint": False,
+            },
         ),
         (
             {"title": "Save thing", "effect": "write"},
@@ -189,7 +194,9 @@ def test_a_briefed_schema_becomes_one_free_form_line() -> None:
         "additionalProperties": True,
         "description": _BRIEF,
     }
-    assert props["per_call"]["description"] == "For this call only."
+    # The field's own words come first; the brief adds the full-shape line.
+    assert props["per_call"]["type"] == "object"
+    assert props["per_call"]["description"] == f"For this call only.\n{_BRIEF}"
     assert props["name"] == {"type": "string"}
 
 
@@ -197,3 +204,17 @@ def test_a_briefed_schema_becomes_one_free_form_line() -> None:
 def test_a_bad_brief_fails_the_regen(brief: Any) -> None:
     with pytest.raises(SystemExit, match="x-mcp-brief on Big"):
         regen.build_tools(_briefed_spec(brief))
+
+
+def test_a_union_parameter_gets_its_members_types() -> None:
+    langs = {"oneOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}]}
+    body = {"type": "object", "properties": {"langs": langs, "odd": {"oneOf": []}}}
+    op = {
+        "x-mcp": {"title": "T", "effect": "write"},
+        "requestBody": {"content": {"application/json": {"schema": body}}},
+    }
+    props = _by_name(_spec_with(op=op))["op"]["input_schema"]["properties"]
+    assert props["langs"]["type"] == ["array", "string"]
+    assert props["langs"]["oneOf"] == langs["oneOf"]
+    # An empty union stays untyped, so test_directory_rules flags it instead of a guess.
+    assert "type" not in props["odd"]

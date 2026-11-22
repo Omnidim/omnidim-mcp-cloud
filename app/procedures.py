@@ -96,7 +96,7 @@ def _demo_tool(
 ) -> dict[str, Any]:
     # A request or booking reaches the OmniDimension team, outside the user's account.
     annotations: dict[str, Any] = (
-        {"title": title, "readOnlyHint": True, "openWorldHint": False}
+        {"title": title, "readOnlyHint": True, "destructiveHint": False, "openWorldHint": False}
         if method == "GET"
         else {"title": title, "readOnlyHint": False, "destructiveHint": False, "openWorldHint": True}
     )

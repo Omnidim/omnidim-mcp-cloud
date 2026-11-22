@@ -142,6 +142,34 @@ def flatten_all_of(schema: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _with_type(prop: dict[str, Any]) -> dict[str, Any]:
+    """One property with a top-level `type`, read off its allOf or oneOf members."""
+    wrapped = prop.get("allOf")
+    if isinstance(wrapped, list) and len(wrapped) == 1 and "type" in wrapped[0]:
+        inner = wrapped[0]
+        merged = {**inner, **{k: v for k, v in prop.items() if k != "allOf"}}
+        if inner.get("description") and prop.get("description"):
+            merged["description"] = f"{prop['description'].rstrip()}\n{inner['description']}"
+        return merged
+    choices = prop.get("oneOf") or prop.get("anyOf")
+    if isinstance(choices, list) and all(isinstance(c.get("type"), str) for c in choices):
+        return {**prop, "type": sorted({c["type"] for c in choices})}
+    return prop
+
+
+def type_properties(node: Any) -> None:
+    """Give every property a top-level `type`: Claude's directory portal refuses one without."""
+    if not isinstance(node, dict):
+        return
+    props = node.get("properties")
+    if isinstance(props, dict):
+        for key, prop in props.items():
+            if isinstance(prop, dict) and "type" not in prop:
+                props[key] = prop = _with_type(prop)
+            type_properties(prop)
+    type_properties(node.get("items"))
+
+
 def merge_schema(
     parameters: Iterable[dict[str, Any]],
     request_body: dict[str, Any] | None,
@@ -235,6 +263,7 @@ def build_tool(
         schema["required"] = [r for r in schema["required"] if r != "user_id"]
         if not schema["required"]:
             del schema["required"]
+    type_properties(schema)
     # Mark which inputs go in the path so the dispatcher can substitute them.
     path_param_names = [p["name"] for p in params if p.get("in") == "path"]
     query_param_names = [p["name"] for p in params if p.get("in") == "query"]
@@ -323,7 +352,12 @@ def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
 def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
     """MCP annotations, set explicitly because the spec defaults are conservative."""
     if marks["effect"] == "read":
-        return {"title": marks["title"], "readOnlyHint": True, "openWorldHint": False}
+        return {
+            "title": marks["title"],
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        }
     return {
         "title": marks["title"],
         "readOnlyHint": False,

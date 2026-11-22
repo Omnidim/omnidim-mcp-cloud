@@ -750,6 +750,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Check file upload eligibility",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -1785,17 +1786,16 @@ _TOOLS_JSON = r"""[
                                 }
                             ],
                             "description": "Languages this session runs in, replacing the agent's\nconfigured list. The first entry is the language the\nvisitor is greeted in. Send an array, or a pipe-separated\nstring such as `Hindi|English`.\n",
-                            "example": "Hindi|Gujarati|English"
+                            "example": "Hindi|Gujarati|English",
+                            "type": [
+                                "array",
+                                "string"
+                            ]
                         },
                         "__post_call_actions": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "additionalProperties": true,
-                                    "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
-                                }
-                            ],
-                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\n"
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                         }
                     },
                     "example": {
@@ -2363,6 +2363,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Diff agent version",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2422,17 +2423,16 @@ _TOOLS_JSON = r"""[
                     "example": [
                         "Tamil",
                         "English"
+                    ],
+                    "type": [
+                        "array",
+                        "string"
                     ]
                 },
                 "__post_call_actions": {
-                    "allOf": [
-                        {
-                            "type": "object",
-                            "additionalProperties": true,
-                            "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
-                        }
-                    ],
-                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\n"
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                 }
             },
             "required": [
@@ -2597,6 +2597,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List bulk campaigns",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2616,6 +2617,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get account balance",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2645,6 +2647,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get agent",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2674,6 +2677,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get bulk campaign",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2703,6 +2707,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get campaign live status",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2732,6 +2737,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get call log",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2761,6 +2767,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get cloned voice",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2790,6 +2797,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get cloned voice sample",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2819,6 +2827,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get voice",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2848,6 +2857,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp calling setting",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2877,6 +2887,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp campaign",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2906,6 +2917,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp conversation",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2935,6 +2947,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp message",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2964,6 +2977,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp number",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3004,6 +3018,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3039,6 +3054,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow run",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3079,6 +3095,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow node type",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3429,6 +3446,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agent integrations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3486,6 +3504,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agent versions",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3525,6 +3544,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agents",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3544,6 +3564,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List all providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3619,6 +3640,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List campaign call results",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3648,6 +3670,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List campaign rotation pool",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3709,6 +3732,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List call logs",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3742,6 +3766,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List cloned voices",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3761,6 +3786,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List integrations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3780,6 +3806,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List knowledge base files",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3799,6 +3826,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List LLM providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3833,6 +3861,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List phone numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3862,6 +3891,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List post-call actions",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3881,6 +3911,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List speech-to-text providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3900,6 +3931,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List text-to-speech providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3964,6 +3996,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List voices",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4022,6 +4055,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp campaign contacts",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4075,6 +4109,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp campaigns",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4144,6 +4179,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp conversations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4191,6 +4227,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp messages",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4225,6 +4262,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4284,6 +4322,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp opt-outs",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4332,6 +4371,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp templates",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4373,6 +4413,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List choices for a workflow field",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4413,6 +4454,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List workflow node types",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4447,6 +4489,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List workflows",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4509,6 +4552,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Preview WhatsApp numbers to import",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4871,6 +4915,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Search available phone numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -6148,6 +6193,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Validate workflow",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     }

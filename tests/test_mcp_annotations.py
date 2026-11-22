@@ -38,7 +38,7 @@ def test_get_tools_are_read_only() -> None:
     a = tool_annotations("listAgents", "GET")
     assert a["readOnlyHint"] is True
     assert a["openWorldHint"] is False
-    assert "destructiveHint" not in a
+    assert a["destructiveHint"] is False
     assert a["title"] == "List agents"
 
 
