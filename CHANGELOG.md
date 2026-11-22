@@ -2,6 +2,18 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.18.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.2...v0.18.0) (2026-11-22)
+
+
+### Added
+
+* publish a public server card built from the live tool list ([#115](https://github.com/Omnidim/omnidim-mcp-cloud/issues/115)) ([f3421c1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f3421c14515272da61492ea0543c5f78069662c7))
+
+
+### Fixed
+
+* refresh tool descriptions from the updated API spec ([#119](https://github.com/Omnidim/omnidim-mcp-cloud/issues/119)) ([a700ef5](https://github.com/Omnidim/omnidim-mcp-cloud/commit/a700ef56b92a42d968fb65081426ec9148babff2))
+
 ## [0.17.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.1...v0.17.2) (2026-11-22)
 
 
