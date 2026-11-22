@@ -8,10 +8,10 @@ The hosted [Model Context Protocol](https://modelcontextprotocol.io) server for 
 You sign in with your OmniDimension account in the browser, so you need no API key.
 
 ```mermaid
-flowchart LR
+flowchart TB
   C["Your MCP client"] -- "1. sign in once" --> L["omnidim.io"]
   C -- "2. tool calls" --> M["mcp.omnidim.io"]
-  M -- "3. runs as you" --> A["Your account"]
+  M -- "3. runs as you" --> A["Your OmniDimension account"]
 ```
 
 ## Connect
@@ -108,7 +108,7 @@ git clone https://github.com/Omnidim/omnidim-mcp-cloud
 cd omnidim-mcp-cloud
 cp .env.example .env
 docker compose up -d postgres
-uv sync
+uv sync --extra dev
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
