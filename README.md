@@ -119,30 +119,6 @@ What the server stores and how to disconnect: [MCP privacy](https://docs.omnidim
 | A tool says the read-only endpoint does not run it | You connected `https://mcp.omnidim.io/mcp/readonly`. Connect `https://mcp.omnidim.io/mcp` to change data or place calls. |
 | Every tool fails | Check [status.omnidim.io](https://status.omnidim.io), or run `curl https://mcp.omnidim.io/readyz`. A healthy server answers `{"status":"ok"}`. |
 
-## Local development
-
-You need Python 3.12 or later, [uv](https://docs.astral.sh/uv/) and Docker.
-
-```bash
-git clone https://github.com/Omnidim/omnidim-mcp-cloud
-cd omnidim-mcp-cloud
-cp .env.example .env
-docker compose up -d postgres
-uv sync --extra dev
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
-```
-
-`curl localhost:8000/healthz` answers `{"status":"ok"}`. Sign-in and tool calls also need an OmniDimension backend at `ODOO_INTERNAL_BASE_URL` in `.env`.
-
-Run the checks CI runs:
-
-```bash
-uv run ruff check .
-uv run mypy app
-uv run pytest
-```
-
 ## Reporting issues
 
 Open an issue in this repo. Say which client you use, the time it happened, and the tool name. To report a security vulnerability, see [SECURITY.md](./SECURITY.md).
