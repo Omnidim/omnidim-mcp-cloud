@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=7126f2b85d91
+Source spec:   openapi.yaml   sha256=d31b3641432e
 """
 from __future__ import annotations
 
@@ -904,14 +904,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "deepgram_stream",
-                                "cartesia",
-                                "sarvam",
-                                "azure_stream",
-                                "soniox"
-                            ],
-                            "description": "The speech-to-text provider to use. Leave it out to use your organization's default transcriber. The STT providers list shows the ones your organization can use.",
+                            "description": "The speech-to-text provider to use: a `name` from the STT providers list, which returns the ones your organization can use. Leave it out to use your organization's default transcriber.",
                             "example": "deepgram_stream"
                         },
                         "model": {
@@ -985,22 +978,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "azure-gpt-4.1-mini",
-                                "azure-gpt-4.1-nano",
-                                "azure-gpt-4o",
-                                "azure-gpt-4o-mini",
-                                "gemini-2.5-flash",
-                                "gemini-2.5-flash-lite",
-                                "gpt-3.5-turbo",
-                                "gpt-4.1-mini",
-                                "gpt-4.1-nano",
-                                "gpt-4o",
-                                "gpt-4o-mini",
-                                "gpt-5.1",
-                                "llama-3.3-70b-versatile"
-                            ],
-                            "description": "The language model to use. Leave it out to use your organization's default model. Only models your organization can use are accepted: the LLM providers list returns exactly those.",
+                            "description": "The language model to use: a `name` from the LLM providers list, which returns exactly the models your organization can use. Leave it out to use your organization's default model.",
                             "example": "gpt-4.1-mini"
                         },
                         "temperature": {
@@ -1023,13 +1001,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "cartesia",
-                                "sarvam",
-                                "eleven_labs",
-                                "google"
-                            ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
@@ -3933,37 +3905,26 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listVoices",
-        "description": "List voices. Retrieve voices with filtering and pagination support. ElevenLabs\nand Cartesia support advanced filtering by name, language, accent,\nand gender.\nOther providers support basic pagination only.",
+        "description": "List voices. Retrieve the voices your organization can use, with filtering and\npagination. Use `provider=featured` for OmniDimension voices, the\nrecommended starting point, in the order the dashboard shows them.\nCartesia voices are the next choice.\n\nEach voice keeps its own `service`: save that as the agent's voice\nprovider. A provider your organization cannot use returns a 400.\nCartesia and ElevenLabs support filtering by name, language, accent,\nand gender. Other providers support pagination only.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "provider": {
                     "type": "string",
-                    "enum": [
-                        "eleven_labs",
-                        "google",
-                        "deepgram",
-                        "cartesia",
-                        "sarvam",
-                        "rime",
-                        "playht",
-                        "hume",
-                        "inworld",
-                        "smallest"
-                    ],
-                    "description": "TTS provider to list voices from. Omit to list across all providers."
+                    "example": "featured",
+                    "description": "Provider to list voices from. Omit to list every voice your organization can use.\n`featured` lists OmniDimension voices and is the recommended choice, followed by\n`cartesia`. A provider your organization cannot use returns a 400.\n"
                 },
                 "search": {
                     "type": "string",
-                    "description": "Substring match against voice name or description. ElevenLabs and Cartesia."
+                    "description": "Substring match against voice name or description. Cartesia and ElevenLabs."
                 },
                 "language": {
                     "type": "string",
-                    "description": "ISO language code (e.g. `en`, `hi`, `es`). ElevenLabs and Cartesia."
+                    "description": "ISO language code (e.g. `en`, `hi`, `es`). Cartesia and ElevenLabs."
                 },
                 "accent": {
                     "type": "string",
-                    "description": "Accent label (e.g. `american`, `british`). ElevenLabs and Cartesia."
+                    "description": "Accent label (e.g. `american`, `british`). Cartesia and ElevenLabs."
                 },
                 "gender": {
                     "type": "string",
@@ -3971,7 +3932,7 @@ _TOOLS_JSON = r"""[
                         "male",
                         "female"
                     ],
-                    "description": "Filter voices by gender. ElevenLabs and Cartesia."
+                    "description": "Filter voices by gender. Cartesia and ElevenLabs."
                 },
                 "page": {
                     "type": "integer",
@@ -5503,14 +5464,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "deepgram_stream",
-                                "cartesia",
-                                "sarvam",
-                                "azure_stream",
-                                "soniox"
-                            ],
-                            "description": "The speech-to-text provider to use. Leave it out to use your organization's default transcriber. The STT providers list shows the ones your organization can use.",
+                            "description": "The speech-to-text provider to use: a `name` from the STT providers list, which returns the ones your organization can use. Leave it out to use your organization's default transcriber.",
                             "example": "deepgram_stream"
                         },
                         "model": {
@@ -5584,22 +5538,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "azure-gpt-4.1-mini",
-                                "azure-gpt-4.1-nano",
-                                "azure-gpt-4o",
-                                "azure-gpt-4o-mini",
-                                "gemini-2.5-flash",
-                                "gemini-2.5-flash-lite",
-                                "gpt-3.5-turbo",
-                                "gpt-4.1-mini",
-                                "gpt-4.1-nano",
-                                "gpt-4o",
-                                "gpt-4o-mini",
-                                "gpt-5.1",
-                                "llama-3.3-70b-versatile"
-                            ],
-                            "description": "The language model to use. Leave it out to use your organization's default model. Only models your organization can use are accepted: the LLM providers list returns exactly those.",
+                            "description": "The language model to use: a `name` from the LLM providers list, which returns exactly the models your organization can use. Leave it out to use your organization's default model.",
                             "example": "gpt-4.1-mini"
                         },
                         "temperature": {
@@ -5622,13 +5561,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "cartesia",
-                                "sarvam",
-                                "eleven_labs",
-                                "google"
-                            ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
