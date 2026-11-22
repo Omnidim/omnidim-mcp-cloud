@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=d31b3641432e
+Source spec:   omnidim.yaml   sha256=c75a13880ce1
 """
 from __future__ import annotations
 
@@ -663,7 +663,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Attach phone number",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -1013,8 +1013,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -1365,7 +1365,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30,
+                            "default": 30.0,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2557,7 +2557,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Edit workflow draft",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -3125,7 +3125,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Hand WhatsApp conversation back to agent",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -4519,7 +4519,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Pause WhatsApp campaign",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -4737,7 +4737,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Rename agent version",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5052,7 +5052,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Set campaign concurrency",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5114,7 +5114,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Set campaign calling hours",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5156,7 +5156,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Pause or resume pool number",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5220,7 +5220,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Set campaign number rotation",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5290,7 +5290,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Turn WhatsApp calling on or off",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": true
         }
     },
@@ -5380,7 +5380,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Take over WhatsApp conversation",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5617,8 +5617,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -5812,7 +5812,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Update agent",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5856,7 +5856,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Update cloned voice",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -6129,7 +6129,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Update a post-call action",
             "readOnlyHint": false,
-            "destructiveHint": false,
+            "destructiveHint": true,
             "openWorldHint": false
         }
     },
