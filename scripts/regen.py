@@ -323,7 +323,12 @@ def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
 def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
     """MCP annotations, set explicitly because the spec defaults are conservative."""
     if marks["effect"] == "read":
-        return {"title": marks["title"], "readOnlyHint": True, "openWorldHint": False}
+        return {
+            "title": marks["title"],
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        }
     return {
         "title": marks["title"],
         "readOnlyHint": False,

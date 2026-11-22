@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-_READ: Final = {"readOnlyHint": True, "openWorldHint": False}
+_READ: Final = {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False}
 
 DOCS_TOOLS: Final[list[dict[str, Any]]] = [
     {

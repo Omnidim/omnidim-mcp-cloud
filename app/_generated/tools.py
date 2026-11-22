@@ -750,6 +750,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Check file upload eligibility",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2363,6 +2364,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Diff agent version",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2597,6 +2599,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List bulk campaigns",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2616,6 +2619,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get account balance",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2645,6 +2649,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get agent",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2674,6 +2679,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get bulk campaign",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2703,6 +2709,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get campaign live status",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2732,6 +2739,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get call log",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2761,6 +2769,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get cloned voice",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2790,6 +2799,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get cloned voice sample",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2819,6 +2829,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get voice",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2848,6 +2859,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp calling setting",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2877,6 +2889,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp campaign",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2906,6 +2919,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp conversation",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2935,6 +2949,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp message",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -2964,6 +2979,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get WhatsApp number",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3004,6 +3020,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3039,6 +3056,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow run",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3079,6 +3097,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Get workflow node type",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3429,6 +3448,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agent integrations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3486,6 +3506,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agent versions",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3525,6 +3546,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List agents",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3544,6 +3566,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List all providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3619,6 +3642,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List campaign call results",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3648,6 +3672,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List campaign rotation pool",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3709,6 +3734,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List call logs",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3742,6 +3768,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List cloned voices",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3761,6 +3788,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List integrations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3780,6 +3808,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List knowledge base files",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3799,6 +3828,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List LLM providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3833,6 +3863,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List phone numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3862,6 +3893,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List post-call actions",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3881,6 +3913,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List speech-to-text providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3900,6 +3933,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List text-to-speech providers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -3964,6 +3998,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List voices",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4022,6 +4057,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp campaign contacts",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4075,6 +4111,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp campaigns",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4144,6 +4181,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp conversations",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4191,6 +4229,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp messages",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4225,6 +4264,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4284,6 +4324,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp opt-outs",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4332,6 +4373,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List WhatsApp templates",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4373,6 +4415,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List choices for a workflow field",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4413,6 +4456,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List workflow node types",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4447,6 +4491,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "List workflows",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4509,6 +4554,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Preview WhatsApp numbers to import",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -4871,6 +4917,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Search available phone numbers",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     },
@@ -6148,6 +6195,7 @@ _TOOLS_JSON = r"""[
         "annotations": {
             "title": "Validate workflow",
             "readOnlyHint": true,
+            "destructiveHint": false,
             "openWorldHint": false
         }
     }

@@ -86,7 +86,12 @@ def test_a_hidden_operation_is_not_a_tool() -> None:
         (
             {"title": "List things", "effect": "read"},
             "get",
-            {"title": "List things", "readOnlyHint": True, "openWorldHint": False},
+            {
+                "title": "List things",
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "openWorldHint": False,
+            },
         ),
         (
             {"title": "Save thing", "effect": "write"},
