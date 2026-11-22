@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.17.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.1...v0.17.2) (2026-11-22)
+
+
+### Fixed
+
+* label tools that change existing data as destructive ([#118](https://github.com/Omnidim/omnidim-mcp-cloud/issues/118)) ([6c2e8f5](https://github.com/Omnidim/omnidim-mcp-cloud/commit/6c2e8f5454d657ca5cbd6d555806336d0c3b87de))
+
 ## [0.17.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.0...v0.17.1) (2026-11-22)
 
 
