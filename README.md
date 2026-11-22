@@ -7,28 +7,33 @@ The hosted [Model Context Protocol](https://modelcontextprotocol.io) server for 
 
 You sign in with your OmniDimension account in the browser, so you need no API key.
 
-```mermaid
-flowchart TB
-  C["Your MCP client"] -- "1. sign in once" --> L["omnidim.io"]
-  C -- "2. tool calls" --> M["mcp.omnidim.io"]
-  M -- "3. runs as you" --> A["Your OmniDimension account"]
-```
-
 ## Connect
 
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=omnidim&config=eyJ1cmwiOiJodHRwczovL21jcC5vbW5pZGltLmlvL21jcCJ9)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_omnidim-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=omnidim&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.omnidim.io%2Fmcp%22%7D)
-[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_omnidim-24bfa5?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=omnidim&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.omnidim.io%2Fmcp%22%7D&quality=insiders)
+
+Claude Code:
+
+```bash
+claude mcp add --transport http omnidim https://mcp.omnidim.io/mcp
+```
+
+Codex:
+
+```bash
+codex mcp add omnidim --url https://mcp.omnidim.io/mcp
+```
 
 | Client | Setup |
 |---|---|
-| Claude Code | `claude mcp add --transport http omnidim https://mcp.omnidim.io/mcp`, then run `/mcp` and approve in the browser |
-| Claude Desktop, Claude.ai | Settings, Connectors, Add custom connector. See the [Claude guide](https://docs.omnidim.io/docs/mcp/connect/claude-desktop) |
-| Cursor | Use the button above, or the [Cursor guide](https://docs.omnidim.io/docs/mcp/connect/cursor) |
-| VS Code | Use the button above, or the [VS Code guide](https://docs.omnidim.io/docs/mcp/connect/vscode) |
+| Claude Desktop, Claude.ai | Settings, Connectors, Add custom connector, then paste `https://mcp.omnidim.io/mcp`. [Claude guide](https://docs.omnidim.io/docs/mcp/connect/claude-desktop) |
+| ChatGPT | Add `https://mcp.omnidim.io/mcp` as a custom connector. [MCP overview](https://docs.omnidim.io/docs/mcp) |
+| Claude Code | Run the command above, then `/mcp` to sign in. [Claude Code guide](https://docs.omnidim.io/docs/mcp/connect/claude-code) |
+| Codex | Run the command above, then `codex mcp login omnidim`. [Codex guide](https://docs.omnidim.io/docs/mcp/connect/codex) |
+| Cursor | The button above, or the [Cursor guide](https://docs.omnidim.io/docs/mcp/connect/cursor) |
+| VS Code | The button above, or the [VS Code guide](https://docs.omnidim.io/docs/mcp/connect/vscode) |
 | Windsurf | [Windsurf guide](https://docs.omnidim.io/docs/mcp/connect/windsurf) |
-| Codex | [Codex guide](https://docs.omnidim.io/docs/mcp/connect/codex) |
-| ChatGPT and other clients | Add `https://mcp.omnidim.io/mcp` as a custom connector. See the [MCP overview](https://docs.omnidim.io/docs/mcp) |
+| Any other MCP client | Add `https://mcp.omnidim.io/mcp` as a remote server |
 
 To give an agent read access only, connect `https://mcp.omnidim.io/mcp/readonly` instead. It lists only the tools that read data (agents, call logs, campaigns, numbers) and refuses any tool that changes data or places a call.
 
@@ -49,7 +54,24 @@ The server also ships prompts for common jobs (`provision_agent`, `build_outboun
 
 ## Tools
 
-Most tools map to one endpoint of the [OmniDimension API](https://docs.omnidim.io). Your client asks you to confirm before a tool that places a call, sends a message, spends money or deletes something.
+Your client asks you to confirm before a tool that places a call, sends a message, spends money or deletes something.
+
+| Area | What your agent can do | Tools |
+|---|---|---|
+| Agents | Build, edit and version voice agents, and set what happens after each call | 15 |
+| Calls | Place a call and read call logs and transcripts | 3 |
+| Call campaigns | Create, start, pace and retry bulk call campaigns | 17 |
+| Phone numbers | Search, buy, attach and import numbers (Twilio, Exotel, SIP) | 10 |
+| Workflows | Build, test and publish post-call workflows | 15 |
+| Knowledge base | Upload files and attach them to agents | 6 |
+| Voices and providers | Pick voices, models and providers, and manage cloned voices | 12 |
+| Integrations | Connect agents to your APIs and apps | 5 |
+| WhatsApp | Numbers, templates, conversations and campaigns | 27 |
+| Docs | Search and read [docs.omnidim.io](https://docs.omnidim.io), with no access to your account | 2 |
+| Account and demo | Check your balance, start a web call session and book a demo | 5 |
+
+<details>
+<summary>All tool names</summary>
 
 | Group | Tools |
 |---|---|
@@ -68,9 +90,7 @@ Most tools map to one endpoint of the [OmniDimension API](https://docs.omnidim.i
 | Demo | `getDemoQuestions`, `requestDemo`, `bookDemo` |
 | Docs | `searchDocs`, `readDoc` |
 
-## Docs tools
-
-`searchDocs` and `readDoc` answer from [docs.omnidim.io](https://docs.omnidim.io), so an agent can look up a field or an error instead of guessing. They read the public docs only and never send your credentials there.
+</details>
 
 ## Build your own client
 

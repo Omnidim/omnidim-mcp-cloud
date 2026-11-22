@@ -15,3 +15,10 @@ def test_readme_lists_exactly_the_served_tools() -> None:
     served = sorted(t['name'] for t in _tools_for_listing(read_only=False))
     assert served
     assert listed == served
+
+
+def test_readme_area_counts_add_up_to_the_served_tools() -> None:
+    sections = re.split(r'^## ', README.read_text(), flags=re.M)
+    tools_section = next((s for s in sections if s.startswith('Tools')), '')
+    counts = [int(n) for n in re.findall(r'^\|[^|]+\|[^|]+\| (\d+) \|$', tools_section, flags=re.M)]
+    assert sum(counts) == len(_tools_for_listing(read_only=False))
