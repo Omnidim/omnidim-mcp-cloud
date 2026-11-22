@@ -76,9 +76,8 @@ async def server_card(
         "name": "io.github.Omnidim/omnidim-mcp-server",
         "title": "OmniDimension",
         "description": (
-            "Official MCP server for OmniDimension. Build and test voice agents, "
-            "place calls, run call and WhatsApp campaigns, and manage numbers, "
-            "knowledge bases, voices and workflows."
+            "Official MCP server for OmniDimension. Build and deploy voice AI agents, "
+            "make calls, and run call campaigns, workflows and WhatsApp."
         ),
         "version": __version__,
         "websiteUrl": "https://omnidim.io",
