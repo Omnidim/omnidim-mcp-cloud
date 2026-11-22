@@ -204,3 +204,17 @@ def test_a_briefed_schema_becomes_one_free_form_line() -> None:
 def test_a_bad_brief_fails_the_regen(brief: Any) -> None:
     with pytest.raises(SystemExit, match="x-mcp-brief on Big"):
         regen.build_tools(_briefed_spec(brief))
+
+
+def test_a_union_parameter_gets_its_members_types() -> None:
+    langs = {"oneOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}]}
+    body = {"type": "object", "properties": {"langs": langs, "odd": {"oneOf": []}}}
+    op = {
+        "x-mcp": {"title": "T", "effect": "write"},
+        "requestBody": {"content": {"application/json": {"schema": body}}},
+    }
+    props = _by_name(_spec_with(op=op))["op"]["input_schema"]["properties"]
+    assert props["langs"]["type"] == ["array", "string"]
+    assert props["langs"]["oneOf"] == langs["oneOf"]
+    # An empty union stays untyped, so test_directory_rules flags it instead of a guess.
+    assert "type" not in props["odd"]
