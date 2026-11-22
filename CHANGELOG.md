@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.17.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.16.0...v0.17.0) (2026-11-22)
+
+
+### Added
+
+* recommend OmniDimension voices first ([#112](https://github.com/Omnidim/omnidim-mcp-cloud/issues/112)) ([78aad81](https://github.com/Omnidim/omnidim-mcp-cloud/commit/78aad816df38f2d4da5cd1c62842b51e4439d94d))
+
 ## [0.16.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.15.0...v0.16.0) (2026-11-20)
 
 
