@@ -57,3 +57,57 @@ async def protected_resource_metadata(
         "bearer_methods_supported": ["header"],
         "resource_documentation": "https://docs.omnidim.io/docs/get-started/authentication",
     }
+
+
+@router.get("/.well-known/mcp/server-card.json")
+async def server_card(
+    response: Response,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, object]:
+    # Built from the live tool list, so it can't drift like a hand-written copy.
+    from app import __version__
+    from app.routes.mcp import INSTRUCTIONS, PROTOCOL_VERSION, _tools_for_listing
+
+    base = settings.issuer
+    for k, v in _CACHE_HEADERS.items():
+        response.headers[k] = v
+    return {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "name": "io.github.Omnidim/omnidim-mcp-server",
+        "title": "OmniDimension",
+        "description": (
+            "Official MCP server for OmniDimension. Build and test voice agents, "
+            "place calls, run call and WhatsApp campaigns, and manage numbers, "
+            "knowledge bases, voices and workflows."
+        ),
+        "version": __version__,
+        "websiteUrl": "https://omnidim.io",
+        "repository": {"url": "https://github.com/Omnidim/omnidim-mcp-server", "source": "github"},
+        "remotes": [
+            {"type": "streamable-http", "url": f"{base}/mcp"},
+            {"type": "streamable-http", "url": f"{base}/mcp/readonly"},
+        ],
+        "packages": [
+            {
+                "registryType": "npm",
+                "identifier": "@omnidim-ai/mcp-server",
+                "transport": {"type": "stdio"},
+            },
+        ],
+        "protocolVersion": PROTOCOL_VERSION,
+        "authentication": {
+            "type": "oauth2",
+            "authorizationServer": f"{base}/.well-known/oauth-authorization-server",
+        },
+        "documentation": "https://docs.omnidim.io/docs/mcp",
+        "instructions": INSTRUCTIONS,
+        "tools": [
+            {
+                "name": t["name"],
+                "title": t["annotations"].get("title") or t["name"],
+                "description": t["description"],
+                "annotations": t["annotations"],
+            }
+            for t in _tools_for_listing(read_only=False)
+        ],
+    }
