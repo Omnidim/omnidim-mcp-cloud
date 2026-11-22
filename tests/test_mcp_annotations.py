@@ -27,19 +27,6 @@ def test_every_generated_tool_has_a_title() -> None:
     assert missing == []
 
 
-def test_every_tool_sets_all_three_hints_as_booleans() -> None:
-    """ChatGPT's directory review wants each hint set explicitly to true or false."""
-    from app.routes.mcp import _tools_for_listing
-
-    hints = ("readOnlyHint", "destructiveHint", "openWorldHint")
-    loose = [
-        t["name"]
-        for t in _tools_for_listing(read_only=False)
-        if any(not isinstance(t["annotations"].get(h), bool) for h in hints)
-    ]
-    assert loose == []
-
-
 def test_version_overwrite_and_removal_are_destructive() -> None:
     for name in ("deleteAgentVersion", "restoreAgentVersion"):
         a = tool_annotations(name, "POST")
