@@ -76,17 +76,25 @@ def test_call_placing_tools_are_destructive_and_open_world() -> None:
         assert a["openWorldHint"] is True, name
 
 
-def test_campaign_config_writes_are_not_destructive() -> None:
+def test_adding_to_a_campaign_is_not_destructive() -> None:
+    a = tool_annotations("addBulkCallNumber", "POST")
+    assert a["readOnlyHint"] is False
+    assert a["destructiveHint"] is False
+    assert a["openWorldHint"] is False
+
+
+def test_changing_existing_settings_is_destructive() -> None:
     for name, method in (
         ("setBulkCallConcurrency", "PUT"),
         ("setBulkCallDailyTimeControl", "PUT"),
-        ("addBulkCallNumber", "POST"),
         ("setBulkCallNumberActive", "PUT"),
+        ("updateAgent", "PUT"),
+        ("editWorkflow", "PATCH"),
+        ("pauseWhatsappCampaign", "POST"),
     ):
         a = tool_annotations(name, method)
         assert a["readOnlyHint"] is False, name
-        assert a["destructiveHint"] is False, name
-        assert a["openWorldHint"] is False, name
+        assert a["destructiveHint"] is True, name
 
 
 def test_campaign_reads_are_read_only() -> None:
