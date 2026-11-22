@@ -9,9 +9,9 @@ You sign in with your OmniDimension account in the browser, so you need no API k
 
 ```mermaid
 flowchart LR
-  C["Your MCP client<br/>Claude, ChatGPT, Cursor"] -- "1. sign in once" --> L["omnidim.io sign-in"]
-  C -- "2. tool calls" --> M["mcp.omnidim.io/mcp"]
-  M -- "3. runs as you" --> A["OmniDimension API<br/>agents, calls, campaigns"]
+  C["Your MCP client"] -- "1. sign in once" --> L["omnidim.io"]
+  C -- "2. tool calls" --> M["mcp.omnidim.io"]
+  M -- "3. runs as you" --> A["Your account"]
 ```
 
 ## Connect
