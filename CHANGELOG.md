@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.17.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.0...v0.17.1) (2026-11-22)
+
+
+### Fixed
+
+* meet Claude and ChatGPT directory tool rules ([#116](https://github.com/Omnidim/omnidim-mcp-cloud/issues/116)) ([1f95fdf](https://github.com/Omnidim/omnidim-mcp-cloud/commit/1f95fdf9e56acac36bbc39a556661f71030d7665))
+
 ## [0.17.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.16.0...v0.17.0) (2026-11-22)
 
 
