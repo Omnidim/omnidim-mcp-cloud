@@ -165,7 +165,7 @@ async def test_reference_resources_listed(client: AsyncClient) -> None:
 async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/recommended-stack")
-    for token_str in ("azure_stream", "soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
+    for token_str in ("soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
         assert token_str in text
 
 
@@ -198,6 +198,30 @@ async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> 
     provision = res.json()["result"]["messages"][0]["content"]["text"]
     assert '"provider": "eleven_labs"' not in provision
     assert '"provider": "soniox"' in provision
+
+
+async def test_guides_lead_with_omnidimension_voices(client: AsyncClient) -> None:
+    # OmniDimension voices are our top picks per language. A Cartesia `search` never
+    # finds them, so the only way in is listVoices provider=featured.
+    token = await _mint_access_token(client)
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    stack = await _read_resource(client, token, "omnidim://reference/recommended-stack")
+    voices = await _read_resource(client, token, "omnidim://reference/voices")
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "prompts/get",
+            "params": {"name": "provision_agent", "arguments": {"purpose": "support"}},
+        },
+    )
+    provision = res.json()["result"]["messages"][0]["content"]["text"]
+    for text in (routing, stack, voices, provision):
+        assert "OmniDimension voices" in text
+        assert "`provider=featured`" in text
+    assert "eleven_labs" not in voices
 
 
 async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
