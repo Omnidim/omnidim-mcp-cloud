@@ -1786,17 +1786,16 @@ _TOOLS_JSON = r"""[
                                 }
                             ],
                             "description": "Languages this session runs in, replacing the agent's\nconfigured list. The first entry is the language the\nvisitor is greeted in. Send an array, or a pipe-separated\nstring such as `Hindi|English`.\n",
-                            "example": "Hindi|Gujarati|English"
+                            "example": "Hindi|Gujarati|English",
+                            "type": [
+                                "array",
+                                "string"
+                            ]
                         },
                         "__post_call_actions": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "additionalProperties": true,
-                                    "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
-                                }
-                            ],
-                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\n"
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                         }
                     },
                     "example": {
@@ -2424,17 +2423,16 @@ _TOOLS_JSON = r"""[
                     "example": [
                         "Tamil",
                         "English"
+                    ],
+                    "type": [
+                        "array",
+                        "string"
                     ]
                 },
                 "__post_call_actions": {
-                    "allOf": [
-                        {
-                            "type": "object",
-                            "additionalProperties": true,
-                            "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
-                        }
-                    ],
-                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\n"
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                 }
             },
             "required": [

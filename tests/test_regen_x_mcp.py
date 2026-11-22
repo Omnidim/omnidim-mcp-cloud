@@ -194,7 +194,9 @@ def test_a_briefed_schema_becomes_one_free_form_line() -> None:
         "additionalProperties": True,
         "description": _BRIEF,
     }
-    assert props["per_call"]["description"] == "For this call only."
+    # The field's own words come first; the brief adds the full-shape line.
+    assert props["per_call"]["type"] == "object"
+    assert props["per_call"]["description"] == f"For this call only.\n{_BRIEF}"
     assert props["name"] == {"type": "string"}
 
 
