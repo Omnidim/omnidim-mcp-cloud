@@ -257,10 +257,9 @@ give it a **phone number** and optionally a **knowledge base**, then place
    everywhere downstream); `listPhoneNumbers` -> `id` (used as
    `phone_number_id` to attach and as `from_number_id` to dispatch).
 10. **Phone numbers are E.164 with a leading `+`** everywhere.
-11. **`voice.speech_speed` has a playable range per provider.** Default is
-    `1.0`; only set it when the user wants faster/slower speech. For
-    `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
-    silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
+11. **`voice.speech_speed` stays within 0.7-1.2.** Default is `1.0`; only set
+    it when the user wants faster or slower speech. Outside that range some
+    voices produce a silent call, with no error.
 12. **Cloning a voice: the user uploads the clip at
     https://omnidim.io/clone-voice.** A tool call cannot carry a real audio
     file: a 30 s clip is about 840,000 characters of Base64, too long to
@@ -812,17 +811,17 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 - **Hindi / Hinglish (mixed Hindi and English):** transcriber `soniox`
   (handles code-mixed speech in one stream); an OmniDimension voice for Hindi.
 - **Other Indian languages (Tamil, Telugu, Marathi, Bengali, Gujarati,
-  Kannada, Malayalam, Punjabi):** transcriber `soniox`, or `sarvam` (tuned for
-  Indian languages); an OmniDimension voice for that language.
-- **US English:** transcriber `soniox` or `deepgram_stream`; an OmniDimension
-  voice for English (American).
+  Kannada, Malayalam, Punjabi):** transcriber `soniox`; an OmniDimension voice
+  for that language.
+- **US English:** transcriber `soniox`; an OmniDimension voice for English
+  (American).
 - **No OmniDimension voice for the language:** another `cartesia` voice.
 
 ## Field notes
 
-- `transcriber.provider` is a `name` from `listSTTProviders`, which lists only
-  the transcribers your organization can use. `deepgram_stream` also needs a
-  `model` (`nova-3` or `nova-2`); the others do not.
+- `transcriber.provider` is `soniox` unless the user asks for another one by
+  name. Any other choice must be a `name` from `listSTTProviders`, which lists
+  only the transcribers your organization can use.
 - `voice.provider` is the `service` of a voice from `listVoices`, which lists
   only voices your organization can use. Send only `provider` and `voice_id`:
   the platform picks the voice model.
@@ -1003,12 +1002,9 @@ wrapper; see the routing guide). The fields:
 - `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
 - `voice` -- `{ provider, voice_id, speech_speed? }`. `speech_speed` is a playback
   multiplier (default `1.0`); leave it out unless the user asks for faster or
-  slower speech. If you do set it, stay in the provider's playable range or the
-  call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
-  0.9-1.1) -- a value outside 0.7-1.2 produces no audio at all. `cartesia`
-  accepts 0.6-1.5 and `smallest-tts` 0.5-2.0.
-- `transcriber` -- `{ provider, model?, language? }`. `model` (`nova-3` /
-  `nova-2`) is only needed for `deepgram_stream`.
+  slower speech. If you do set it, stay within **0.7-1.2**, or some voices go
+  silent.
+- `transcriber` -- `{ provider, language? }`, with `provider` `soniox`.
 
 ## Reading an agent back
 

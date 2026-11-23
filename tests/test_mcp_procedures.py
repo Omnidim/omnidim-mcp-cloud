@@ -165,8 +165,10 @@ async def test_reference_resources_listed(client: AsyncClient) -> None:
 async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/recommended-stack")
-    for token_str in ("soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
+    for token_str in ("soniox", "cartesia", "gpt-4.1-mini"):
         assert token_str in text
+    for other in ("sarvam", "deepgram", "smallest", "eleven_labs", "azure"):
+        assert other not in text.lower()
 
 
 async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
