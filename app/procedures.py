@@ -291,7 +291,7 @@ _OUTBOUND_WELCOME_RULE = (
 
 _NUMBER_STEP = """Give it a number, as the design's number plan says. List numbers with
    `listPhoneNumbers` and show each one with the agent it serves now
-   (`active_bot_id`). Attach only the number the user names, with
+   (`active_bot_id` is that agent's id, or false; name it from `listAgents`). Attach only the number the user names, with
    `attachPhoneNumber` { phone_number_id, agent_id }. If that number serves
    another agent, say that agent stops answering on it, and attach only after
    the user's yes. If no number exists, ask the user whether to buy one or
@@ -671,7 +671,8 @@ def _build_outbound_campaign(args: dict[str, Any]) -> str:
         "   their explicit go-ahead. Then `startBulkCall`.\n"
         "9. Watch it: `getBulkCallLiveStatus` for progress when the user asks; do not poll it in a loop.\n"
         "   When it finishes, read per-contact outcomes\n"
-        "   with `listBulkCallLines` (follow `next_cursor` until null) and offer `retryBulkCall` for\n"
+        "   with `listBulkCallLines` (`pagesize` 150, follow `next_cursor` for at most 10 pages, then\n"
+        "   ask the user before reading more) and offer `retryBulkCall` for\n"
         "   contacts that did not connect.\n\n"
         "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
     )
@@ -1261,7 +1262,8 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 - `getBulkCallLiveStatus` for progress counts while it runs, when the user asks.
   Do not poll it in a loop.
 - `listBulkCallLines` for per-contact outcomes: `pagesize` up to 150, follow
-  `next_cursor` until it comes back null, never build a cursor yourself.
+  `next_cursor` until it comes back null, never build a cursor yourself. After
+  10 pages, ask the user before reading more.
   `include_total` once for a header, not on every page.
 - Rows carry `recording_id`, not the transcript; `getCallLog` serves it.
 - `retryBulkCall` re-queues contacts that did not connect; it refuses a campaign

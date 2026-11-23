@@ -490,6 +490,8 @@ def test_every_wait_has_a_cap() -> None:
     assert "up to 10 times" in _text("omnidim://guide/workflows")
     assert "three empty replies in a row" in _text("book_demo")
     assert "do not poll it in a loop" in _text("build_outbound_campaign")
+    assert "at most 10 pages" in _text("build_outbound_campaign")
+    assert "After 10 pages, ask the user" in _text("omnidim://guide/bulk-campaigns")
 
 
 def test_update_keeps_disabled_sections_disabled() -> None:
