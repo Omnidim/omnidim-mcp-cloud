@@ -76,7 +76,7 @@ description: "Connect an AI agent to an OmniDimension account through MCP, with 
 # Connect to OmniDimension
 
 1. Hosted server, signs in with OAuth in the browser:
-   - Claude Code: `claude plugin install omnidim --marketplace Omnidim/skills` adds the server and these skills. Then run `/mcp` to sign in. Before Claude Code 2.1.275, run `claude plugin marketplace add Omnidim/skills`, then `claude plugin install omnidim@omnidim`.
+   - Claude Code: `claude plugin install omnidim --marketplace Omnidim/skills` adds the server and these skills. Then run `/mcp` to sign in. If your Claude Code does not know `--marketplace`, run `claude plugin marketplace add Omnidim/skills`, then `claude plugin install omnidim@omnidim`.
    - Claude.ai, ChatGPT, Cursor and other clients: add `https://mcp.omnidim.io/mcp` as a custom connector.
    - For read access only, use `https://mcp.omnidim.io/mcp/readonly`.
 2. Local server, uses an API key from https://omnidim.io/api-management:
