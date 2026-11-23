@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.19.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.18.0...v0.19.0) (2026-11-23)
+
+
+### Added
+
+* AI clients design, build, test and update agents with the team's playbook, in every client ([#126](https://github.com/Omnidim/omnidim-mcp-cloud/issues/126)) ([3c2f3bd](https://github.com/Omnidim/omnidim-mcp-cloud/commit/3c2f3bd37c95d79857479251aeab8bad0018c5a6))
+
 ## [0.18.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.2...v0.18.0) (2026-11-22)
 
 
