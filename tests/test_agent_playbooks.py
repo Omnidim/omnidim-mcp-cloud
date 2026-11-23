@@ -204,3 +204,10 @@ def test_guides_never_promise_versions_the_platform_does_not_make() -> None:
 def test_the_build_picks_a_voice_by_language_and_gender() -> None:
     text = _playbook("provision_agent")
     assert "`featured_languages`" in text and "`gender`" in text
+
+
+def test_the_prompt_guide_covers_what_a_live_call_got_wrong() -> None:
+    text = _guide("omnidim://guide/agent-prompt")
+    assert "is not a yes" in text
+    assert "done or cancelled" in text
+    assert "services, prices" in text
