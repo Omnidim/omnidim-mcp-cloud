@@ -20,6 +20,7 @@ SKILLS = [
     "omnidim-audit-calls",
     "omnidim-build-agent",
     "omnidim-build-workflow",
+    "omnidim-client-onboarding",
     "omnidim-connect",
     "omnidim-run-campaign",
 ]
@@ -39,7 +40,7 @@ def _frontmatter(text: str) -> dict[str, str]:
     return meta
 
 
-def test_writes_the_five_skills(out: Path) -> None:
+def test_writes_every_skill(out: Path) -> None:
     assert sorted(p.name for p in out.iterdir() if p.is_dir()) == SKILLS
 
 
