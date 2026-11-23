@@ -506,3 +506,8 @@ def test_restore_preview_states_the_diff_direction() -> None:
 def test_workflow_example_keeps_secrets_out_of_config() -> None:
     assert "slack_webhook_url: \"<from the user>\"" not in _text("omnidim://guide/workflows")
     assert "integration_id: <from listWorkflowFieldOptions>" in _text("omnidim://guide/workflows")
+
+
+def test_call_log_scans_use_a_page_that_fits_the_size_cap() -> None:
+    assert '"pagesize": 5, "include_details": false' in _text("audit_calls")
+    assert "a page of 50 short rows comes back as 6" in _text("audit_calls")

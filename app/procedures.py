@@ -250,8 +250,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
    `omnidim://reference/agent-config` resource). Read the voice from
    `voice_external_id` and `voice_provider`, never from `voice`.
 7. **`listCallLogs` rows are large** and the response is trimmed if it grows
-   past the size cap. Scan with `include_details: false` and a `pagesize` up
-   to 50, then fetch each call you need with `getCallLog`.
+   past the size cap. Scan with `include_details: false` and `pagesize` 5
+   (even short rows are about 2.5 KB each), filter by `agentid`,
+   `bulk_call_id` or `call_status`, then fetch each call you need with
+   `getCallLog`.
 8. **Outbound `from_number_id`:** run `listPhoneNumbers` first and pass the
    number the user picks. Omit it only when the account has no numbers: the
    platform default number is used then. A number that cannot reach the
@@ -566,7 +568,7 @@ def _audit_calls(args: dict[str, Any]) -> str:
     focus = args.get("focus") or "(describe what to look into)"
     agent_id = args.get("agent_id")
     call_status = args.get("call_status")
-    filters = ['"pagesize": 50', '"include_details": false']
+    filters = ['"pagesize": 5', '"include_details": false']
     if agent_id:
         filters.append(f'"agentid": {agent_id}')
     if call_status:
@@ -575,8 +577,9 @@ def _audit_calls(args: dict[str, Any]) -> str:
     return (
         f'Audit OmniDimension call logs for this question:\n\n"{focus}"\n\n'
         f"1. List recent calls with `listCallLogs` {{ {filter_str} }}.\n"
-        "   - Keep `include_details: false` while you scan. Full rows are large and the response is trimmed past a "
-        "size cap, so a big page of full rows comes back truncated and unparseable.\n"
+        "   - Keep `include_details: false` and `pagesize` 5 while you scan. Even short rows are about 2.5 KB, and "
+        "the response is trimmed past a size cap: a page of 50 short rows comes back as 6. Narrow with filters "
+        "and `pageno` instead of a bigger page.\n"
         "   - Filters: `agentid` (note: no underscore) for one agent, `bulk_call_id` for one campaign, `call_status` "
         "for triage. The status enum uses a hyphen: completed | busy | failed | no-answer.\n"
         "   - Each row carries `id`, `call_status`, `sentiment_score` and cost. There is no date-range "
