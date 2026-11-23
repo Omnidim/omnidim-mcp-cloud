@@ -490,10 +490,34 @@ _TOOLS_JSON = r"""[
                 "campaign_id": {
                     "type": "integer",
                     "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "items": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "items": {
+                        "type": "object",
+                        "description": "One contact. `phone_number` is required. Any other key is kept on the\ncontact and can fill a template parameter through `variable_mapping`.\n",
+                        "required": [
+                            "phone_number"
+                        ],
+                        "properties": {
+                            "phone_number": {
+                                "type": "string",
+                                "description": "The customer's number in international format, such as `+15551234567`."
+                            },
+                            "contact_name": {
+                                "type": "string",
+                                "description": "A name for your team. `name` works too."
+                            }
+                        },
+                        "additionalProperties": true
+                    },
+                    "description": "Send a list, even for one item. It becomes the request body."
                 }
             },
             "required": [
-                "campaign_id"
+                "campaign_id",
+                "items"
             ],
             "additionalProperties": true
         },
@@ -504,6 +528,7 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [],
         "header_params": [],
+        "body_list_arg": "items",
         "annotations": {
             "title": "Add contacts to WhatsApp campaign",
             "readOnlyHint": false,

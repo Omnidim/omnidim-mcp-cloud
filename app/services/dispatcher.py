@@ -300,6 +300,8 @@ async def dispatch_tool(
         return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
+    if list_arg := tool.get("body_list_arg"):
+        body = body.get(list_arg)
     if method != "GET" and body:
         request_kwargs["json"] = body
 
