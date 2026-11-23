@@ -207,13 +207,15 @@ give it a **phone number** and optionally a **knowledge base**, then place
 - "Get me a number / buy a number" -> `searchPhoneNumbers` { region, carrier }
   then `purchasePhoneNumber`. This spends the account's balance, so confirm the
   exact number and price with the user before buying. `releasePhoneNumber`
-  gives one up and cannot be undone.
-  `carrier` is required on both calls, in every region. Carriers do not stock
-  the same numbers, so ask the user which one they want rather than picking:
+  gives one up and cannot be undone: release only after the user confirms
+  that exact number.
+  `purchasePhoneNumber` requires `carrier`. Pass the same `carrier` to the
+  search, so you search the stock you buy from. Carriers do not stock the
+  same numbers, so ask the user which one they want rather than picking:
   see the `omnidim://reference/carriers` resource for what each one stocks.
   `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
-- "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
-  call tools.
+- "Place one call now" -> `dispatchCall`. "Call many contacts" -> the
+  `build_outbound_campaign` prompt.
 - "Book a demo / talk to the team", or a yes to a demo you offered -> the
   `book_demo` prompt: `getDemoQuestions`, `requestDemo`, then `bookDemo`.
   When to offer one: """ + DEMO_OFFER_RULE + """
@@ -227,7 +229,8 @@ give it a **phone number** and optionally a **knowledge base**, then place
 2. **Voices: use the `name` string as `voice_id`.** `listVoices` returns
    `id: null` for most voices; the usable identifier is the `name` field.
    Not every listed voice is synthesizable: an arbitrary one can produce a
-   silent call. Prefer a known premade voice and confirm audio on a test call.
+   silent call. Start with the OmniDimension voices (rule 4) and confirm audio
+   on a test call.
 3. **The agent's numeric `voice` field is not used for speech.** It can read
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
@@ -235,9 +238,8 @@ give it a **phone number** and optionally a **knowledge base**, then place
    OmniDimension voices, model `gpt-4.1-mini`. Pick another provider only when
    the user names one. OmniDimension voices are our most recommended voices:
    picked by our team for each language and tested on real calls. List them
-   with `listVoices` `provider=featured`, best first, and save one as
-   `voice.provider` = its `service` (`cartesia`) with its `name` as
-   `voice_id`. A Cartesia `search` does not find them. If none fits the
+   with `listVoices` `provider=featured`, and save one as
+   `voice.provider` = its `service` with its `name` as `voice_id`. A Cartesia `search` does not find them. If none fits the
    language or tone, pick another `cartesia` voice.
 5. **`dispatchCall` returning `success: true` does NOT mean a call
    connected.** It means the request was accepted. Proof of a real call is a
@@ -248,11 +250,12 @@ give it a **phone number** and optionally a **knowledge base**, then place
    `omnidim://reference/agent-config` resource). Read the voice from
    `voice_external_id` and `voice_provider`, never from `voice`.
 7. **`listCallLogs` rows are large** and the response is trimmed if it grows
-   past the size cap. Use a small `pagesize` (1-3) and fetch detail per row
-   with `getCallLog`.
-8. **Outbound `from_number_id`:** omit it to use the platform default number.
-   A number that cannot reach the destination country yields an accepted
-   dispatch but no connected call.
+   past the size cap. Scan with `include_details: false` and a `pagesize` up
+   to 50, then fetch each call you need with `getCallLog`.
+8. **Outbound `from_number_id`:** run `listPhoneNumbers` first and pass the
+   number the user picks. Omit it only when the account has no numbers: the
+   platform default number is used then. A number that cannot reach the
+   destination country yields an accepted dispatch but no connected call.
 9. **IDs flow between calls:** `createAgent` -> `id` (the agent_id used
    everywhere downstream); `listPhoneNumbers` -> `id` (used as
    `phone_number_id` to attach and as `from_number_id` to dispatch).
@@ -273,6 +276,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
     https://omnidim.io/files.** `uploadKnowledgeBaseFile` takes the PDF as
     Base64 in the call, so use it only for a small file. Then find the file
     with `listKnowledgeBaseFiles` and attach it with `attachKnowledgeBaseFiles`.
+14. **A published agent keeps serving its published version.** If `getAgent`
+    shows `published_state.is_published: true`, `updateAgent` and
+    `restoreAgentVersion` change only the draft. Callers hear the change after
+    the user publishes in the dashboard. There is no publish tool for agents.
 """
 
 _OUTBOUND_WELCOME_RULE = (
@@ -282,13 +289,17 @@ _OUTBOUND_WELCOME_RULE = (
     "they reached, and ask how you can help."
 )
 
-_NUMBER_STEP = """Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
-   `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
-   either buy one (`searchPhoneNumbers` { region, carrier } then
-   `purchasePhoneNumber`, which charges the account, so confirm with the user
-   first and never pick for them; `carrier` is required on both calls in every
-   region, and carriers do not stock the same numbers) or import one you
-   already own (importTwilioNumber / importExotelNumber / importSipTrunk).
+_NUMBER_STEP = """Give it a number, as the design's number plan says. List numbers with
+   `listPhoneNumbers` and show each one with the agent it serves now
+   (`active_bot_id`). Attach only the number the user names, with
+   `attachPhoneNumber` { phone_number_id, agent_id }. If that number serves
+   another agent, say that agent stops answering on it, and attach only after
+   the user's yes. If no number exists, ask the user whether to buy one or
+   import one they own. To buy: ask for the region and for landline or mobile,
+   take the `carrier` from the `omnidim://reference/carriers` resource, run
+   `searchPhoneNumbers` { region, carrier }, and confirm the exact number and
+   price before `purchasePhoneNumber`, which charges the account. To import:
+   importTwilioNumber / importExotelNumber / importSipTrunk.
    Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }."""
 
 
@@ -326,7 +337,10 @@ def _design_agent(args: dict[str, Any]) -> str:
         "role, company and who it speaks for; voice gender and tone; languages and the "
         "terms that stay in English; AI disclosure; the forms of address allowed; the goal, what counts "
         "as success, and any fallback; hard rules and limits; banned phrases; the facts the agent may "
-        "use; and the never-say and never-promise list.\n"
+        "use; the never-say and never-promise list; the call direction; when the call may end; the "
+        "transfer number and when to transfer, if any; the voicemail line, for outbound calls; the two "
+        "lines the agent says when the caller is silent; where the results go after each call; and the "
+        "number plan (an existing number, or buy one: the region, and landline or mobile).\n"
         f"   - Welcome message. {_OUTBOUND_WELCOME_RULE} Mark a message you wrote [DRAFT].\n"
         "   - Intents, grouped: Opening, FAQ, Objections, Escalation or final ask, Counteroffers and "
         "partial answers, Agreement and close, Special situations, Language switch. Drop a group that "
@@ -359,29 +373,36 @@ def _voice_step(voice_id: str | None) -> str:
             "Start with the OmniDimension voices, our most recommended: call `listVoices` with "
             "`provider=featured` and pick one whose `featured_languages` include the primary language and "
             "whose `gender` matches the agent's voice gender. Use its `name` as voice_id and its `service` "
-            "(`cartesia`) as the voice provider. If no voice has those fields, show the user the names "
-            "and let them pick."
+            "as the voice provider. If no voice has those fields, show the user a few names with their "
+            "`sample_url` and let them pick."
         )
     )
+
+
+_DISPATCH_TEST = (
+    "Pass `call_context` with a value for every [variable] the welcome and prompt use, and the "
+    "number from step 9 as `from_number_id` (omit it only if the account has no numbers)."
+)
+_READ_BACK_TEST = (
+    "Check `listCallLogs` { agentid, pagesize: 1 } at most 5 times, 30 seconds apart; if no new row "
+    "appears, tell the user and stop. Then `getCallLog` on its id. The call is verified ONLY if "
+    "`call_conversation` is non-empty (the agent actually spoke). A successful dispatch response alone "
+    "is not proof. Tell the user what happened on the call and propose fixes with the `update_agent` prompt."
+)
 
 
 def _test_call_steps(test_number: str | None) -> str:
     if test_number:
         return (
-            f'11. Place a verification call with `dispatchCall` {{ agent_id, to_number: "{test_number}" }} '
-            "(omit from_number_id to use the default outbound number). Capture the returned requestId.\n"
-            f"12. Poll `listCallLogs` {{ pagesize: 1 }} until a new row appears for {test_number}, then `getCallLog` on "
-            "its id. The call is verified ONLY if `call_conversation` is non-empty (the agent actually spoke). A "
-            "successful dispatch response alone is not proof. Tell the user what happened on the call and "
-            "propose fixes with the `update_agent` prompt."
+            f'11. Place a verification call with `dispatchCall` {{ agent_id, to_number: "{test_number}" }}. '
+            f"{_DISPATCH_TEST}\n"
+            f"12. {_READ_BACK_TEST}"
         )
-    else:
-        return (
-            "11. (No test_number given.) Ask the user whether to call their phone now to test the agent. With "
-            "their number, place the call with `dispatchCall`, then read it back with `listCallLogs` and "
-            "`getCallLog`. Until a call log shows a non-empty `call_conversation`, do not claim the agent "
-            "works end to end. Tell the user what happened and propose fixes with the `update_agent` prompt."
-        )
+    return (
+        "11. (No test_number given.) Ask the user whether to call their phone now to test the agent. With "
+        f"their number, place the call with `dispatchCall`. {_DISPATCH_TEST}\n"
+        f"12. {_READ_BACK_TEST}"
+    )
 
 
 _CREATE_AND_CHECK_STEPS = (
@@ -393,7 +414,7 @@ _CREATE_AND_CHECK_STEPS = (
         '     "call_type": "Outgoing",\n'
         '     "languages": ["<primary language>"],\n'
         '     "model": { "model": "gpt-4.1-mini", "temperature": 0.3 },\n'
-        '     "voice": { "provider": "cartesia", "voice_id": "<name from listVoices provider=featured>" },\n'
+        '     "voice": { "provider": "<its service>", "voice_id": "<name from listVoices provider=featured>" },\n'
         '     "transcriber": { "provider": "soniox", "should_apply_noise_reduction": true, '
         '"interruption_min_words": 1, "first_ideal_message": "<silence nudge>", '
         '"is_first_ideal_message_dynamic": false, "second_ideal_message": "<second nudge>", '
@@ -410,8 +431,8 @@ _CREATE_AND_CHECK_STEPS = (
         'as "English (India)" or "Hindi". An unknown name is dropped without an error (all unknown is an '
         "error), and the order is not kept, so check the saved list in step 7.\n"
         '   - Inbound: `call_type` "Incoming", and no `voicemail`. `voicemail` is for outbound calls only, '
-        "and is an access-gated feature: if the user's account does not have it, leave `voicemail` out "
-        "and tell the user to request access.\n"
+        "and is an access-gated feature: ask the user whether voicemail is enabled for their account. If "
+        "they do not know, leave `voicemail` out.\n"
         "   - `transfer` only if the design has a handoff, with the same condition the prompt uses.\n"
         "   Capture the returned `id` as agent_id. (`status` is always \"Completed\"; it is not a build "
         "signal.)\n"
@@ -421,7 +442,8 @@ _CREATE_AND_CHECK_STEPS = (
         "script rules; the end-call condition matches the prompt's ending list; the welcome, voicemail, "
         "nudges and closing lines match the identity and the verb gender; the AI disclosure rule and the "
         "identity do not contradict; the result variables cover every outcome. Fix anything you find with "
-        "`updateAgent`.\n"
+        "`updateAgent`, and send the full `context_breakdown` list: it replaces every section with the "
+        "list you send.\n"
         "7. Fetch it back with `getAgent` and check every setting saved, reading the names the "
         "`omnidim://reference/agent-config` resource maps (`getAgent` returns them flat: "
         "`voice_external_id`, `languages` labels, `asr_service`, `llm_temperature`, `is_end_call_enabled`, "
@@ -455,9 +477,11 @@ def _provision_agent(args: dict[str, Any]) -> str:
         "table and ask the user. Otherwise continue.\n"
         "2. Write the prompt in the eight sections of the `omnidim://guide/agent-prompt` resource, one "
         "`context_breakdown` entry per section. Copy approved lines (welcome, objection replies, closings, "
-        "voicemail) word for word. Before you write it, read the `omnidim://guide/call-tips` resource: it "
-        "lists what the best agents do on real calls.\n"
-        f"3. Welcome message: {_OUTBOUND_WELCOME_RULE}\n"
+        "voicemail) word for word. Put no fact marked [VERIFY] in the prompt: list each one as open. "
+        "Before you write it, read the `omnidim://guide/call-tips` resource: it lists what the best "
+        "agents do on real calls.\n"
+        "3. Welcome message: use the design's approved welcome word for word. Only without a design: "
+        f"{_OUTBOUND_WELCOME_RULE}\n"
         f"4. Voice and models: {_voice_step(voice_id)} Model `gpt-4.1-mini` at temperature 0.3. Transcriber "
         "`soniox`, or the one the `omnidim://reference/recommended-stack` resource gives for the caller's "
         "language. List every language the agent speaks in `languages`.\n"
@@ -481,8 +505,13 @@ def _update_agent(args: dict[str, Any]) -> str:
     change = args.get("change") or "(which agent, and what went wrong or what to change)"
     return (
         f'Update an existing OmniDimension agent:\n\n"{change}"\n\n'
-        "1. Fetch the live agent with `getAgent`, and the call with `getCallLog` if the user gave a call id. "
-        "The dashboard may have changed the agent since the last edit, so work from what is live now.\n"
+        "1. Fetch the agent with `getAgent`, and the call with `getCallLog` if the user gave a call id. "
+        "The dashboard may have changed the agent since the last edit, so work from what is saved now. "
+        "If `published_state.is_published` is true, callers hear version `published_version_number`, "
+        "not this draft: diagnose calls against that version (`diffAgentVersion` { version_number: <it>, "
+        'against: "current" }). Tell the user this change edits the draft only, and callers hear it after '
+        "they publish in the dashboard. If `has_unpublished_changes` is true, say that other draft edits "
+        "will go live with it.\n"
         "2. Check these every time and report any mismatch: the voice's gender against the prompt's verb "
         "forms; the transcriber and voice language against the primary language; the saved "
         "`languages`; the welcome, voicemail, silence nudges and closing line against the identity rule.\n"
@@ -519,14 +548,17 @@ def _update_agent(args: dict[str, Any]) -> str:
         "takes. Otherwise use the "
         "shape the `omnidim://reference/agent-config` resource gives for reading an agent back. `getAgent` "
         "names differ: sections come back as `context_title` and `context_body`, but `updateAgent` takes "
-        "`title` and `body`, and sending the `getAgent` names back blanks every section. Send the complete "
+        "`title`, `body` and `is_enabled`, and sending the `getAgent` names back blanks every section. "
+        "Copy `is_enabled` for every section, or a disabled section turns back on. Send the complete "
         "`context_breakdown` list, never only the changed section, because it replaces the whole list. "
         "In `end_call`, send `enabled` only to turn ending the call on or off.\n"
-        "   - Fetch the agent again and check that every section has its title and body.\n"
+        "   - Fetch the agent again and check that every section has its title and body. If any is blank, "
+        "restore the backup `version_number` at once and tell the user.\n"
         "   - Save the new version (V1.1, V1.2 and so on) with `createAgentVersion`, and confirm in one "
         "line what changed.\n"
         '   If the user says "Undo", restore the backup `version_number` with `restoreAgentVersion`.\n'
-        "7. Offer a test call to check the fix, as in the `provision_agent` prompt's test steps."
+        "7. Offer a test call to check the fix, as in the `provision_agent` prompt's test steps. On a "
+        "published agent, wait until the user has published: a call before that plays the old version."
     )
 
 
@@ -534,7 +566,7 @@ def _audit_calls(args: dict[str, Any]) -> str:
     focus = args.get("focus") or "(describe what to look into)"
     agent_id = args.get("agent_id")
     call_status = args.get("call_status")
-    filters = ['"pagesize": 3']
+    filters = ['"pagesize": 50', '"include_details": false']
     if agent_id:
         filters.append(f'"agentid": {agent_id}')
     if call_status:
@@ -543,11 +575,11 @@ def _audit_calls(args: dict[str, Any]) -> str:
     return (
         f'Audit OmniDimension call logs for this question:\n\n"{focus}"\n\n'
         f"1. List recent calls with `listCallLogs` {{ {filter_str} }}.\n"
-        "   - Keep `pagesize` small (1-3). Each row is large and the response is trimmed past a size cap, so a big "
-        "page comes back truncated and unparseable.\n"
+        "   - Keep `include_details: false` while you scan. Full rows are large and the response is trimmed past a "
+        "size cap, so a big page of full rows comes back truncated and unparseable.\n"
         "   - Filters: `agentid` (note: no underscore) for one agent, `bulk_call_id` for one campaign, `call_status` "
         "for triage. The status enum uses a hyphen: completed | busy | failed | no-answer.\n"
-        "   - Each row carries `id`, `call_status`, `sentiment_score`, cost, and a summary. There is no date-range "
+        "   - Each row carries `id`, `call_status`, `sentiment_score` and cost. There is no date-range "
         "filter; filter by `time_of_call` (MM/DD/YYYY HH:MM:SS) yourself if needed.\n"
         "2. For each call of interest, call `getCallLog` { call_log_id: <row id> } for the full transcript "
         "(`call_conversation`), `interactions`, `extracted_variables`, `recording_url`, and per-turn latency/cost. "
@@ -570,14 +602,16 @@ def _restore_agent_version(args: dict[str, Any]) -> str:
         "matches the goal above. If version history is off for this org these calls return 403 "
         "(feature_disabled); report that and stop. A 403 feature_not_entitled means the plan has no version history.\n"
         f"2. Preview the effect: `diffAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen>, "
-        'against: "current" }. This shows exactly what restoring that version WOULD change vs the agent\'s live '
-        "config, grouped by area (Settings, Prompt, Transfer rules, etc.). If it reports no meaningful change, tell "
-        "the user there is nothing to restore and stop. Show the user this preview and confirm before the next step.\n"
+        'against: "current" }. This shows what restoring that version would change, grouped by area (Settings, '
+        "Prompt, Transfer rules, etc.). In each change, `old` is this version's value and `new` is the agent's "
+        "value now: restoring turns each `new` back into `old`. If it reports no meaningful change, tell "
+        "the user there is nothing to restore and stop. Show the user this preview and restore only on their yes.\n"
         f"3. Restore: `restoreAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen> }}. This automatically "
         'keeps the current state as a backup first (a new "Backup before restore" version, or an existing version '
         "that already holds the same state), so the restore is itself undoable, "
-        "then writes the chosen config back. Check the response's `skipped` list: knowledge files or integrations "
-        "that no longer exist are dropped and reported, not restored.\n"
+        "then writes the chosen config back. On a published agent it writes the draft only: callers hear it "
+        "after the user publishes in the dashboard. Report every item in the response's `skipped` list to the "
+        "user: anything that no longer exists or is not allowed is dropped, not restored.\n"
         "4. Confirm: tell the user which version holds the backup (`safety_version` in the restore response) and that "
         "they can undo by restoring it.\n\n"
         "See the `omnidim://guide/agent-versioning` resource for the full tool list and the diff `against` modes."
@@ -604,32 +638,39 @@ def _build_outbound_campaign(args: dict[str, Any]) -> str:
         "A campaign dials real people and spends real money: confirm the plan with the user before\n"
         "`startBulkCall`, and never start one they have not approved.\n\n"
         "1. Decide the shape: a one-time list is a normal campaign; continuously arriving leads mean a\n"
-        "   dynamic campaign (`is_dynamic: true`) fed by `addBulkCallContact` instead of steps 3 and 5.\n"
+        "   dynamic campaign (`is_dynamic: true`, no `contact_list`) fed by `addBulkCallContact` instead of\n"
+        "   step 5. While a campaign is a draft, add contacts only with `addBulkCallContacts`: one\n"
+        "   `addBulkCallContact` starts a draft campaign at once, so use it only after step 8's go-ahead.\n"
         f"2. Number and agent: {number_line} {agent_line}\n"
         "3. Create it as a draft with `createBulkCall`\n"
-        "   { name, phone_number_id, save_as_draft: true, concurrent_call_limit: <sized below> }.\n"
+        "   { name, phone_number_id, save_as_draft: true, concurrent_call_limit: <sized below>,\n"
+        '     contact_list: [{ "phone_number": "+1...", ... }] }.\n'
+        "   A normal campaign needs its first rows in `contact_list` (flat shape); add the rest in step 5.\n"
         "   Add `rotation` when dialing from several numbers (see the bulk-campaigns resource for the\n"
         "   shape). Keep the returned `id`.\n"
         "4. Size concurrency from the goal's numbers, not a guess: per channel, 3600 / average call seconds\n"
         "   gives calls per hour (~40 at 90s); divide the target hourly rate by that. Show the arithmetic\n"
         "   to the user.\n"
-        "5. Add contacts with `addBulkCallContacts` in batches of up to 1000:\n"
-        '   { bulk_call_id, contacts: [{ to_number: "+1...", custom_variables: {...} }] }.\n'
+        "5. Add the remaining contacts with `addBulkCallContacts` in batches of up to 1000:\n"
+        '   { campaign_id, contacts: [{ to_number: "+1...", custom_variables: {...} }] }.\n'
         "   This shape differs from create's contact_list on purpose; do not mix them. Report anything\n"
         "   that comes back in `rejected` with its row index. Each `custom_variables` key fills the\n"
         "   matching [placeholder] in the agent's greeting and prompt, so every row needs every key the\n"
-        "   agent uses, or the agent says the placeholder out loud.\n"
-        "6. Calling hours: if the goal names a time window, set it with `setBulkCallDailyTimeControl`\n"
+        "   agent uses, or the agent skips the placeholder and the line sounds broken.\n"
+        "6. Calling hours: ask the user for the calling hours and the customers' timezone. If they want\n"
+        "   none, say the campaign dials around the clock. Set the window with `setBulkCallDailyTimeControl`\n"
         "   (both the stop and start blocks are required) and pass `daily_stop_timezone`/\n"
         "   `daily_start_timezone` for the customers' region; left out they fall back to the campaign's\n"
-        "   timezone, and a mismatch dials people at night. Also set the agent's own `timezone` field\n"
-        "   (`updateAgent`) so it works with the customers' local time on calls.\n"
+        "   timezone, and a mismatch dials people at night. Suggest setting the agent's own `timezone`\n"
+        "   field to the customers' region too. Change it with `updateAgent` only after the user's yes:\n"
+        "   the agent may serve other calls.\n"
         "7. Check the agent's greeting against the `omnidim://guide/call-tips` resource (a name check of\n"
         "   8 words or fewer loses far fewer calls in the first seconds). Suggest changes; never edit the\n"
         "   agent without the user's yes.\n"
         "8. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
         "   their explicit go-ahead. Then `startBulkCall`.\n"
-        "9. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
+        "9. Watch it: `getBulkCallLiveStatus` for progress when the user asks; do not poll it in a loop.\n"
+        "   When it finishes, read per-contact outcomes\n"
         "   with `listBulkCallLines` (follow `next_cursor` until null) and offer `retryBulkCall` for\n"
         "   contacts that did not connect.\n\n"
         "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
@@ -649,9 +690,12 @@ def _build_workflow(args: dict[str, Any]) -> str:
         "   `after` and `handle`, and add a notes node that says what the workflow is for.\n"
         "4. `validateWorkflow` and fix every error.\n"
         "5. A test run happens for real: messages, calls and CRM writes go out. Only call `testWorkflow` after the\n"
-        "   user says yes, with their own phone number or email in the payload. It returns at once, so poll\n"
-        "   `getWorkflowExecution` until `state` is `completed`, `failed` or `cancelled`.\n"
+        "   user says yes, with their own phone number or email in the payload. It returns at once, so check\n"
+        "   `getWorkflowExecution` up to 10 times, a few seconds apart, until `state` is `completed`, `failed`\n"
+        "   or `cancelled`. If `state` is `waiting`, report the steps so far and stop.\n"
         "6. Show the user the finished flow, then `publishWorkflow` when they approve. Publishing makes it live.\n"
+        "   If the trigger is post-call, ask which agent it is for. After the user's yes, run `addPostCallAction`\n"
+        "   with `type: workflow` on that agent: until then the workflow never fires.\n"
         "7. Prefer creating a new workflow. Never publish, activate, deactivate, delete or test an existing\n"
         "   workflow without the user's explicit yes, and read it with `getWorkflow` first.\n"
     )
@@ -672,15 +716,16 @@ def _book_demo(args: dict[str, Any]) -> str:
         "meeting or a time.\n"
         "5. If `route` is `calendar`: show 5 to 8 of the `slots`, converted to the user's timezone "
         "with the day and date. Ask them to pick one. If `slots` is empty or none suit them, call "
-        "`requestDemo` again with the same answers and `after` set to `next_after`.\n"
+        "`requestDemo` again with the same answers and `after` set to `next_after`. After three empty "
+        "replies in a row, tell the user and stop.\n"
         "6. Repeat the picked time and the answers back, get a yes, then call `bookDemo` with the "
         "same answers and `start_time` exactly as `requestDemo` returned it.\n"
         "7. Show everything `bookDemo` returns: the date and time in the user's timezone, how long "
         "it is, the join link (if it is empty, say the join link is in the calendar invite email), "
         "who is in the meeting (hosts and guests), when it was booked, and the reschedule and "
         "cancel links. Calendly sends the invite by email.\n"
-        "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken and go back to "
-        "step 5. If it returns 429, this account sent too many demo requests: ask them to wait a "
+        "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken, call `requestDemo` "
+        "again with the same answers and no `after`, and go on from step 5 with the new slots. If it returns 429, this account sent too many demo requests: ask them to wait a "
         "few minutes, and point them to their invite email if they already booked. If it fails any "
         "other way, do not call it again yourself: the booking may have gone through. Ask them to "
         "check their email for an invite, and book again only if they say none arrived."
@@ -727,7 +772,7 @@ _PROMPTS: list[dict[str, Any]] = [
         ),
         "arguments": [
             {"name": "purpose", "description": "What the agent should do, in plain language (e.g. 'book dental appointments and answer FAQs').", "required": True},
-            {"name": "voice_id", "description": "Optional voice name from listVoices. If omitted, use a known premade voice and confirm audio on the test call.", "required": False},
+            {"name": "voice_id", "description": "Optional voice name from listVoices. If omitted, an OmniDimension voice for the agent's language is used.", "required": False},
             {"name": "test_number", "description": "Optional E.164 number to place a verification call to after setup (e.g. +15551234567).", "required": False},
         ],
         "build": _provision_agent,
@@ -735,7 +780,7 @@ _PROMPTS: list[dict[str, Any]] = [
     {
         "name": "update_agent",
         "description": (
-            "Change a live agent safely: read what is live, show the exact edits, back it up, apply on the user's "
+            "Change an agent safely: read what is saved, show the exact edits, back it up, apply on the user's "
             "word, and undo if asked."
         ),
         "arguments": [
@@ -801,8 +846,8 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 
 - Default: one of the OmniDimension voices, our most recommended voices. Our
   team picks them for each language and tests them on real calls. List them
-  with `listVoices` `provider=featured`, best first, and save one under its
-  `service` (`cartesia`). See `omnidim://reference/voices`.
+  with `listVoices` `provider=featured`, and save one under its `service`.
+  See `omnidim://reference/voices`.
 
 ## By caller language
 
@@ -845,7 +890,10 @@ OmniDimension voices are our most recommended voices. Our team picks them for
 each language and tests them on real calls. Use one unless the user asks for
 something else.
 
-- List them with `listVoices` `provider=featured`. They come back best first.
+- List them with `listVoices` `provider=featured`. Each one has a `gender` and
+  the `featured_languages` it speaks: pick one that matches the agent. If those
+  fields are missing, show the user a few names with their `sample_url` and
+  let them pick.
 - They cover English (India), English (American), Hindi, Tamil, Telugu,
   Marathi, Bengali, Gujarati, Kannada, Malayalam and Punjabi.
 - Each one runs on Cartesia: save it as `voice.provider` `cartesia` with its
@@ -1083,7 +1131,8 @@ if a change makes the agent worse.
   config as a named version.
 - `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
 - `restoreAgentVersion` { agent_id, version_number } - write a version back onto
-  the live agent.
+  the agent. On a published agent it writes the draft: callers hear it after
+  the user publishes in the dashboard.
 - `renameAgentVersion` / `deleteAgentVersion` - tidy the timeline.
 
 `kind` is `manual` (someone saved it) or `system` (a safety backup taken right
@@ -1105,8 +1154,9 @@ comparison with `against`:
 
 - **omit / `against=previous`** (default): what changed IN this version vs the
   one before it. Matches the `change_summary` in the list.
-- **`against=current`**: what restoring this version WOULD change vs the agent's
-  live config right now. Read this before a restore to preview the effect.
+- **`against=current`**: what restoring this version would change. `old` is
+  this version's value and `new` is the agent's value now: restoring turns
+  each `new` back into `old`. Read this before a restore to preview the effect.
 - **`against=<number>`**: compare with a specific other version.
 
 ## How to decide and perform a restore
@@ -1114,12 +1164,14 @@ comparison with `against`:
 1. `listAgentVersions` and scan `change_summary` to find the target version.
 2. `diffAgentVersion` { version_number, against: "current" } to preview exactly
    what restoring changes. If nothing meaningful changed, there is nothing to do.
+   Show the user the preview, and restore only on their yes.
 3. `restoreAgentVersion` { agent_id, version_number }. This first keeps the
    current state as a backup (a new `system` "Backup before restore" version, or
    an existing version that already holds the same state), so the restore is
    itself undoable, then writes the chosen config back. The response's `skipped`
-   list reports references (knowledge files, integrations) that no longer exist
-   and were dropped rather than failing the restore.
+   list reports what was dropped rather than failing the restore (such as
+   knowledge files, integrations, languages, the voice or post-call links).
+   Report every item in it to the user.
 4. Tell the user which version holds the backup; `safety_version` in the restore response names it.
 
 ## Gotchas
@@ -1128,20 +1180,28 @@ comparison with `against`:
   endpoints return 403 `feature_disabled`, or `feature_not_entitled` when the
   plan does not include it. `getAgent` shows `can_publish: false` in both cases.
 - `createAgentVersion` refuses a no-op: if nothing changed since the latest
-  version it returns 409 (`no_changes`). Make a real change first.
+  version it returns 409 (`no_changes`). The newest version already holds this
+  state: use its `version_number`.
 - There is a per-agent cap on versions created through the API; at the cap
-  `createAgentVersion` returns 409 (`version_limit_reached`) - delete an old one.
+  `createAgentVersion` returns 409 (`version_limit_reached`). Ask the user which
+  old version to delete. The published version cannot be deleted (409
+  `version_published`).
 - `listAgentVersions` and `diffAgentVersion` are read-only and safe to call
-  freely. Restore and delete mutate the live agent - confirm intent first.
+  freely. Restore and delete change the agent and its history: get the user's
+  yes first.
 """
 
 BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 
 ## Normal or dynamic
-- One-time list: a normal campaign. Create it (as a draft), add contacts, start it.
+- One-time list: a normal campaign. Create it as a draft with the first rows in
+  `contact_list`, add the rest with `addBulkCallContacts`, then start it after
+  the user's go-ahead.
 - Continuous leads (form fills, CRM events): a dynamic campaign (`is_dynamic: true`,
   no contact list) fed by `addBulkCallContact` as each lead arrives. The faster a
-  fresh lead is called, the higher the conversion.
+  fresh lead is called, the higher the conversion. One `addBulkCallContact`
+  starts a draft campaign at once, so send it only after the user approves the
+  launch.
 
 ## The two contact shapes (do not mix them)
 - `createBulkCall`'s `contact_list` rows are FLAT:
@@ -1153,8 +1213,10 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
   one nested variable and garbles the agent's context.
 
 ## Build as a draft, then start
-- `createBulkCall` { name, phone_number_id, save_as_draft: true, ... }. Keep the
-  returned `id`. Without `save_as_draft` the campaign dials the moment it is created.
+- `createBulkCall` { name, phone_number_id, save_as_draft: true, contact_list, ... }.
+  A normal campaign needs `contact_list` at create; only a dynamic one may leave
+  it out. Keep the returned `id`. Without `save_as_draft` the campaign dials the
+  moment it is created.
 - `addBulkCallContacts` accepts up to 1000 contacts per request. Invalid rows come
   back in `rejected` with their index and reason; valid rows are still added, so one
   bad number never costs the batch.
@@ -1168,7 +1230,8 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 - Example: 100,000 calls in an 8-hour day is 12,500/hour, ~315 channels. The failure
   mode: concurrency 5 against 10,000 leads is ~200 calls/hour, a 50-hour "today"
   campaign.
-- `setBulkCallConcurrency` changes it mid-run; the org's ceiling caps it.
+- `setBulkCallConcurrency` changes it mid-run. A value above the org's ceiling is
+  refused.
 
 ## Numbers and rotation
 - One number dialing a whole campaign collects spam reports and stops being answered.
@@ -1191,10 +1254,12 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
   timezone dials people at 11 PM, which is a compliance problem. Set both to the
   customers' region.
 - The agent has its own `timezone` field (`createAgent`/`updateAgent`) that sets the
-  local date and time it works with during calls. Set that to the customers' region too.
+  local date and time it works with during calls. Suggest the customers' region,
+  and change it only after the user's yes: the agent may serve other calls.
 
 ## Watching a campaign and reading results
-- `getBulkCallLiveStatus` for progress counts while it runs.
+- `getBulkCallLiveStatus` for progress counts while it runs, when the user asks.
+  Do not poll it in a loop.
 - `listBulkCallLines` for per-contact outcomes: `pagesize` up to 150, follow
   `next_cursor` until it comes back null, never build a cursor yourself.
   `include_total` once for a header, not on every page.
@@ -1210,9 +1275,9 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 CARRIERS_GUIDE = """# Which carrier to buy from
 
 A region holds one or more carriers. They do not stock the same numbers and
-they are not interchangeable, so `carrier` is **required** on
-`searchPhoneNumbers` and `purchasePhoneNumber`, in every region, however few
-it holds.
+they are not interchangeable. `purchasePhoneNumber` requires `carrier`. Pass
+the same `carrier` to `searchPhoneNumbers`, so you search the stock you buy
+from.
 
 ## What each one stocks
 
@@ -1242,9 +1307,10 @@ file can be older than the account.
   region is not verified on the other, and a purchase it has not cleared fails
   with `409 kyc_incomplete`. Verification is not on this surface: send the user
   to the dashboard number shop.
-- **A carrier can be down.** One flagged unavailable is still named in the
-  refusal, and a purchase against it answers `422 purchase_failed`. Sell from
-  another one meanwhile.
+- **A carrier can be down.** The `409 carrier_required` body says whether each
+  one is taking orders. If the user's carrier is down, tell them and ask
+  whether to wait or use another. A purchase charges the account first and
+  refunds it if the carrier then fails.
 - **The name is stable across a rename**, so it is safe for a user to store.
 """
 
@@ -1267,7 +1333,7 @@ edges. It runs on OmniDimension's servers each time its trigger fires.
 5. `editWorkflow` with the `revision` from the last read and a list of `ops`.
 6. `validateWorkflow`, then fix what it reports with another `editWorkflow`.
 7. `testWorkflow` only after the user agrees (see "Test runs are real").
-8. `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
+8. Show the user the flow and get a yes, then `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
 
 `getWorkflow` with `view: structure` shows nodes and edges without config.
 Use it to orient in a large workflow. Use `view: full` before you edit config.
@@ -1288,8 +1354,11 @@ Most harm comes from changing a workflow the user did not ask you to touch.
 
 - Default to creating a NEW workflow. Edit an existing one only when the user names it.
 - Call `getWorkflow` first and read what it does before any edit. Keep its `revision`.
-- Your edits land on the draft and change nothing live until you publish.
-- `publishWorkflow` overwrites the live version that real events run. `deactivateWorkflow`
+- Your edits land on the draft and change nothing live until you publish, except
+  `webhook_enabled` on the trigger: it switches the live webhook URL at once. Ask
+  before you change it on an existing workflow.
+- `publishWorkflow` overwrites the live version that real events run. Publishing a
+  paused workflow turns it back on. `deactivateWorkflow`
   pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
   these on an existing workflow, tell the user exactly what will change and get a yes.
 - Never publish, activate, deactivate, delete or test a workflow as a side effect of another task.
@@ -1302,9 +1371,9 @@ which later nodes read as `{{ context.<trigger id>.<field> }}`.
 | Trigger type | Fires when | How it is attached |
 |---|---|---|
 | `trigger` | After a call (post-call), or on a POST to the webhook URL | Post-call: the agent's post-call actions point at this workflow. Webhook: `update_node` the trigger with `config: { webhook_enabled: true }`, then `getWorkflow` returns `webhook_url` |
-| `whatsapp_inbound` | A WhatsApp message arrives | Its `phone_number_id` |
+| `whatsapp_inbound` | A media message (image, video, document, audio) arrives. Text still goes to the agent. Publishing moves the number off any other inbound workflow, so check with the user first | Its `phone_number_id` |
 | `twilio_sms_inbound` | An SMS arrives | Its Twilio integration |
-| `email_event_trigger` | A sent email is opened, clicked, replied to, or bounces | The source workflow or campaign |
+| `email_event_trigger` | A sent email is opened, clicked, replied to, or bounces | The source workflow |
 | `omnidim_crm_trigger`, `leadsquared_trigger`, `shopify_trigger`, `instantly_event_trigger` | An event in that system | Its integration |
 
 `getWorkflowNodeType` shows each trigger's `output_example`. The post-call
@@ -1395,8 +1464,10 @@ integration, tell them to connect one in the dashboard first.
 **Every node runs for real**: WhatsApp messages, SMS, emails and calls go out,
 and CRM records change. Before you call it, tell the user what will happen and
 get a yes. Use their own phone number or email in the payload. The call returns `202` with an
-`execution_id` at once. Poll `getWorkflowExecution` until `state` is `completed`, `failed` or
-`cancelled`, then read each node's status, output and error.
+`execution_id` at once. Check `getWorkflowExecution` up to 10 times, a few seconds apart,
+until `state` is `completed`, `failed` or `cancelled`, then read each node's status, output
+and error. A run that reaches a wait, call or email step can stay `waiting` for hours: then
+report the steps so far and stop.
 
 ## Errors you will see
 
@@ -1406,7 +1477,7 @@ get a yes. Use their own phone number or email in the payload. The call returns 
 | `422 validation_failed` on publish | Missing fields, an unconnected node, a bad handle | Fix each one, then publish again |
 | `422 invalid_op` | An op is malformed | Fix the op at `op_index` |
 | `409 revision_conflict` | The draft changed since you read it | `getWorkflow`, then retry |
-| `409 no_draft` | There is no draft to edit, validate or publish | `getWorkflow`, then make an edit to start a new draft |
+| `409 no_draft` | There is no draft to edit, validate or publish | No tool can make a draft. Tell the user and stop |
 | `400 no_options` | The field holds an id from another system | Ask the user for the value |
 | `422` with `templated_ref` | An id field holds a `{{ }}` template | Put a literal id from `listWorkflowFieldOptions` |
 
@@ -1428,11 +1499,12 @@ and tell #sales in Slack."
      handle: "True", config: { phone_number_id: <id>, message_type: "template",
      template_id: <id>, to_number: "{{ context.trigger.customer_number }}" } }`
    - `add_node { id: "notify_sales", type: "slack", after: "wa_followup",
-     config: { slack_webhook_url: "<from the user>",
+     config: { integration_id: <from listWorkflowFieldOptions>, channel: "<channel id the user confirms>",
      message: "Follow-up sent to {{ context.trigger.customer_number }}" } }`
    - `add_node { id: "about", type: "notes", config: { note_text: "Follows up
      interested leads after a call." } }`
-4. `validateWorkflow`, fix anything reported, then `publishWorkflow`.
+4. `validateWorkflow` and fix anything reported. Show the user the flow and get a
+   yes, then `publishWorkflow`.
 5. Tell the user to point the agent's post-call action at this workflow.
 """
 
@@ -1488,14 +1560,14 @@ the person says "please hold", the agent waits and does not repeat itself.
 
 Put variables in square brackets, like `[name]` or `[course]`. In a campaign
 they come from the contact list columns, so each name must match a column
-header, and every row needs a value. A missing value makes the agent say the
-placeholder out loud.
+header, and every row needs a value. A missing value makes the agent skip the
+placeholder, so the line sounds broken ("Hi, am I speaking with ?").
 
 ## 5. Outbound: keep the temperature low for scripted calls
 
 Outbound agents with `model.temperature` 0.3 or lower had a median early drop
 of 37% and natural end of 21% (52 agents in 21 accounts), against 45% and 14%
-at 0.3 to 0.7 (105 agents in 62 accounts). There were too few inbound agents
+above 0.3 up to 0.7 (105 agents in 62 accounts). There were too few inbound agents
 to tell.
 
 ## 6. One short question per turn
