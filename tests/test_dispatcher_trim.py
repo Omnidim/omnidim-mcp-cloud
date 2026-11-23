@@ -68,3 +68,19 @@ def test_the_note_says_turn_detail_was_dropped_when_rows_go_too() -> None:
 
     assert len(_json_part(text)["call_log_data"]) < 30
     assert "of 30 items. Left out per-turn detail" in text
+
+
+def test_a_cut_page_never_hands_back_a_cursor_that_skips_the_cut_rows() -> None:
+    rows = [{"id": i, "custom_variables": {"note": "x" * 2000}} for i in range(150)]
+    payload = {"records": rows, "has_more": True, "next_cursor": "past-row-150"}
+    result = _trim(payload).text
+    data = _json_part(result)
+    assert len(data["records"]) < 150
+    assert "next_cursor" not in data
+    assert "has_more" not in data
+    assert f"pagesize {len(data['records'])}" in result
+
+
+def test_a_page_that_fits_keeps_its_cursor() -> None:
+    payload = {"records": [{"id": 1}], "has_more": True, "next_cursor": "abc"}
+    assert _json_part(_trim(payload).text)["next_cursor"] == "abc"
