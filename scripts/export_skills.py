@@ -22,7 +22,8 @@ from app.procedures import _RESOURCES, DEMO_OFFER_RULE, build_prompt
 _PREAMBLE = (
     "Needs the OmniDimension MCP server: hosted at `https://mcp.omnidim.io/mcp`, or local with "
     "`npx -y @omnidim-ai/mcp-server` (see the omnidim-connect skill). If a field, error or "
-    "feature is unclear, call `searchDocs` before guessing.\n"
+    "feature is unclear, call `searchDocs` before guessing. On the local server every write tool "
+    "takes its body inside `requestBody`, with path fields such as `agent_id` at the top level.\n"
 )
 
 # (skill, description, [(prompt, arguments)], guides it always carries)
