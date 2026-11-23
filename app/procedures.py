@@ -411,8 +411,8 @@ _CREATE_AND_CHECK_STEPS = (
         'as "English (India)" or "Hindi". An unknown name is dropped without an error (all unknown is an '
         "error), and the order is not kept, so check the saved list in step 7.\n"
         '   - Inbound: `call_type` "Incoming", and no `voicemail`. `voicemail` is for outbound calls only, '
-        "and needs the voicemail permission. If `createAgent` refuses it, create the agent without it and "
-        "tell the user.\n"
+        "and is an access-gated feature: if the user's account does not have it, leave `voicemail` out "
+        "and tell the user to request access.\n"
         "   - `transfer` only if the design has a handoff, with the same condition the prompt uses.\n"
         "   Capture the returned `id` as agent_id. (`status` is always \"Completed\"; it is not a build "
         "signal.)\n"
@@ -522,7 +522,7 @@ def _update_agent(args: dict[str, Any]) -> str:
         "names differ: sections come back as `context_title` and `context_body`, but `updateAgent` takes "
         "`title` and `body`, and sending the `getAgent` names back blanks every section. Send the complete "
         "`context_breakdown` list, never only the changed section, because it replaces the whole list. "
-        "Send `end_call` changes with `enabled: true`.\n"
+        "In `end_call`, send `enabled` only to turn ending the call on or off.\n"
         "   - Fetch the agent again and check that every section has its title and body.\n"
         "   - Save the new version (V1.1, V1.2 and so on) with `createAgentVersion`, and confirm in one "
         "line what changed.\n"
@@ -1025,7 +1025,7 @@ them first:
 | `asr_service`, `asr_<provider>_language`, `silence_timeout`, `should_apply_noise_reduction`, `interruption_min_words`, `max_call_duration_in_sec`, `first_ideal_message`, `is_first_ideal_message_dynamic` (and second) | `transcriber.provider`, `transcriber.language` (send `transcriber.provider` with it), `transcriber.silence_timeout_ms`, and the rest under `transcriber` with the same names |
 | `bot_call_type` | `call_type` ("Incoming" or "Outgoing") |
 | `languages[].label` | `languages` (the labels as plain strings) |
-| `is_end_call_enabled`, `end_call_condition`, `end_call_message`, `end_call_message_type`, `end_call_message_prompt` | `end_call.enabled`, `.condition`, `.message`, `.message_type`, `.message_prompt` (always send `enabled: true` with them) |
+| `is_end_call_enabled`, `end_call_condition`, `end_call_message`, `end_call_message_type`, `end_call_message_prompt` | `end_call.enabled`, `.condition`, `.message`, `.message_type`, `.message_prompt` (send `end_call.enabled` only to turn it on or off) |
 | `voicemail_enabled`, `voicemail_message` | `voicemail.enabled`, `voicemail.message` |
 | `is_transfer_enabled`, `transfer_options` | `transfer.enabled`, `transfer.transfer_options` (the list replaces all options) |
 | `enable_web_search`, `web_search_engine` | `web_search.enabled`, `web_search.provider` |
@@ -1078,7 +1078,8 @@ if a change makes the agent worse.
 
 - `listAgentVersions` { agent_id } - the timeline, newest first. Each entry has a
   `version_number`, a `kind`, who saved it, and a `change_summary` (an object
-  with the first change, a count, and the list of changes as label, old, new).
+  with `first`, true only for the agent's first version, a `count`, and `items`, the
+  changes as label, old, new).
 - `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
   config as a named version.
 - `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
