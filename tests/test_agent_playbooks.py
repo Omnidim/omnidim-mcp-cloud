@@ -152,6 +152,7 @@ def test_the_post_call_step_sends_only_fields_addpostcallaction_accepts() -> Non
 def test_update_maps_the_getagent_section_keys_back_to_updateagent() -> None:
     text = _playbook("update_agent")
     assert "`context_title`" in text and "`context_body`" in text
+    assert "returned `config`" in text
     section = _schema("updateAgent")["properties"]["context_breakdown"]["items"]
     assert {"title", "body"} <= set(section["properties"])
 
@@ -198,3 +199,8 @@ def test_guides_never_promise_versions_the_platform_does_not_make() -> None:
     assert "`auto`" not in text
     assert "auto-saves" not in text
     assert "feature_not_entitled" in text
+
+
+def test_the_build_picks_a_voice_by_language_and_gender() -> None:
+    text = _playbook("provision_agent")
+    assert "`featured_languages`" in text and "`gender`" in text

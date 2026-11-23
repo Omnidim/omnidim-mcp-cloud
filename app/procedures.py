@@ -358,9 +358,10 @@ def _voice_step(voice_id: str | None) -> str:
         if voice_id
         else (
             "Start with the OmniDimension voices, our most recommended: call `listVoices` with "
-            "`provider=featured` and pick the most natural one that speaks the primary language with "
-            "the agent's voice gender. Use its `name` as voice_id and its `service` (`cartesia`) as "
-            "the voice provider."
+            "`provider=featured` and pick one whose `featured_languages` include the primary language and "
+            "whose `gender` matches the agent's voice gender. Use its `name` as voice_id and its `service` "
+            "(`cartesia`) as the voice provider. If no voice has those fields, show the user the names "
+            "and let them pick."
         )
     )
 
@@ -514,7 +515,9 @@ def _update_agent(args: dict[str, Any]) -> str:
         "`listAgentVersions`. A 409 `version_limit_reached` means there is no room for a backup: stop, "
         "and ask the user which old version to delete. A 403 `feature_disabled` or `feature_not_entitled` "
         "means no history: ask as above. Never apply without a backup `version_number` or the user's yes.\n"
-        "   - Apply exactly these edits with `updateAgent`, sending only the fields you change, in the "
+        "   - Apply exactly these edits with `updateAgent`, sending only the fields you change. If "
+        "`getAgent` returned `config`, take each field from it: it is already in the shape `updateAgent` "
+        "takes. Otherwise use the "
         "shape the `omnidim://reference/agent-config` resource gives for reading an agent back. `getAgent` "
         "names differ: sections come back as `context_title` and `context_body`, but `updateAgent` takes "
         "`title` and `body`, and sending the `getAgent` names back blanks every section. Send the complete "
