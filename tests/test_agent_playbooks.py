@@ -1,6 +1,8 @@
 import json
 import re
+from typing import Any
 
+from app._generated.tools import TOOLS
 from app.procedures import (
     AGENT_CONFIG_GUIDE,
     CALL_TIPS_GUIDE,
@@ -104,3 +106,71 @@ def test_examples_use_the_measured_temperature() -> None:
 
 def test_call_tips_no_longer_teach_filler_acknowledgements() -> None:
     assert "Got it" not in CALL_TIPS_GUIDE
+
+
+def _schema(tool: str) -> dict[str, Any]:
+    return next(t for t in TOOLS if t["name"] == tool)["input_schema"]
+
+
+def _unknown_keys(value: Any, schema: dict[str, Any], path: str) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    props = schema.get("properties") or {}
+    found: list[str] = []
+    for key, inner in value.items():
+        if key not in props:
+            found.append(f"{path}.{key}")
+            continue
+        enum = props[key].get("enum")
+        if enum and isinstance(inner, str) and not inner.startswith("<") and inner not in enum:
+            found.append(f"{path}.{key}={inner}")
+        found += _unknown_keys(inner, props[key], f"{path}.{key}")
+    return found
+
+
+def test_the_create_example_sends_only_fields_createagent_accepts() -> None:
+    text = _playbook("provision_agent")
+    block = re.search(r"^   \{\n(.*?)\n   \}$", text, flags=re.M | re.S)
+    assert block is not None
+    lines = [ln for ln in block.group(1).splitlines() if '"context_breakdown"' not in ln]
+    example = json.loads("{" + "\n".join(lines).rstrip(",") + "}")
+    assert _unknown_keys(example, _schema("createAgent"), "createAgent") == []
+    assert example["transcriber"]["is_first_ideal_message_dynamic"] is False
+    assert example["transcriber"]["is_second_ideal_message_dynamic"] is False
+
+
+def test_the_post_call_step_sends_only_fields_addpostcallaction_accepts() -> None:
+    text = _playbook("provision_agent")
+    props = _schema("addPostCallAction")["properties"]
+    assert '"omni_crm"' in text and "omni_crm" in props["type"]["enum"]
+    for section in re.findall(r'"(summary|sentiment|fullConversation|extracted_variables)"', text):
+        assert section in props["include"]["items"]["enum"]
+    for key in ("goal_confirmed", "hot_lead", "objection_raised", "not_interested_reason"):
+        assert key in text
+
+
+def test_update_maps_the_getagent_section_keys_back_to_updateagent() -> None:
+    text = _playbook("update_agent")
+    assert "`context_title`" in text and "`context_body`" in text
+    section = _schema("updateAgent")["properties"]["context_breakdown"]["items"]
+    assert {"title", "body"} <= set(section["properties"])
+
+
+def test_update_never_applies_without_a_known_backup() -> None:
+    text = _playbook("update_agent")
+    for case in ("can_publish", "no_changes", "version_limit_reached", "feature_not_entitled"):
+        assert case in text, case
+    assert "version_number" in text
+
+
+def test_the_design_hands_the_build_every_basic() -> None:
+    text = _playbook("design_agent")
+    basics = text[text.index("Phase 3") :]
+    for item in ("Basics", "AI disclosure", "never-say", "voice gender", "languages"):
+        assert item in basics, item
+
+
+def test_one_rule_for_asking_permission() -> None:
+    guide = _guide("omnidim://guide/agent-prompt")
+    assert "after the welcome" not in guide
+    assert "omnidim://guide/call-tips" in guide

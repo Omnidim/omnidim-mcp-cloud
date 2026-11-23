@@ -322,6 +322,11 @@ def _design_agent(args: dict[str, Any]) -> str:
         'change." Write no script until the user confirms.\n\n'
         "Phase 3: the call design, for the user to proofread\n"
         "6. Write it in this structure:\n"
+        "   - Basics, from the confirmed summary, so the build step has them all: the agent's name, "
+        "role, company and who it speaks for; voice gender and tone; languages, primary first, and the "
+        "terms that stay in English; AI disclosure; the forms of address allowed; the goal, what counts "
+        "as success, and any fallback; hard rules and limits; banned phrases; the facts the agent may "
+        "use; and the never-say and never-promise list.\n"
         f"   - Welcome message. {_OUTBOUND_WELCOME_RULE} Mark a message you wrote [DRAFT].\n"
         "   - Intents, grouped: Opening, FAQ, Objections, Escalation or final ask, Counteroffers and "
         "partial answers, Agreement and close, Special situations, Language switch. Drop a group that "
@@ -390,7 +395,8 @@ _CREATE_AND_CHECK_STEPS = (
         '     "voice": { "provider": "cartesia", "voice_id": "<name from listVoices provider=featured>" },\n'
         '     "transcriber": { "provider": "soniox", "should_apply_noise_reduction": true, '
         '"interruption_min_words": 1, "first_ideal_message": "<silence nudge>", '
-        '"second_ideal_message": "<second nudge>" },\n'
+        '"is_first_ideal_message_dynamic": false, "second_ideal_message": "<second nudge>", '
+        '"is_second_ideal_message_dynamic": false },\n'
         '     "end_call": { "enabled": true, "condition": "<when the call may end>", '
         '"message_type": "prompt", "message_prompt": "<a closing line for each outcome>" },\n'
         '     "voicemail": { "enabled": true, "message": "<the voicemail line>" }\n'
@@ -398,9 +404,13 @@ _CREATE_AND_CHECK_STEPS = (
         "   - `end_call.condition` lists when the call may end, and what is NOT a reason to end: a first "
         'no, "I\'ll think about it", "send me details", one-word replies. A stop request always ends the '
         "call. The closing lines and the silence nudges use the primary language and the voice's verb "
-        "gender.\n"
-        "   - `voicemail` is for outbound calls only, and is turned on per account. If `createAgent` refuses "
-        "it, create the agent without it and tell the user.\n"
+        "gender. The two `is_..._dynamic: false` flags make the agent say the nudges as written.\n"
+        "   - `languages` takes display names exactly as the dashboard's language picker shows them, such "
+        'as "English (India)" or "Hindi". An unknown name is skipped without an error, so check the saved '
+        "list in step 7.\n"
+        '   - Inbound: `call_type` "Incoming", and no `voicemail`. `voicemail` is for outbound calls only, '
+        "and is turned on per account. If `createAgent` refuses it, create the agent without it and tell "
+        "the user.\n"
         "   - `transfer` only if the design has a handoff, with the same condition the prompt uses.\n"
         "   Capture the returned `id` as agent_id. (`status` is always \"Completed\"; it is not a build "
         "signal.)\n"
@@ -408,15 +418,18 @@ _CREATE_AND_CHECK_STEPS = (
         "branch has an instruction; approved lines are word for word; every fact traces to the design or "
         "the material; no rule appears twice and no two rules contradict; every example follows the "
         "script rules; the end-call condition matches the prompt's ending list; the welcome, voicemail, "
-        "nudges and closing lines match the identity and the verb gender. Fix anything you find with "
+        "nudges and closing lines match the identity and the verb gender; the AI disclosure rule and the "
+        "identity do not contradict; the result variables cover every outcome. Fix anything you find with "
         "`updateAgent`.\n"
         "7. Fetch it back with `getAgent`. Check that the voice (read `voice_external_id`), languages, "
         "transcriber, end-call and voicemail settings saved as intended. Fix or report each mismatch.\n"
         "8. Results after each call: `addPostCallAction` { agent_id, type: \"omni_crm\" (or where the "
-        'design sends them), include: ["summary", "sentiment", "fullConversation", "extracted_variables"], '
-        "extracted_variables: [ { key, prompt } ] }. One variable for the outcome (the design's outcomes), "
-        "one per question the agent asks, plus callback_time, do_not_call and asked_if_ai. Each prompt "
-        'lists its allowed values and says to return "unknown" when the call did not make it clear.\n'
+        'design sends them; ask the user if unsure), include: ["summary", "sentiment", "fullConversation", '
+        '"extracted_variables"], extracted_variables: [ { key, prompt } ] }. Variables: call_status (the '
+        "design's outcomes), goal_confirmed (yes only on explicit agreement), callback_time, hot_lead, "
+        "objection_raised (the design's objection list), not_interested_reason, do_not_call, "
+        "language_used, asked_if_ai, and one per question the agent asks. Each prompt lists its allowed "
+        'values and says to return "unknown" when the call did not make it clear.\n'
 )
 
 
@@ -447,7 +460,9 @@ def _provision_agent(args: dict[str, Any]) -> str:
         "language. List every language in `languages`, the primary one first.\n"
         + _CREATE_AND_CHECK_STEPS
         + f"9. {_NUMBER_STEP}\n"
-        '10. If `getAgent` showed `can_publish: true`, save this as version "V1" with `createAgentVersion`.\n'
+        '10. If `getAgent` showed `can_publish: true`, save this as version "V1" with `createAgentVersion`. '
+        "A 409 `no_changes` means the platform already saved this state: rename that newest version to "
+        '"V1" with `renameAgentVersion`.\n'
         f"{_test_call_steps(test_number)}\n\n"
         "Final reply, only this: the agent's name and id, the version saved, the settings applied, the "
         "conflicts and which source lost, the [MISSING] items and open risks, anything the user must set "
@@ -477,7 +492,8 @@ def _update_agent(args: dict[str, Any]) -> str:
         "never repeat a rule.\n"
         "   - BIG CHANGE (new facts or stories, a new tone, identity or goal): update every section it "
         "touches, keep the eight sections of the `omnidim://guide/agent-prompt` resource, and say "
-        '"BIG CHANGE" at the top.\n'
+        '"BIG CHANGE" at the top. If the prompt does not use the eight sections, keep its structure, '
+        "and offer to move it to the eight sections as a separate change.\n"
         "   Either way, keep the prompt's style. When a fact changes, change every place it appears. Never "
         "add a fact the user did not give. Never apply anything that makes the agent deny being AI, "
         "threaten, or ignore a stop request: tell the user instead.\n"
@@ -488,14 +504,22 @@ def _update_agent(args: dict[str, Any]) -> str:
         "   - WATCH OUT: any other line that could still cause the old behaviour.\n"
         "   - TEST: two caller lines that would show the fix works.\n"
         '6. Wait. When the user says "Apply":\n'
-        "   - Save a backup with `createAgentVersion`. A 409 `no_changes` means the latest version already "
-        "is the backup, so name it. A 403 `feature_disabled` means version history is off: tell the user "
-        "the change cannot be undone, and apply only after they agree.\n"
-        "   - Apply exactly these edits with `updateAgent`. Send the complete `context_breakdown` list with "
-        "the edits made, never only the changed section.\n"
+        "   - Backup. If `getAgent` showed `can_publish: false`, version history is off for this agent: "
+        "tell the user the change cannot be undone, and apply only after they agree. Otherwise save a "
+        "backup with `createAgentVersion` and keep the `version_number` it returns. A 409 `no_changes` "
+        "means the newest version already holds this state: take its `version_number` from "
+        "`listAgentVersions`. A 409 `version_limit_reached` means there is no room for a backup: stop, "
+        "and ask the user which old version to delete. A 403 `feature_disabled` or `feature_not_entitled` "
+        "means no history: ask as above. Never apply without a backup `version_number` or the user's yes.\n"
+        "   - Apply exactly these edits with `updateAgent`. Send the complete `context_breakdown` list, "
+        "never only the changed section, because it replaces the whole list. `getAgent` returns each "
+        "section as `context_title` and `context_body`, but `updateAgent` takes `title` and `body`: rename "
+        "them, keep `is_enabled`, and drop `id` and `is_auto_generated`. Sending the `getAgent` names "
+        "back blanks every section.\n"
+        "   - Fetch the agent again and check that every section has its title and body.\n"
         "   - Save the new version (V1.1, V1.2 and so on) with `createAgentVersion`, and confirm in one "
         "line what changed.\n"
-        '   If the user says "Undo", restore the backup with `restoreAgentVersion`.\n'
+        '   If the user says "Undo", restore the backup `version_number` with `restoreAgentVersion`.\n'
         "7. Offer a test call to check the fix, as in the `provision_agent` prompt's test steps."
     )
 
@@ -881,9 +905,13 @@ question > the call goal > the flow.
 - Read the person's intent (interested, exploring, hesitant, busy, firm,
   irritated) and adapt. "Hmm" or "ok" is acknowledgement, not agreement. A short
   or negative reply gets a stronger, fuller turn, never a weaker one.
+- End at least every other turn on a strong statement, not a question. Never ask
+  the person to judge a reason ("will this help?").
 - Banned: "Great", "Perfect", "Got it", "Absolutely", "Understood", the design's
-  banned phrases, asking permission after the welcome, and opening a turn with
-  "I understand". Acknowledge real emotion at most once per call.
+  banned phrases, and opening a turn with "I understand". Ask for the person's
+  time only in the opening, as the `omnidim://guide/call-tips` resource
+  describes, and never again. Acknowledge real emotion at most once per call.
+  Use a different bridge for each change of topic.
 
 ## 4. Call flow and goal
 
@@ -912,7 +940,7 @@ question > the call goal > the flow.
 - A table of 4 to 6 rows: a stiff line, then the natural line, in the primary
   language.
 - Every number, price, date and time in words, never digits, symbols or
-  abbreviations.
+  abbreviations. Never say "around" before a price or date.
 - At most one natural "uh" per turn, after a connector, never in the first two
   turns.
 - Unknowns: deflect calmly in one line, then give a fact you do have. At most
