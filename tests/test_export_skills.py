@@ -70,6 +70,18 @@ def test_links_point_at_files_that_exist(out: Path, skill: str) -> None:
     assert "omnidim://" not in "\n".join(p.read_text() for p in (out / skill).rglob("*.md"))
 
 
+def test_client_onboarding_keeps_every_rule_that_protects_money(out: Path) -> None:
+    text = (out / "omnidim-client-onboarding" / "SKILL.md").read_text()
+    for guard in [
+        "Idempotency-Key",
+        "/reseller/credits/logs",
+        "monthly_rental_usd",
+        "Check its balance and numbers before any retry",
+        "Never retry an Aadhaar or `redirect` step in a loop",
+    ]:
+        assert guard in text, guard
+
+
 def test_export_is_deterministic(tmp_path: Path) -> None:
     a, b = tmp_path / "a", tmp_path / "b"
     export(a)
