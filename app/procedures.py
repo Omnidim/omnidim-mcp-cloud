@@ -1270,14 +1270,22 @@ EXTRA_TOOLS: list[dict[str, Any]] = [
 ]
 
 
+_LINKS_NOTE = "Where this text names a prompt or an `omnidim://` resource, read it with `readGuide`."
+_PLAYBOOK_NOTE = (
+    "Fill each placeholder in quotes, parentheses or angle brackets from the user's request. "
+    + _LINKS_NOTE
+)
+
+
 def guide_text(name: str) -> str | None:
     if name not in GUIDE_NAMES:
         return None
     prompt = build_prompt(name, {})
     if prompt is not None:
-        return f"# {prompt['description']}\n\n{prompt['messages'][0]['content']['text']}"
+        steps = prompt["messages"][0]["content"]["text"]
+        return f"# {prompt['description']}\n\n{_PLAYBOOK_NOTE}\n\n{steps}"
     resource = read_resource(name)
-    return resource["contents"][0]["text"] if resource else None
+    return f"{_LINKS_NOTE}\n\n{resource['contents'][0]['text']}" if resource else None
 
 
 def tool_meta(name: str) -> dict[str, Any] | None:
