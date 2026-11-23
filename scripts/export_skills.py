@@ -88,7 +88,7 @@ Guides for each client: https://docs.omnidim.io/docs/mcp. Call `searchDocs` for 
 
 _CLIENT_ONBOARDING = """\
 ---
-name: omnidim-client-onboarding
+name: omnidim-onboard-client
 description: "Take a reseller's client on OmniDimension from nothing to a working phone number: create the account, fund it, verify it where the region requires it (India eKYC, US business checks), buy a number and attach it to an agent. Use when a reseller or agency onboards a new client, a client cannot buy a number because of KYC, or the user asks how to verify an account or set up a reseller client."
 ---
 
@@ -212,8 +212,8 @@ def export(out: Path) -> None:
         )
     (out / "omnidim-connect").mkdir(exist_ok=True)
     (out / "omnidim-connect" / "SKILL.md").write_text(_CONNECT)
-    (out / "omnidim-client-onboarding").mkdir(exist_ok=True)
-    (out / "omnidim-client-onboarding" / "SKILL.md").write_text(_CLIENT_ONBOARDING)
+    (out / "omnidim-onboard-client").mkdir(exist_ok=True)
+    (out / "omnidim-onboard-client" / "SKILL.md").write_text(_CLIENT_ONBOARDING)
 
 
 if __name__ == "__main__":

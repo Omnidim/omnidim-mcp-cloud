@@ -20,8 +20,8 @@ SKILLS = [
     "omnidim-audit-calls",
     "omnidim-build-agent",
     "omnidim-build-workflow",
-    "omnidim-client-onboarding",
     "omnidim-connect",
+    "omnidim-onboard-client",
     "omnidim-run-campaign",
 ]
 
@@ -71,7 +71,7 @@ def test_links_point_at_files_that_exist(out: Path, skill: str) -> None:
 
 
 def test_client_onboarding_keeps_every_rule_that_protects_money(out: Path) -> None:
-    text = (out / "omnidim-client-onboarding" / "SKILL.md").read_text()
+    text = (out / "omnidim-onboard-client" / "SKILL.md").read_text()
     for guard in [
         "Idempotency-Key",
         "/reseller/credits/logs",
