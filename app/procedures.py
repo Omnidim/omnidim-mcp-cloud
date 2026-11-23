@@ -243,9 +243,10 @@ give it a **phone number** and optionally a **knowledge base**, then place
    connected.** It means the request was accepted. Proof of a real call is a
    resulting entry in `listCallLogs` whose `getCallLog` shows a non-empty
    `call_conversation`. Never treat the dispatch response as the outcome.
-6. **Reading agents:** `getAgent` reports `voice: false`; read
-   `voice_external_id` for the configured voice. `listAgents` puts the voice
-   in the `voice` field. Do not report "no voice" from `getAgent.voice`.
+6. **Reading agents:** `getAgent` and `listAgents` return the settings in
+   other names and shapes than `createAgent` and `updateAgent` take (see the
+   `omnidim://reference/agent-config` resource). Read the voice from
+   `voice_external_id` and `voice_provider`, never from `voice`.
 7. **`listCallLogs` rows are large** and the response is trimmed if it grows
    past the size cap. Use a small `pagesize` (1-3) and fetch detail per row
    with `getCallLog`.
@@ -323,7 +324,7 @@ def _design_agent(args: dict[str, Any]) -> str:
         "Phase 3: the call design, for the user to proofread\n"
         "6. Write it in this structure:\n"
         "   - Basics, from the confirmed summary, so the build step has them all: the agent's name, "
-        "role, company and who it speaks for; voice gender and tone; languages, primary first, and the "
+        "role, company and who it speaks for; voice gender and tone; languages and the "
         "terms that stay in English; AI disclosure; the forms of address allowed; the goal, what counts "
         "as success, and any fallback; hard rules and limits; banned phrases; the facts the agent may "
         "use; and the never-say and never-promise list.\n"
@@ -406,11 +407,11 @@ _CREATE_AND_CHECK_STEPS = (
         "call. The closing lines and the silence nudges use the primary language and the voice's verb "
         "gender. The two `is_..._dynamic: false` flags make the agent say the nudges as written.\n"
         "   - `languages` takes display names exactly as the dashboard's language picker shows them, such "
-        'as "English (India)" or "Hindi". An unknown name is skipped without an error, so check the saved '
-        "list in step 7.\n"
+        'as "English (India)" or "Hindi". An unknown name is dropped without an error (all unknown is an '
+        "error), and the order is not kept, so check the saved list in step 7.\n"
         '   - Inbound: `call_type` "Incoming", and no `voicemail`. `voicemail` is for outbound calls only, '
-        "and is turned on per account. If `createAgent` refuses it, create the agent without it and tell "
-        "the user.\n"
+        "and needs the voicemail permission. If `createAgent` refuses it, create the agent without it and "
+        "tell the user.\n"
         "   - `transfer` only if the design has a handoff, with the same condition the prompt uses.\n"
         "   Capture the returned `id` as agent_id. (`status` is always \"Completed\"; it is not a build "
         "signal.)\n"
@@ -421,8 +422,10 @@ _CREATE_AND_CHECK_STEPS = (
         "nudges and closing lines match the identity and the verb gender; the AI disclosure rule and the "
         "identity do not contradict; the result variables cover every outcome. Fix anything you find with "
         "`updateAgent`.\n"
-        "7. Fetch it back with `getAgent`. Check that the voice (read `voice_external_id`), languages, "
-        "transcriber, end-call and voicemail settings saved as intended. Fix or report each mismatch.\n"
+        "7. Fetch it back with `getAgent` and check every setting saved, reading the names the "
+        "`omnidim://reference/agent-config` resource maps (`getAgent` returns them flat: "
+        "`voice_external_id`, `languages` labels, `asr_service`, `llm_temperature`, `is_end_call_enabled`, "
+        "`end_call_message_type`, `voicemail_enabled`, `first_ideal_message`). Fix or report each mismatch.\n"
         "8. Results after each call: `addPostCallAction` { agent_id, type: \"omni_crm\" (or where the "
         'design sends them; ask the user if unsure), include: ["summary", "sentiment", "fullConversation", '
         '"extracted_variables"], extracted_variables: [ { key, prompt } ] }. Variables: call_status (the '
@@ -457,11 +460,11 @@ def _provision_agent(args: dict[str, Any]) -> str:
         f"3. Welcome message: {_OUTBOUND_WELCOME_RULE}\n"
         f"4. Voice and models: {_voice_step(voice_id)} Model `gpt-4.1-mini` at temperature 0.3. Transcriber "
         "`soniox`, or the one the `omnidim://reference/recommended-stack` resource gives for the caller's "
-        "language. List every language in `languages`, the primary one first.\n"
+        "language. List every language the agent speaks in `languages`.\n"
         + _CREATE_AND_CHECK_STEPS
         + f"9. {_NUMBER_STEP}\n"
         '10. If `getAgent` showed `can_publish: true`, save this as version "V1" with `createAgentVersion`. '
-        "A 409 `no_changes` means the platform already saved this state: rename that newest version to "
+        "A 409 `no_changes` means a saved version already holds this state: rename that newest version to "
         '"V1" with `renameAgentVersion`.\n'
         f"{_test_call_steps(test_number)}\n\n"
         "Final reply, only this: the agent's name and id, the version saved, the settings applied, the "
@@ -481,7 +484,7 @@ def _update_agent(args: dict[str, Any]) -> str:
         "1. Fetch the live agent with `getAgent`, and the call with `getCallLog` if the user gave a call id. "
         "The dashboard may have changed the agent since the last edit, so work from what is live now.\n"
         "2. Check these every time and report any mismatch: the voice's gender against the prompt's verb "
-        "forms; the transcriber and voice language against the primary language; the order of "
+        "forms; the transcriber and voice language against the primary language; the saved "
         "`languages`; the welcome, voicemail, silence nudges and closing line against the identity rule.\n"
         "3. For each issue, name the cause in one line: a missing rule, a weak rule, two rules that "
         "conflict, a wrong fact, a bad example, a setting rather than the prompt, pronunciation, or new "
@@ -511,11 +514,12 @@ def _update_agent(args: dict[str, Any]) -> str:
         "`listAgentVersions`. A 409 `version_limit_reached` means there is no room for a backup: stop, "
         "and ask the user which old version to delete. A 403 `feature_disabled` or `feature_not_entitled` "
         "means no history: ask as above. Never apply without a backup `version_number` or the user's yes.\n"
-        "   - Apply exactly these edits with `updateAgent`. Send the complete `context_breakdown` list, "
-        "never only the changed section, because it replaces the whole list. `getAgent` returns each "
-        "section as `context_title` and `context_body`, but `updateAgent` takes `title` and `body`: rename "
-        "them, keep `is_enabled`, and drop `id` and `is_auto_generated`. Sending the `getAgent` names "
-        "back blanks every section.\n"
+        "   - Apply exactly these edits with `updateAgent`, sending only the fields you change, in the "
+        "shape the `omnidim://reference/agent-config` resource gives for reading an agent back. `getAgent` "
+        "names differ: sections come back as `context_title` and `context_body`, but `updateAgent` takes "
+        "`title` and `body`, and sending the `getAgent` names back blanks every section. Send the complete "
+        "`context_breakdown` list, never only the changed section, because it replaces the whole list. "
+        "Send `end_call` changes with `enabled: true`.\n"
         "   - Fetch the agent again and check that every section has its title and body.\n"
         "   - Save the new version (V1.1, V1.2 and so on) with `createAgentVersion`, and confirm in one "
         "line what changed.\n"
@@ -559,20 +563,21 @@ def _restore_agent_version(args: dict[str, Any]) -> str:
         f'Roll agent {agent_id} back to an earlier version.\n\nGoal: "{goal}"\n\n'
         "Follow these steps in order. Do NOT restore blindly, preview first.\n"
         f"1. `listAgentVersions` {{ agent_id: {agent_id} }}. Versions come newest first; each has a "
-        "`version_number`, `kind` (manual / auto / system), who saved it, when, and a `change_summary` "
+        "`version_number`, `kind` (manual or system), who saved it, when, and a `change_summary` "
         "(what changed in that version). Use the names, timestamps, and change summaries to find the one that "
         "matches the goal above. If version history is off for this org these calls return 403 "
-        "(feature_disabled); report that and stop.\n"
+        "(feature_disabled); report that and stop. A 403 feature_not_entitled means the plan has no version history.\n"
         f"2. Preview the effect: `diffAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen>, "
         'against: "current" }. This shows exactly what restoring that version WOULD change vs the agent\'s live '
         "config, grouped by area (Settings, Prompt, Transfer rules, etc.). If it reports no meaningful change, tell "
         "the user there is nothing to restore and stop. Show the user this preview and confirm before the next step.\n"
         f"3. Restore: `restoreAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen> }}. This automatically "
-        'saves the current state as a "Backup before restore" version first (so the restore is itself undoable), '
+        'keeps the current state as a backup first (a new "Backup before restore" version, or an existing version '
+        "that already holds the same state), so the restore is itself undoable, "
         "then writes the chosen config back. Check the response's `skipped` list: knowledge files or integrations "
         "that no longer exist are dropped and reported, not restored.\n"
-        "4. Confirm: `listAgentVersions` again (a new system \"Backup before restore\" entry should be at the top) "
-        "and tell the user they can undo by restoring it.\n\n"
+        "4. Confirm: tell the user which version holds the backup (`safety_version` in the restore response) and that "
+        "they can undo by restoring it.\n\n"
         "See the `omnidim://guide/agent-versioning` resource for the full tool list and the diff `against` modes."
     )
 
@@ -1002,6 +1007,32 @@ wrapper; see the routing guide). The fields:
 - `transcriber` -- `{ provider, model?, language? }`. `model` (`nova-3` /
   `nova-2`) is only needed for `deepgram_stream`.
 
+## Reading an agent back
+
+If `getAgent` returns a `config` object, it is already in the shape below: edit
+it and send back only the fields you change. Otherwise `getAgent` returns flat
+names, and sending them back is ignored, refused, or blanks the prompt. Rename
+them first:
+
+| `getAgent` returns | Send to `updateAgent` |
+|---|---|
+| `context_breakdown[].context_title`, `.context_body`, `.is_enabled` | `context_breakdown[].title`, `.body`, `.is_enabled` (drop `id`, `is_auto_generated`; send the whole list) |
+| `voice_provider`, `voice_external_id`, `speech_speed` | `voice.provider`, `voice.voice_id`, `voice.speech_speed` (never `voice`, which is an internal id) |
+| `llm_service`, `llm_temperature` | `model.model`, `model.temperature` |
+| `asr_service`, `asr_<provider>_language`, `silence_timeout`, `should_apply_noise_reduction`, `interruption_min_words`, `max_call_duration_in_sec`, `first_ideal_message`, `is_first_ideal_message_dynamic` (and second) | `transcriber.provider`, `transcriber.language` (send `transcriber.provider` with it), `transcriber.silence_timeout_ms`, and the rest under `transcriber` with the same names |
+| `bot_call_type` | `call_type` ("Incoming" or "Outgoing") |
+| `languages[].label` | `languages` (the labels as plain strings) |
+| `is_end_call_enabled`, `end_call_condition`, `end_call_message`, `end_call_message_type`, `end_call_message_prompt` | `end_call.enabled`, `.condition`, `.message`, `.message_type`, `.message_prompt` (always send `enabled: true` with them) |
+| `voicemail_enabled`, `voicemail_message` | `voicemail.enabled`, `voicemail.message` |
+| `is_transfer_enabled`, `transfer_options` | `transfer.enabled`, `transfer.transfer_options` (the list replaces all options) |
+| `enable_web_search`, `web_search_engine` | `web_search.enabled`, `web_search.provider` |
+| `background_noise_enabled`, `background_noice_name`, `background_audio_volume` | `background_track.enabled`, `.name`, `.volume` |
+| `post_call_config_ids` | change post-call actions with `updatePostCallAction` and `addPostCallAction`, never through `updateAgent` |
+
+`name`, `welcome_message`, `is_welcome_message_dynamic`,
+`is_welcome_message_interruption`, `is_interruption_allowed`, `timezone`,
+`initial_ringing_sound_enabled` and `dynamic_variables` keep their names.
+
 ## Example: Indian-English support agent (inbound)
 
 {
@@ -1043,8 +1074,8 @@ if a change makes the agent worse.
 ## The tools
 
 - `listAgentVersions` { agent_id } - the timeline, newest first. Each entry has a
-  `version_number`, a `kind`, who saved it, and a `change_summary` (a one-line
-  "what changed in this version vs the one before it").
+  `version_number`, a `kind`, who saved it, and a `change_summary` (an object
+  with the first change, a count, and the list of changes as label, old, new).
 - `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
   config as a named version.
 - `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
@@ -1052,16 +1083,15 @@ if a change makes the agent worse.
   the live agent.
 - `renameAgentVersion` / `deleteAgentVersion` - tidy the timeline.
 
-`kind` is `manual` (a person saved it), `auto` (saved automatically a few minutes
-after editing settles - you do NOT trigger these), or `system` (a safety backup
-taken automatically right before a restore).
+`kind` is `manual` (someone saved it) or `system` (a safety backup taken right
+before a restore). Nothing saves versions automatically.
 
 ## When to snapshot
 
 Call `createAgentVersion` right BEFORE a change you might want to undo (swapping
 the model/voice, rewriting the prompt, changing transfer rules). Give it a clear
-`name`. You do not need to snapshot after routine edits - the platform auto-saves
-settled states on its own.
+`name`. The platform does not save versions on its own, so a change you did not
+snapshot first cannot be undone.
 
 ## How to read a diff
 
@@ -1081,17 +1111,19 @@ comparison with `against`:
 1. `listAgentVersions` and scan `change_summary` to find the target version.
 2. `diffAgentVersion` { version_number, against: "current" } to preview exactly
    what restoring changes. If nothing meaningful changed, there is nothing to do.
-3. `restoreAgentVersion` { agent_id, version_number }. This first saves the
-   current state as a `system` "Backup before restore" version (so the restore is
-   itself undoable), then writes the chosen config back. The response's `skipped`
+3. `restoreAgentVersion` { agent_id, version_number }. This first keeps the
+   current state as a backup (a new `system` "Backup before restore" version, or
+   an existing version that already holds the same state), so the restore is
+   itself undoable, then writes the chosen config back. The response's `skipped`
    list reports references (knowledge files, integrations) that no longer exist
    and were dropped rather than failing the restore.
-4. Confirm with `listAgentVersions` (a new `system` backup appears at the top).
+4. Tell the user which version holds the backup; `safety_version` in the restore response names it.
 
 ## Gotchas
 
-- Version history is enabled per organization. If it is off for the caller's org,
-  these endpoints return 403 (`feature_disabled`).
+- Version history is enabled per organization and per plan. If it is off, these
+  endpoints return 403 `feature_disabled`, or `feature_not_entitled` when the
+  plan does not include it. `getAgent` shows `can_publish: false` in both cases.
 - `createAgentVersion` refuses a no-op: if nothing changed since the latest
   version it returns 409 (`no_changes`). Make a real change first.
 - There is a per-agent cap on versions created through the API; at the cap

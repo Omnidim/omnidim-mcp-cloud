@@ -174,3 +174,27 @@ def test_one_rule_for_asking_permission() -> None:
     guide = _guide("omnidim://guide/agent-prompt")
     assert "after the welcome" not in guide
     assert "omnidim://guide/call-tips" in guide
+
+
+def test_the_read_back_table_names_only_fields_the_write_tools_accept() -> None:
+    guide = AGENT_CONFIG_GUIDE[AGENT_CONFIG_GUIDE.index("## Reading an agent back") :]
+    rows = re.findall(r"^\| `[^\n]*\| ([^\n]*) \|$", guide, flags=re.M)
+    props = _schema("updateAgent")["properties"]
+    named = re.findall(r"`([a-z_]+)(?:\[\])?((?:\.[a-z_]+)?)`", "\n".join(rows))
+    assert ("context_breakdown", ".title") in named
+    told_not_to_send = {"voice", "id", "is_auto_generated"}
+    for head, tail in named:
+        if not tail and head in told_not_to_send:
+            continue
+        assert head in props, head
+        if tail:
+            prop = props[head]
+            inner = prop.get("properties") or prop.get("items", {}).get("properties", {})
+            assert tail[1:] in inner, head + tail
+
+
+def test_guides_never_promise_versions_the_platform_does_not_make() -> None:
+    text = _guide("omnidim://guide/agent-versioning")
+    assert "`auto`" not in text
+    assert "auto-saves" not in text
+    assert "feature_not_entitled" in text
