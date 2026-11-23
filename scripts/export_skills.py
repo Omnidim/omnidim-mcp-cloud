@@ -29,11 +29,15 @@ _PREAMBLE = (
 _SKILLS: list[tuple[str, str, list[tuple[str, dict[str, Any]]], list[str]]] = [
     (
         "omnidim-build-agent",
-        "Create an OmniDimension voice agent end to end: configure it, give it a phone number, "
-        "test it with a real call, and roll it back to an earlier version if a change broke it. "
-        "Use when the user wants a new voice agent, a bot for calls, or to undo agent changes.",
+        "Design, build, test and change an OmniDimension voice agent: ask about the gaps and "
+        "get the call script approved, build the full prompt and settings, give it a number, "
+        "test it with a real call, apply fixes safely, and roll back if a change broke it. Use "
+        "when the user wants a new voice agent, a bot for calls, to fix or change an agent, or "
+        "to undo agent changes.",
         [
+            ("design_agent", {"purpose": "<what the user wants the agent to do>"}),
             ("provision_agent", {"purpose": "<what the user wants the agent to do>"}),
+            ("update_agent", {"change": "<which agent, and what to change>"}),
             (
                 "restore_agent_version",
                 {"agent_id": "<agent_id>", "goal": "<the earlier state the user wants back>"},
@@ -95,7 +99,9 @@ def _guides() -> dict[str, str]:
 
 # MCP prompt names mean nothing to a skill user: point at the matching skill instead.
 _PROMPT_SKILLS = {
-    "provision_agent": "the omnidim-build-agent skill",
+    "design_agent": "the design steps of the omnidim-build-agent skill",
+    "provision_agent": "the build steps of the omnidim-build-agent skill",
+    "update_agent": "the update steps of the omnidim-build-agent skill",
     "restore_agent_version": "the omnidim-build-agent skill",
     "audit_calls": "the omnidim-audit-calls skill",
     "build_workflow": "the omnidim-build-workflow skill",

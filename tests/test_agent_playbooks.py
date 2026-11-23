@@ -1,0 +1,106 @@
+import json
+import re
+
+from app.procedures import (
+    AGENT_CONFIG_GUIDE,
+    CALL_TIPS_GUIDE,
+    build_prompt,
+    prompts_for_listing,
+    read_resource,
+)
+from app.routes.mcp import INSTRUCTIONS
+
+
+def _playbook(name: str, arguments: dict[str, str] | None = None) -> str:
+    built = build_prompt(name, arguments or {})
+    assert built is not None, name
+    return str(built["messages"][0]["content"]["text"])
+
+
+def _guide(uri: str) -> str:
+    resource = read_resource(uri)
+    assert resource is not None, uri
+    return str(resource["contents"][0]["text"])
+
+
+def test_the_agent_lifecycle_has_design_build_and_update_playbooks() -> None:
+    names = {p["name"] for p in prompts_for_listing()}
+    assert {"design_agent", "provision_agent", "update_agent", "restore_agent_version"} <= names
+    for name in ("design_agent", "update_agent"):
+        assert name in INSTRUCTIONS
+
+
+def test_design_asks_every_question_in_one_message_and_builds_nothing() -> None:
+    text = _playbook("design_agent", {"purpose": "remind dental patients"})
+    assert "remind dental patients" in text
+    assert "in one message" in text
+    assert '"default"' in text
+    assert "Confirm, or tell me what to change." in text
+    assert "createAgent" not in text
+    assert "updateAgent" not in text
+    assert "`provision_agent` prompt" in text
+
+
+def test_outbound_welcome_is_a_short_name_check_unless_the_user_gave_one() -> None:
+    for name in ("design_agent", "provision_agent"):
+        text = _playbook(name)
+        assert "8 words or fewer" in text
+        assert "word for word" in text
+
+
+def test_build_follows_the_approved_design() -> None:
+    text = _playbook("provision_agent", {"purpose": "remind dental patients"})
+    assert "`design_agent` prompt" in text
+    assert "No conflicts found" in text
+    assert "[MISSING: what]" in text
+    assert "omnidim://guide/agent-prompt" in text
+
+
+def test_build_sets_the_whole_agent_not_just_the_prompt() -> None:
+    text = _playbook("provision_agent")
+    for field in (
+        '"temperature": 0.3',
+        "end_call",
+        "voicemail",
+        "first_ideal_message",
+        "interruption_min_words",
+        "addPostCallAction",
+        "extracted_variables",
+        "getAgent",
+        "createAgentVersion",
+    ):
+        assert field in text, field
+
+
+def test_build_never_sets_what_the_platform_does_not_have() -> None:
+    text = _playbook("provision_agent")
+    assert "streaming" not in text.lower()
+    assert "tts language" not in text.lower()
+
+
+def test_update_backs_up_before_it_applies_and_can_undo() -> None:
+    text = _playbook("update_agent", {"change": "agent 42 says the clinic name wrong"})
+    assert "agent 42 says the clinic name wrong" in text
+    assert text.index("getAgent") < text.index("createAgentVersion") < text.index("updateAgent")
+    assert '"Apply"' in text
+    assert "restoreAgentVersion" in text
+    assert "SMALL FIX" in text
+
+
+def test_the_prompt_guide_has_eight_sections() -> None:
+    text = _guide("omnidim://guide/agent-prompt")
+    headings = re.findall(r"^## (\d)\. ", text, flags=re.M)
+    assert headings == [str(n) for n in range(1, 9)]
+    assert "Never deny being AI" in text
+
+
+def test_examples_use_the_measured_temperature() -> None:
+    blocks = re.findall(r"^\{\n.*?\n\}$", AGENT_CONFIG_GUIDE, re.M | re.S)
+    examples = [json.loads(m) for m in blocks]
+    assert examples
+    for example in examples:
+        assert example["model"]["temperature"] == 0.3
+
+
+def test_call_tips_no_longer_teach_filler_acknowledgements() -> None:
+    assert "Got it" not in CALL_TIPS_GUIDE

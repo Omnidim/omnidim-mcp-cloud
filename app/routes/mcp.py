@@ -39,11 +39,11 @@ INSTRUCTIONS = (
     "account has numbers, pass the chosen one as from_number_id. If it has "
     "none, omit from_number_id and the platform's default number is used. "
     "Never guess a from_number_id. "
-    "Before you build an agent, launch a call campaign, build a workflow, review calls or "
-    "roll an agent back, call `readGuide` with the matching playbook (provision_agent, "
-    "build_outbound_campaign, build_workflow, audit_calls, restore_agent_version) and follow "
-    "its steps. If you are unsure which tool fits, read `omnidim://guide/routing` with "
-    "`readGuide`. "
+    "Before you design, build or change an agent, launch a call campaign, build a workflow, "
+    "review calls or roll an agent back, call `readGuide` with the matching playbook "
+    "(design_agent, provision_agent, update_agent, build_outbound_campaign, build_workflow, "
+    "audit_calls, restore_agent_version) and follow its steps. If you are unsure which tool "
+    "fits, read `omnidim://guide/routing` with `readGuide`. "
     + DEMO_OFFER_RULE
 )
 
