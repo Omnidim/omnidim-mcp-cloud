@@ -67,7 +67,7 @@ Your client asks you to confirm before a tool that places a call, sends a messag
 | Voices and providers | Pick voices, models and providers, and manage cloned voices | 12 |
 | Integrations | Connect agents to your APIs and apps | 5 |
 | WhatsApp | Numbers, templates, conversations and campaigns | 27 |
-| Docs | Search and read [docs.omnidim.io](https://docs.omnidim.io), with no access to your account | 2 |
+| Docs | Search and read [docs.omnidim.io](https://docs.omnidim.io) and the step-by-step playbooks, with no access to your account | 3 |
 | Account and demo | Check your balance, start a web call session and book a demo | 5 |
 
 <details>
@@ -88,7 +88,7 @@ Your client asks you to confirm before a tool that places a call, sends a messag
 | Account | `getAccountBalance` |
 | Sessions | `createSession` |
 | Demo | `getDemoQuestions`, `requestDemo`, `bookDemo` |
-| Docs | `searchDocs`, `readDoc` |
+| Docs | `searchDocs`, `readDoc`, `readGuide` |
 
 </details>
 

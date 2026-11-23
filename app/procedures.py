@@ -189,8 +189,6 @@ _DEMO_TOOLS: list[dict[str, Any]] = [
     ),
 ]
 
-EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool(), *_DEMO_TOOLS, *DOCS_TOOLS]
-
 ROUTING_GUIDE = """# OmniDimension routing guide
 
 OmniDimension is a voice AI platform. You create an **agent** (a.k.a. "bot"),
@@ -1229,6 +1227,57 @@ _RESOURCES: list[dict[str, str]] = [
         "text": _WORKFLOW_CANVAS_HTML,
     },
 ]
+
+
+PLAYBOOK_NAMES: list[str] = [p["name"] for p in _PROMPTS]
+GUIDE_NAMES: list[str] = PLAYBOOK_NAMES + [
+    r["uri"] for r in _RESOURCES if r["mimeType"] == "text/markdown"
+]
+
+_READ_GUIDE_TOOL: dict[str, Any] = {
+    "name": "readGuide",
+    "description": (
+        "Read an OmniDimension playbook or guide. A playbook ("
+        + ", ".join(PLAYBOOK_NAMES)
+        + ") gives the steps for one task: read it before you start that task, then follow it. "
+        "A guide is an `omnidim://` link that explains one topic: read it when a playbook or "
+        "another guide points to it. It reads no account data.\n\n(Tags: Docs)"
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "enum": GUIDE_NAMES,
+                "description": "A playbook name, or a guide's omnidim:// link.",
+            }
+        },
+        "required": ["name"],
+    },
+    "annotations": {
+        "title": "Read a playbook or guide",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "openWorldHint": False,
+    },
+}
+
+EXTRA_TOOLS: list[dict[str, Any]] = [
+    _show_workflow_tool(),
+    *_DEMO_TOOLS,
+    *DOCS_TOOLS,
+    _READ_GUIDE_TOOL,
+]
+
+
+def guide_text(name: str) -> str | None:
+    if name not in GUIDE_NAMES:
+        return None
+    prompt = build_prompt(name, {})
+    if prompt is not None:
+        return f"# {prompt['description']}\n\n{prompt['messages'][0]['content']['text']}"
+    resource = read_resource(name)
+    return resource["contents"][0]["text"] if resource else None
 
 
 def tool_meta(name: str) -> dict[str, Any] | None:
