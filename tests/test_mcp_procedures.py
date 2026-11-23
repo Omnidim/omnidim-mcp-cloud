@@ -511,3 +511,8 @@ def test_workflow_example_keeps_secrets_out_of_config() -> None:
 def test_call_log_scans_use_a_page_that_fits_the_size_cap() -> None:
     assert '"pagesize": 5, "include_details": false' in _text("audit_calls")
     assert "a page of 50 short rows comes back as 6" in _text("audit_calls")
+
+
+def test_campaign_results_use_a_page_that_fits_the_size_cap() -> None:
+    assert "`pagesize` 10" in _text("build_outbound_campaign")
+    assert "`pagesize` 10" in _text("omnidim://guide/bulk-campaigns")

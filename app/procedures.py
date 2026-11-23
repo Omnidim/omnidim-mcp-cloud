@@ -674,8 +674,9 @@ def _build_outbound_campaign(args: dict[str, Any]) -> str:
         "   their explicit go-ahead. Then `startBulkCall`.\n"
         "9. Watch it: `getBulkCallLiveStatus` for progress when the user asks; do not poll it in a loop.\n"
         "   When it finishes, read per-contact outcomes\n"
-        "   with `listBulkCallLines` (`pagesize` 150, follow `next_cursor` for at most 10 pages, then\n"
-        "   ask the user before reading more) and offer `retryBulkCall` for\n"
+        "   with `listBulkCallLines` (`pagesize` 10, since each row is about 2 KB and a bigger page is cut;\n"
+        "   filter by `call_status`; follow `next_cursor` for at most 10 pages, then ask the user before\n"
+        "   reading more) and offer `retryBulkCall` for\n"
         "   contacts that did not connect.\n\n"
         "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
     )
@@ -1264,9 +1265,10 @@ BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
 ## Watching a campaign and reading results
 - `getBulkCallLiveStatus` for progress counts while it runs, when the user asks.
   Do not poll it in a loop.
-- `listBulkCallLines` for per-contact outcomes: `pagesize` up to 150, follow
-  `next_cursor` until it comes back null, never build a cursor yourself. After
-  10 pages, ask the user before reading more.
+- `listBulkCallLines` for per-contact outcomes: `pagesize` 10 (each row is about
+  2 KB, and a bigger page is cut to fit), filtered by `call_status` where it
+  helps. Follow `next_cursor` until it comes back null, never build a cursor
+  yourself. After 10 pages, ask the user before reading more.
   `include_total` once for a header, not on every page.
 - Rows carry `recording_id`, not the transcript; `getCallLog` serves it.
 - `retryBulkCall` re-queues contacts that did not connect; it refuses a campaign
