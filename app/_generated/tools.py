@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=132982d2c349
+Source spec:   openapi.yaml   sha256=4b8cc9c6c44a
 """
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addBulkCallContact",
-        "description": "Add contact to dynamic campaign. Push a single contact into a dynamic bulk-call campaign in real\ntime. Dynamic campaigns are created from the dashboard (Bulk Call\n> Create New Campaign > Dynamic Campaign) and stay alive waiting\nfor contacts, so this webhook is how you feed them from a CRM,\nform, or automation platform. The contact is queued immediately,\nand the campaign starts calling it as soon as it is within\noperating hours.",
+        "description": "Add contact to dynamic campaign. Push one contact into a dynamic bulk-call campaign.\n\nDynamic campaigns are created from the dashboard (Bulk Call > Create New\nCampaign > Dynamic Campaign) and wait for contacts. Use this webhook to feed\nthem from a CRM, form or automation platform. The contact is queued at once.\nThe campaign calls it as soon as it is within operating hours.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -106,7 +106,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addBulkCallContacts",
-        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful: one request of 500 contacts is\nfar cheaper than 500 requests, on your side and ours.\n\nRepeated numbers are kept, not merged. If the same number appears twice\nwith different variables, it is called twice, because two rows for one\nnumber usually means two real reasons to call.\n\nRows that fail validation are reported in `rejected` and the rest are\nstill added, so a single bad number does not lose the batch. A row that\nis missing a column the campaign's `call_conditions` need is reported in\n`rejected`; the condition values themselves are not evaluated on this\nroute.",
+        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful of contacts.\n\nRepeated numbers are kept, not merged. The same number with different\nvariables is called twice.\n\nRows that fail validation are reported in `rejected`, and the rest are still\nadded. A row missing a column that the campaign's `call_conditions` need is\nalso rejected. The condition values are not evaluated on this route.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -173,7 +173,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addBulkCallNumber",
-        "description": "Add number to rotation pool. Add one of your numbers to the campaign's rotation pool. Works while the\ncampaign is running, which is how you bring in a fresh number when the\npool is running out of healthy ones.\n\nThe number must belong to you and must not already be in the pool. A\nnumber with no agent attached gets this campaign's agent attached\nautomatically; a number attached to a **different** agent is refused.",
+        "description": "Add number to rotation pool. Add one of your numbers to the campaign's rotation pool.\n\nIt works while the campaign runs, so use it to bring in a fresh number when\nhealthy ones run low.\n\nThe number must be yours and not already in the pool. A number with no agent\ngets this campaign's agent attached. A number attached to a **different**\nagent is refused.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -209,7 +209,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addPostCallAction",
-        "description": "Add a post-call action. Add one post-call action to the agent. The agent's other actions are not changed. Send an `Idempotency-Key` header to make a retry safe: the same key and body return the action the first request added.",
+        "description": "Add a post-call action. Add one post-call action to an agent.\n\nThe agent's other actions stay as they are. Send an `Idempotency-Key` header\nto retry safely: the same key and body return the action the first request\nadded.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -483,7 +483,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addWhatsappCampaignContacts",
-        "description": "Add campaign contacts. Add one contact, or up to 500 at once. On a draft they are stored for\nlaunch. On a running campaign they are sent now. A contact already in\nthe campaign is skipped, so a retry is safe. Each contact needs a\n`phone_number`; every other key is kept and can fill a template\nparameter through `variable_mapping`.",
+        "description": "Add campaign contacts. Add one contact, or up to 500 at once, to a campaign.\n\nOn a draft they are stored for launch. On a running campaign they are sent\nnow. A contact already in the campaign is skipped, so a retry is safe.\n\nEach contact needs a `phone_number`. Every other key is kept and can fill a\ntemplate parameter through `variable_mapping`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -538,7 +538,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "addWhatsappOptOut",
-        "description": "Block a customer. Stop every message you start to this customer from this number, until\nthe block is lifted. The response is `201` when the block is new and\n`200` when the customer was already blocked, in which case the entry is\nreturned unchanged.",
+        "description": "Block a customer. Block a customer from receiving messages you start from this number.\n\nThe block lasts until you lift it. The response is `201` for a new block. It\nis `200` with the entry unchanged if the customer was already blocked.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -578,7 +578,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "attachAgentIntegration",
-        "description": "Attach an integration to an agent. Attach one of your integrations to the agent. The agent can use it on its next call. Integrations already attached stay as they are.",
+        "description": "Attach an integration to an agent. Attach an integration to an agent.\n\nThe agent can use it on its next call. Integrations already attached stay as\nthey are.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -659,7 +659,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "attachPhoneNumber",
-        "description": "Attach phone number to agent. Attach a phone number to an existing agent. Without `user_id`, use any\nnumber and agent your key can manage. With `user_id`, the number and the\nagent must both belong to that client.",
+        "description": "Attach phone number to agent. Attach a phone number to an existing agent.\n\nWithout `user_id`, use any number and agent your key can manage. With\n`user_id`, both must belong to that client.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -841,7 +841,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createAgent",
-        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM,\nCloud WhatsApp, or a workflow),\nambient background track, initial ringing sound, and multilingual support.\n\nLeave out `model`, `transcriber` and `voice` unless you need a specific\none: the agent then gets your organization's default language model,\ntranscriber and voice, which always work. To choose one, pick from the\nLLM, STT and TTS providers lists, which show only the models your\norganization can use. Any other model is refused with a message naming\nthe default to use instead.\n\n> **Voicemail detection is an access-gated feature** that we turn on per\naccount. If it isn't enabled for yours yet,\n[request access](https://omnidim.io/contact-us?reason=product&lock=1)\nbefore configuring the `voicemail` object.",
+        "description": "Create agent. Create an agent from a name and a context. Every other setting is optional.\n\nOptional settings: transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM, Cloud\nWhatsApp, or a workflow), ambient background track, initial ringing\nsound and multilingual support.\n\nLeave out `model`, `transcriber` and `voice` to get your organization's\ndefaults, which always work. To pick one, use the LLM, STT or TTS provider\nlist: it shows only the models your organization can use. Any other model is\nrefused, and the error names the default to use.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1281,7 +1281,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createBulkCall",
-        "description": "Create bulk call. Create a new bulk-call campaign. Only name, phone_number_id and a\ncontact_list are needed to dial a list now; every other field adds\none behavior on top (drafts, rotation, filtering, scheduling,\nretries, dynamic feeding).\n\nThe guide below the field reference walks the whole journey: the\nfirst campaign and its response, each behavior with a working\nrequest, every refusal message with its fix, and the endpoints that\noperate a campaign once it runs.",
+        "description": "Create bulk call. Create a bulk-call campaign.\n\nOnly `name`, `phone_number_id` and a `contact_list` are needed to dial a\nlist now. Every other field adds one behavior: drafts, rotation, filtering,\nscheduling, retries or dynamic feeding.\n\nThe guide below the field reference shows each behavior with a working\nrequest, every refusal message with its fix, and the endpoints that operate\na running campaign.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1607,7 +1607,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createCustomApiIntegration",
-        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration. Attach it to an agent with `attachAgentIntegration`, and the agent calls the endpoint during a call when the conversation needs it, then uses the response in its reply. Parameters marked `isLLMGenerated` are filled in by the agent from the conversation.",
+        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration.\n\nAttach it to an agent with `attachAgentIntegration`. The agent calls the\nendpoint during a call when the conversation needs it, then uses the\nresponse in its reply. The agent fills parameters marked `isLLMGenerated`\nfrom the conversation.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1775,7 +1775,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createSession",
-        "description": "Create session. Create a voice Session: a short-lived, single-conversation\nreservation that lets a client hold a live voice chat with your\nagent. This is step 1 of 2. Creating the Session does not start any\naudio on its own; it returns a `ws_url` that a client then connects\nto over WebSocket to actually talk.\n\nCall this endpoint from your server with your API key, and return\nonly the `ws_url` to your client. The API key must never reach the\nbrowser. The `ws_url` is the only thing the client needs, and it is\nsafe to hand out because it is single-use and expires. For how to\nconnect and talk, see \"Connect the client and talk\" below the\nrequest details.",
+        "description": "Create session. Create a short-lived voice session and get a `ws_url` for one conversation.\n\nThis is step 1 of 2. Creating the session starts no audio. The client then\nconnects to `ws_url` over WebSocket to talk.\n\nCall this endpoint from your server with your API key. Return only `ws_url`\nto your client, and never the API key. The `ws_url` is single-use and\nexpires, so it is safe to hand to your client. For how to connect and talk,\nsee \"Connect the client and talk\" below the request details.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1857,7 +1857,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createWhatsappCampaign",
-        "description": "Create a campaign. Create a campaign as a draft. It sends nothing until you launch it. Add\ncontacts and launch it in the next calls. Only an approved template can\nbe used, so every campaign starts with one. Scheduling is not offered.",
+        "description": "Create a campaign. Create a draft campaign from an approved template. It sends nothing until\nyou launch it.\n\nAdd contacts and launch it with the next calls. Scheduling is not offered.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1924,7 +1924,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createWorkflow",
-        "description": "Create a workflow. Create a workflow with a draft. Without `graph`, the draft holds one `trigger` node, ready for `editWorkflow` ops. Pass `graph` only to start from a complete graph. The response carries the `revision` you need to edit.",
+        "description": "Create a workflow. Create a workflow with a draft.\n\nWithout `graph`, the draft holds one `trigger` node, ready for\n`editWorkflow` ops. Pass `graph` only to start from a complete graph. The\nresponse carries the `revision` you need to edit.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2025,7 +2025,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "deactivateWorkflow",
-        "description": "Deactivate a workflow. Turn the published workflow off, so real events stop running it. The workflow and its draft stay. Use `activateWorkflow` to turn it back on.",
+        "description": "Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2216,7 +2216,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "deleteWorkflow",
-        "description": "Delete a workflow. Delete a workflow. Its published version stops running. This cannot be undone, so confirm with the user first. To stop it without deleting, use `deactivateWorkflow`.",
+        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `deactivateWorkflow`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2323,7 +2323,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "detachPhoneNumber",
-        "description": "Detach phone number. Detach a phone number from its agent. Without `user_id`, use any number\nyour key can manage. With `user_id`, the number must belong to that\nclient.",
+        "description": "Detach phone number. Detach a phone number from its agent.\n\nWithout `user_id`, use any number your key can manage. With `user_id`, the\nnumber must belong to that client.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2352,7 +2352,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "diffAgentVersion",
-        "description": "Diff an agent version. Get a record-level diff for this version. By default it shows what changed in this version compared with the version before it. Use `against=current` to compare with the agent's live config (what restoring this version would change), or `against=<number>` to compare with another version.",
+        "description": "Diff an agent version. Get a record-level diff for one agent version.\n\nBy default it compares this version with the one before it. Use\n`against=current` to compare with the live config, which shows what\nrestoring this version would change. Use `against=<number>` to compare with\nanother version.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2394,7 +2394,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "dispatchCall",
-        "description": "Dispatch call. Initiate a call to a phone number using a specified agent. The\nphone number must include a country code with a leading plus.",
+        "description": "Dispatch call. Start a call to a phone number with an agent.\n\nThe phone number must include a country code with a leading plus.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2480,7 +2480,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "editWorkflow",
-        "description": "Edit a workflow draft. Change the draft with a list of `ops`: add, update, move or delete nodes, and connect or disconnect them. The ops apply all together or not at all. You must send the `revision` from your last read. If you get `409 revision_conflict`, read the workflow again and retry. Secrets read back as `********`. Send them back unchanged to keep the stored value. This edits the draft only. Use `publishWorkflow` to make it live.",
+        "description": "Edit a workflow draft. Change the draft with a list of `ops`.\n\nOps add, update, move or delete nodes, and connect or disconnect them. They\napply all together or not at all. Send the `revision` from your last read.\nOn `409 revision_conflict`, read the workflow again and retry.\n\nSecrets read back as `********`. Send them back unchanged to keep the stored\nvalue. This edits the draft only. Use `publishWorkflow` to make it live.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2628,7 +2628,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAccountBalance",
-        "description": "Get account balance. Read your organization's wallet: the remaining balance, the minutes\nit buys at your rates, your plan, your concurrency headroom, and\nwhether auto-recharge will refill it.\n\nUse it before a campaign, or on a schedule, so you find out you are\nlow on credit from this endpoint rather than from a call failing\nwith `402 payment_required`.\n\nThe response always describes the organization the API key belongs\nto. There is no parameter for reading another account; resellers\nread a client's figures through the Reseller endpoints.\n\nA balance at or below zero does not always mean calls will stop. An\norganization on usage-based billing (`plan.is_usage_based`) keeps\nplacing calls and is metered to its payment method instead, so check\nthat flag before treating a zero balance as a stop condition.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization; when it is not, contact support.",
+        "description": "Get account balance. Read your organization's wallet balance, plan and auto-recharge state.\n\nThe response also has the minutes the balance buys at your rates and your\nconcurrency headroom.\n\nCall it before a campaign, or on a schedule, so you learn about low credit\nhere and not from a call failing with `402 payment_required`.\n\nThe response always describes the organization the API key belongs to. There\nis no parameter for another account. Resellers read a client's figures\nthrough the Reseller endpoints.\n\nA balance at or below zero does not always stop calls. An organization on\nusage-based billing (`plan.is_usage_based`) keeps placing calls and is\nmetered to its payment method. Check that flag before treating zero as a\nstop condition.\n\nThe API key's user needs Billing access in your organization. If you get a\n`403`, an administrator can grant it when Billing is enabled for your\norganization. When it is not, contact support.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -2648,7 +2648,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `can_publish` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
+        "description": "Get agent. Get one agent by ID.\n\nThe response includes `can_publish`: whether [version\nhistory](/docs/api-reference/agents/listAgentVersions) is on for the agent's\norganization.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2798,7 +2798,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getClonedVoiceSample",
-        "description": "Play a cloned voice sample. Stream the generated mp3 sample of a cloned voice. Only the owner can\nfetch it. `404` (`sample_not_ready`) when no sample exists yet. The\nrequest needs your API key in the `Authorization` header.",
+        "description": "Play a cloned voice sample. Stream the generated mp3 sample of a cloned voice.\n\nOnly the owner can fetch it. Send your API key in the `Authorization`\nheader. If no sample exists yet, the call returns `404`\n(`sample_not_ready`).",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2858,7 +2858,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWhatsappCalling",
-        "description": "Get calling settings. Whether calling is on for this number and whether it can be turned on,\nwith the list of checks. A failing check does not fail the request: the\nresponse stays `200` and names the check that blocks. Meta Cloud numbers\nonly. Calling must be included in your plan.",
+        "description": "Get calling settings. Get whether calling is on for this number and whether it can be turned on.\n\nThe response lists the checks. A failing check does not fail the request: it\nstays `200` and names the check that blocks. Meta Cloud numbers only. Your\nplan must include calling.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2888,7 +2888,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWhatsappCampaign",
-        "description": "Get a campaign. One campaign with its counts and analytics: per-source figures and the\nfailed contacts grouped by reason. `delivery_rate` and `read_rate` are\nnull on a number that does not report receipts.",
+        "description": "Get a campaign. Get one campaign with its counts and analytics.\n\nAnalytics include per-source figures and failed contacts grouped by reason.\n`delivery_rate` and `read_rate` are null on a number that does not report\nreceipts.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2918,7 +2918,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWhatsappConversation",
-        "description": "Get a conversation. One conversation: who owns it, the 24-hour window, whether the customer\nopted out, and the unread count. Poll it while a person is answering.",
+        "description": "Get a conversation. Get one conversation: owner, 24-hour window, opt-out state and unread count.\n\nPoll it while a person is answering.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2948,7 +2948,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWhatsappMessage",
-        "description": "Get a message. One message with its `timeline`: the delivery and read steps, oldest\nfirst. Poll it after a send to learn whether the message was delivered\nand read. Also shows what the send cost once it is charged.",
+        "description": "Get a message. Get one message with its `timeline` of delivery and read steps, oldest\nfirst.\n\nPoll it after a send to learn whether the message was delivered and read. It\nalso shows what the send cost once charged.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2978,7 +2978,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWhatsappNumber",
-        "description": "Get a WhatsApp number. One number, with its status, quality and messaging limit, and what it\ncan send. A number in another workspace answers `404`.",
+        "description": "Get a WhatsApp number. Get one number with its status, quality, messaging limit and what it can\nsend.\n\nA number in another workspace answers `404`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3008,7 +3008,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWorkflow",
-        "description": "Get a workflow. One workflow with its draft, status and `revision`. Call it before every edit to get the current `revision`. Use `view=structure` to see nodes and edges without config on a large workflow. Secrets read back as `********`.",
+        "description": "Get a workflow. Get one workflow with its draft, status and `revision`.\n\nCall it before every edit to get the current `revision`. Use\n`view=structure` to see nodes and edges without config on a large workflow.\nSecrets read back as `********`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3049,7 +3049,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWorkflowExecution",
-        "description": "Get a workflow run. One run of a workflow, with the result of each step. Use it to read the outcome of `testWorkflow`. A run is finished when `state` is `completed`, `failed` or `cancelled`.",
+        "description": "Get a workflow run. Get one workflow run with the result of each step.\n\nUse it to read the outcome of `testWorkflow`. The run is finished when\n`state` is `completed`, `failed` or `cancelled`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3085,7 +3085,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getWorkflowNodeType",
-        "description": "Get a workflow node type. The settings one node type reads, with their types, required flags and outputs. Call it before you add or edit a node, because its `fields` are the keys of the node's `config`. Use `detail=full` only when you need help text and examples.",
+        "description": "Get a workflow node type. Get the settings one node type reads.\n\nCall it before you add or edit a node. Its `fields` are the keys of the\nnode's `config`. Use `detail=full` only when you need help text and\nexamples.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3126,7 +3126,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "handBackWhatsappConversation",
-        "description": "Hand a conversation back. Give the conversation back to the agent, and clear a pause. The agent\nanswers the customer's next message. Repeating it changes nothing.",
+        "description": "Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3327,7 +3327,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "importWhatsappNumbers",
-        "description": "Connect WhatsApp numbers. Connects numbers from your own WhatsApp Business Account with your Meta\naccess token. List them first with\n[Preview numbers](/docs/api-reference/whatsapp/previewWhatsappNumbers),\nthen pass the ids you want.\n\nThe token must never expire and must carry both WhatsApp permissions\n(`whatsapp_business_management` and `whatsapp_business_messaging`). A\nsystem user token does. Add `app_secret` to receive replies. Without\nit the number can send but not receive.\n\nConnecting a number again updates it: send a new `access_token` or\n`app_secret` the same way to change either. One number failing does\nnot stop the others. It is listed in `failed` with the reason.",
+        "description": "Connect WhatsApp numbers. Connect numbers from your WhatsApp Business Account with your Meta access\ntoken.\n\nList the numbers first with [Preview\nnumbers](/docs/api-reference/whatsapp/previewWhatsappNumbers), then pass the\nids you want.\n\nThe token must never expire and must carry both\n`whatsapp_business_management` and `whatsapp_business_messaging`. A system\nuser token does. Add `app_secret` to receive replies. Without it the number\ncan send but not receive.\n\nConnecting a number again updates it. Send a new `access_token` or\n`app_secret` to change either. One number failing does not stop the others.\nIt is listed in `failed` with the reason.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3373,7 +3373,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "launchWhatsappCampaign",
-        "description": "Launch a campaign. Start a draft campaign: every pending contact is queued once. Needs at\nleast one contact, unless the campaign's `data_source` is `webhook`. The\nplan's monthly broadcast allowance and the wallet balance are checked\nhere. `Idempotency-Key` is required, so a retry does not start it twice.",
+        "description": "Launch a campaign. Start a draft campaign and queue every pending contact once.\n\nIt needs at least one contact, unless `data_source` is `webhook`. Launch\nchecks the plan's monthly broadcast allowance and the wallet balance.\n`Idempotency-Key` is required, so a retry does not start it twice.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3411,7 +3411,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "liftWhatsappOptOut",
-        "description": "Lift a block. Lift a block you added, or a marketing block made in WhatsApp. The entry\nstays in the list with `active: false`. A customer's own STOP cannot be\nlifted over the API: only the customer lifting it in WhatsApp, or\nmessaging you again, brings them back.",
+        "description": "Lift a block. Lift a block you added, or a marketing block made in WhatsApp.\n\nThe entry stays in the list with `active: false`. You cannot lift a\ncustomer's own STOP over the API. The customer must lift it in WhatsApp or\nmessage you again.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3595,7 +3595,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listBulkCallLines",
-        "description": "Bulk call results. Per-contact results for a campaign: what happened on each call, the\nvariables you sent with that contact, and a pointer to the recording.\n\n## Paging\n\nThere is one rule. Call it with no `cursor`, then keep passing back the\n`next_cursor` you were handed until it comes back `null`.\n\n```\ncursor = None\nwhile True:\n    page = GET /lines?pagesize=150&cursor={cursor}\n    handle(page[\"records\"])\n    cursor = page[\"next_cursor\"]\n    if not cursor: break\n```\n\nEach call returns a page of rows, oldest first: `pagesize` goes up to\n150 and defaults to 30. Cursors are opaque, so pass back the string you\nwere given and never build one. No contact is skipped or returned\ntwice, even while the campaign is still dialing.\n\n## Transcripts are not in the row\n\nEach row carries `call.recording_id`, not the conversation. Transcripts\nreach 212 KB, so carrying them here would make one page tens of\nmegabytes. Fetch the one you want from\n`GET /calls/logs/{recording_id}`.",
+        "description": "Bulk call results. List per-contact results for a campaign.\n\nEach row has what happened on the call, the variables you sent, and\n`call.recording_id`.\n\n## Paging\n\nCall with no `cursor`. Then pass back the `next_cursor` you were given until\nit is `null`. Rows come oldest first. `pagesize` defaults to 30 and goes up\nto 150. Cursors are opaque, so never build one. No contact is skipped or\nreturned twice, even while the campaign dials.\n\n```\ncursor = None\nwhile True:\n    page = GET /lines?pagesize=150&cursor={cursor}\n    handle(page[\"records\"])\n    cursor = page[\"next_cursor\"]\n    if not cursor: break\n```\n\n## Transcripts are not in the row\n\nTranscripts reach 212 KB, so rows carry only `call.recording_id`. Fetch the\ntranscript from `GET /calls/logs/{recording_id}`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3763,7 +3763,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listClonedVoices",
-        "description": "List cloned voices. Your cloned voices, oldest first, one cursor page at a time. Call it with\nno `cursor`, then pass back the `next_cursor` you were handed until it is\n`null`.\n\nOnce a voice is `ready`, its `voice_id` is the provider voice id to put\nin an agent's `voice.voice_id` with `voice.provider: cartesia`.",
+        "description": "List cloned voices. List your cloned voices, oldest first, one cursor page at a time.\n\nCall it with no `cursor`. Then pass back each `next_cursor` until it is\n`null`.\n\nWhen a voice is `ready`, put its `voice_id` in an agent's `voice.voice_id`\nwith `voice.provider: cartesia`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3797,7 +3797,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listIntegrations",
-        "description": "List integrations. List the integrations connected to your workspace, with each one's `id` and `integration_type`. Stored credentials (tokens, secrets, passwords, API keys, and the values of a custom API's headers and parameters) are never returned: they read `********`. When you create an integration, send the real values: `********` is refused. Accounts that sign in with OAuth (Google Sheets, Slack, HubSpot, Salesforce, Zoho Bigin) are connected in the dashboard.",
+        "description": "List integrations. List your workspace integrations, with each one's `id` and\n`integration_type`.\n\nStored credentials (tokens, secrets, passwords, API keys, and the values of\na custom API's headers and parameters) are never returned. They read\n`********`. When you create an integration, send the real values: `********`\nis refused. Accounts that sign in with OAuth (Google Sheets, Slack, HubSpot,\nSalesforce, Zoho Bigin) are connected in the dashboard.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -3962,7 +3962,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listVoices",
-        "description": "List voices. Retrieve the voices your organization can use, with filtering and\npagination. Use `provider=featured` for OmniDimension voices, the\nrecommended starting point, in the order the dashboard shows them.\nCartesia voices are the next choice.\n\nEach voice keeps its own `service`: save that as the agent's voice\nprovider. A provider your organization cannot use returns a 400.\nCartesia and ElevenLabs support filtering by name, language, accent,\nand gender. Other providers support pagination only.",
+        "description": "List voices. List the voices your organization can use, with filters and pagination.\n\nUse `provider=featured` for OmniDimension voices in the order the dashboard\nshows them. They are the recommended start. Cartesia voices are next.\n\nEach voice keeps its own `service`: save it as the agent's voice provider. A\nprovider your organization cannot use returns a 400. Cartesia and ElevenLabs\nsupport filtering by name, language, accent and gender. Other providers\nsupport pagination only.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4027,7 +4027,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWhatsappCampaignContacts",
-        "description": "List campaign contacts. Per-contact status for a campaign, oldest first. A contact that read the\nmessage and then replied STOP counts as read and opted out.",
+        "description": "List campaign contacts. List per-contact status for a campaign, oldest first.\n\nA contact that read the message and then replied STOP counts as read and\nopted out.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4140,7 +4140,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWhatsappConversations",
-        "description": "List conversations. A number's inbox, newest activity first. Poll it with `updated_since`\nfor changes since your last call, or page it with `cursor`. There are no\nevent webhooks, so polling is how an integration learns about new\nmessages.",
+        "description": "List conversations. List a number's inbox, newest activity first.\n\nThere are no event webhooks, so poll with `updated_since` to learn about new\nmessages. Page with `cursor`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4210,7 +4210,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWhatsappMessages",
-        "description": "List messages. One conversation's messages, newest first. Poll forward with `after`\n(the id of the newest message you already have) to get only new ones.\nPage backward through history with `cursor`. Do not pass both.",
+        "description": "List messages. List one conversation's messages, newest first.\n\nPoll forward with `after`, the id of the newest message you have, to get\nonly new ones. Page back through history with `cursor`. Do not pass both.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4258,7 +4258,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWhatsappNumbers",
-        "description": "List WhatsApp numbers. The WhatsApp numbers your API key can see, oldest first. Use it to find\na number id, then pass that id to the other routes. Each number carries\n`capabilities`, which says what it can send. Archived numbers are left\nout.",
+        "description": "List WhatsApp numbers. List the WhatsApp numbers your API key can see.\n\nNumbers come oldest first, and archived ones are left out. Use it to find a\nnumber id for the other routes. Each number carries `capabilities`, which\nsays what it can send.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4353,7 +4353,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWhatsappTemplates",
-        "description": "List templates. The number's message templates, as last synced, oldest first. Pass\n`status=approved` to see exactly the templates a send accepts. Sync the\nlist with `syncWhatsappTemplates` first if a template you expect is\nmissing.",
+        "description": "List templates. List the number's message templates, as last synced, oldest first.\n\nPass `status=approved` to see exactly the templates a send accepts. If a\ntemplate you expect is missing, run `syncWhatsappTemplates` first.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4402,7 +4402,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWorkflowFieldOptions",
-        "description": "List choices for a node field. The choices for one `ref` field of a node type, such as the phone numbers, agents or integrations in your account. Call it for every `ref` field and never guess an id. If it returns `400 no_options`, the field is not chosen from a list, so ask the user for the value.",
+        "description": "List choices for a node field. List the choices for one `ref` field of a node type.\n\nExamples are the phone numbers, agents or integrations in your account. Call\nit for every `ref` field and never guess an id. If it returns `400\nno_options`, the field is not a list choice, so ask the user for the value.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4444,7 +4444,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWorkflowNodeTypes",
-        "description": "List workflow node types. Search the node types a workflow can use, such as `whatsapp`, `voice_ai` or `conditional`. Call it first when you do not know which node to add. Then call `getWorkflowNodeType` for the settings of one type.",
+        "description": "List workflow node types. Search the node types a workflow can use.\n\nExamples are `whatsapp`, `voice_ai` and `conditional`. Call it first when\nyou do not know which node to add. Then call `getWorkflowNodeType` for one\ntype's settings.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4485,7 +4485,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listWorkflows",
-        "description": "List workflows. Your workflows, oldest first, one cursor page at a time. Use it to find a workflow id. Pass back `next_cursor` until it is `null`.",
+        "description": "List workflows. List your workflows, oldest first, one cursor page at a time.\n\nUse it to find a workflow id. Pass back `next_cursor` until it is `null`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4520,7 +4520,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "pauseWhatsappCampaign",
-        "description": "Pause a campaign. Stop sending until you resume. Only a running campaign can be paused. A\npause you make by hand is never resumed automatically.",
+        "description": "Pause a campaign. Stop sending until you resume.\n\nOnly a running campaign can be paused. A pause you make by hand is never\nresumed automatically.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4550,7 +4550,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "previewWhatsappNumbers",
-        "description": "Preview numbers to connect. Lists the numbers on your WhatsApp Business Account with their health,\nand connects nothing. The access token is checked first, against the\nsame rules as connecting, so a preview that passes can connect.\n\nConnect a number with `needs_migration` or `needs_registration` only\nafter fixing it in WhatsApp Manager, or its sends fail.",
+        "description": "Preview numbers to connect. List the numbers on your WhatsApp Business Account with their health.\nConnects nothing.\n\nThe access token is checked first, against the same rules as connecting, so\na preview that passes can connect.\n\nFix a number with `needs_migration` or `needs_registration` in WhatsApp\nManager before you connect it, or its sends fail.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4583,7 +4583,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "publishWorkflow",
-        "description": "Publish a workflow. Make the draft the live version. Real events then run it, unless the workflow is paused. Run `validateWorkflow` first: publish is refused while the draft has errors. Ask the user before you publish.",
+        "description": "Publish a workflow. Make the draft the live version.\n\nReal events then run it, unless the workflow is paused. Publish is refused\nwhile the draft has errors, so run `validateWorkflow` first. Ask the user\nbefore you publish.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4613,7 +4613,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "purchasePhoneNumber",
-        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop. The monthly\nrental comes out of your wallet and the number is added to your\naccount, ready to attach to an agent.",
+        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop.\n\nThe monthly rental comes out of your wallet. The number is added to your\naccount, ready to attach to an agent.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4693,7 +4693,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "releasePhoneNumber",
-        "description": "Release a phone number. Give up a phone number and stop its rental, so it is not charged at the\nnext renewal. Only a number currently allocated to the account can be\nreleased.",
+        "description": "Release a phone number. Release a phone number and stop its rental.\n\nIt is not charged at the next renewal. Only a number currently allocated to\nthe account can be released.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4768,7 +4768,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "restoreAgentVersion",
-        "description": "Restore an agent version. Restore a version onto the live agent. Your current setup is saved first as a backup version, so restoring is undoable. Configuration is brought back; any knowledge files or integrations that were deleted since this version was saved can't be re-linked, and are reported in `skipped`.",
+        "description": "Restore an agent version. Restore a version onto the live agent.\n\nYour current setup is saved first as a backup version, so restoring is\nundoable. Configuration comes back. Knowledge files or integrations deleted\nsince this version was saved can't be re-linked. They are reported in\n`skipped`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4804,7 +4804,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "resumeWhatsappCampaign",
-        "description": "Resume a campaign. Resume a paused campaign. Contacts still pending are sent; a contact\nalready sent is never sent again. The wallet and allowance are checked\nagain, so a resume can answer `402`.",
+        "description": "Resume a campaign. Resume a paused campaign.\n\nPending contacts are sent. A contact already sent is never sent again.\nResume checks the wallet and allowance again, so it can answer `402`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4834,7 +4834,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "retryBulkCall",
-        "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without creating a new campaign.\n\nUse it after a campaign finishes with more no-answers than you expected,\nor when the reason was on your side (a bad window, a number that was\nhaving a bad day). Retried contacts keep their original variables.\n\nThe retry is refused in these cases:\n\n- The campaign status is not `completed`. The error is\n  `Cannot retry calls. Current status: <status>`.\n- Auto retry is on and some contacts are still `Pending` or\n  `In Progress`. The error is `Cannot retry while calls are still in\n  progress and auto retry is enabled`.\n- A value in `failure_reasons` is not one of the allowed statuses. The\n  error is `Invalid failure reason(s)` and lists the allowed values.\n- No contact matches. The error is `No failed calls found to retry\n  matching criteria`.\n\nEach contact is retried from its latest call only. When the campaign has\n`skip_known_invalid_numbers` on, contacts whose last call ended with the\ncarrier saying the number does not exist are not retried. This endpoint\nretries calls that did not connect. It does not retry connected calls\nwith no conversation.",
+        "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without a new campaign.\n\nUse it after a campaign finishes with more no-answers than expected, or when\nthe cause was on your side. Retried contacts keep their original variables.\n\nThe retry is refused in these cases:\n\n- The status is not `completed`. The error is `Cannot retry calls. Current status: <status>`.\n- Auto retry is on and some contacts are still `Pending` or `In Progress`. The error is `Cannot retry while calls are still in progress and auto retry is enabled`.\n- A value in `failure_reasons` is not an allowed status. The error is `Invalid failure reason(s)` and lists the allowed values.\n- No contact matches. The error is `No failed calls found to retry matching criteria`.\n\nEach contact is retried from its latest call only. With\n`skip_known_invalid_numbers` on, contacts whose last call ended with the\ncarrier saying the number does not exist are skipped. Connected calls with\nno conversation are not retried.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4887,7 +4887,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "searchPhoneNumbers",
-        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.\n\nA region can have more than one carrier, each stocking different\nnumber series. Pass the `carrier` you want; the response names the\ncarrier its results came from, and that is the carrier a purchase has\nto pass.",
+        "description": "Search available phone numbers. Search the OmniDimension number shop for numbers you can buy in a region.\n\nPrice and validity are flat per region. Every result shows the same\n`monthly_rental_usd` and `validity_days`, and a purchase charges exactly\nthat.\n\nA region can have several carriers, each with different number series. Pass\nthe `carrier` you want. The response names the carrier its results came\nfrom, and a purchase must pass that carrier.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4946,7 +4946,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "sendWhatsappMessage",
-        "description": "Send a message. Send one message through `phone_number_id` to a customer, in a text,\na template, an image or a document. Set `type` and the matching field.\n\nOutside the 24-hour window, only a template goes through. A text, image\nor document send is refused with `409 window_closed`. A template send\nworks any time and can start a new conversation.\n\nThe send does not take the conversation over, so the agent keeps\nanswering. Set `take_over: true` to stop the agent and answer yourself.\n\n`Idempotency-Key` is required. The same key with the same body replays\nthe first answer instead of sending again.",
+        "description": "Send a message. Send a text, template, image or document message to a customer.\n\nIt goes out from `phone_number_id`. Set `type` and the field that matches\nit.\n\nOutside the 24-hour window, only a template goes through. Text, image and\ndocument sends are refused with `409 window_closed`. A template send works\nany time and can start a new conversation.\n\nA send does not take the conversation over, so the agent keeps answering.\nSet `take_over: true` to stop the agent and answer yourself.\n\n`Idempotency-Key` is required. The same key with the same body replays the first answer instead of sending again.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5046,7 +5046,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setBulkCallConcurrency",
-        "description": "Change concurrency. Change how many calls the campaign places at once, including while it is\nrunning. Raise it to finish sooner, lower it if your team cannot keep up\nwith transfers or your numbers are being answered less.\n\nThe ceiling is your account's concurrency limit.",
+        "description": "Change concurrency. Change how many calls the campaign places at once, even while it runs.\n\nRaise it to finish sooner. Lower it if your team cannot keep up with\ntransfers or fewer calls are answered. The ceiling is your account's\nconcurrency limit.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5083,7 +5083,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setBulkCallDailyTimeControl",
-        "description": "Set calling hours. Restrict a campaign to a daily calling window, in the campaign's\ntimezone. Outside the window the campaign holds rather than finishing,\nand resumes the next day.",
+        "description": "Set calling hours. Limit a campaign to a daily calling window in its timezone.\n\nOutside the window the campaign holds, then resumes the next day.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5145,7 +5145,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setBulkCallNumberActive",
-        "description": "Pause or resume a pool number. Stop or resume dialing from one number in the pool.\n\nPausing is what you want when a number starts going bad mid-campaign:\ndialing moves to the next number in sequence and the paused number keeps\nits history and counters. The last active number of a running campaign\ncannot be paused, since the campaign would have nothing to dial from.\n\nSend the state you want rather than a toggle, so retrying the same\nrequest is harmless.\n\n`assignment_id` is the number's id **within this campaign's pool**, from\nList rotation pool. It is not the `phone_number_id`.",
+        "description": "Pause or resume a pool number. Stop or resume dialing from one number in the pool.\n\nPause a number that goes bad mid-campaign. Dialing moves to the next number,\nand the paused number keeps its history and counters. You cannot pause the\nlast active number of a running campaign.\n\nSend the state you want, not a toggle, so a retry is harmless.\n\n`assignment_id` is the number's id **within this campaign's pool**, from List rotation pool. It is not the `phone_number_id`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5187,7 +5187,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setBulkCallRotation",
-        "description": "Change rotation settings. Change how a campaign uses its number pool. Send only the fields you\nwant to change. At least one field is required.\n\nThis works while the campaign status is `draft`, `scheduled`,\n`in_progress`, `waiting`, `paused`, `auto_paused` or `retry_scheduled`.\nAny other status is refused with `Cannot edit rotation for status:\n<status>`. To change which numbers are in the pool, use the numbers\nendpoints.",
+        "description": "Change rotation settings. Change how a campaign uses its number pool.\n\nSend only the fields you want to change. At least one field is required.\n\nIt works while the status is `draft`, `scheduled`, `in_progress`, `waiting`,\n`paused`, `auto_paused` or `retry_scheduled`. Any other status is refused\nwith `Cannot edit rotation for status: <status>`. To change which numbers\nare in the pool, use the numbers endpoints.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5251,7 +5251,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setPhoneNumberAutoRenew",
-        "description": "Switch auto-renew on a phone number. Turn auto-renew off or back on for a number bought from the number shop.\nWith auto-renew off, the number is not charged again: it keeps working\nuntil the end of the period already paid for and is then released. Turn\nit back on before that date and it renews as normal. Sending the value\nthe number already has changes nothing and still succeeds.",
+        "description": "Switch auto-renew on a phone number. Turn auto-renew on or off for a number bought from the number shop.\n\nWith auto-renew off, the number is not charged again. It works until the end\nof the period already paid for, then it is released. Turn auto-renew on\nbefore that date and the number renews as normal. Sending the value the\nnumber already has changes nothing and still succeeds.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5286,7 +5286,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "setWhatsappCalling",
-        "description": "Turn calling on or off. Turn calling on or off for a Meta Cloud number. A customer calls this\nnumber; it does not place calls. Turning it on requires every blocking\ncheck to pass, or the request answers `409`. Turning it off is always\nallowed.",
+        "description": "Turn calling on or off. Turn calling on or off for a Meta Cloud number.\n\nA customer calls this number. It does not place calls. Turning calling on\nneeds every blocking check to pass, or the request answers `409`. Turning it\noff is always allowed.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5351,7 +5351,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "syncWhatsappTemplates",
-        "description": "Sync templates. Pull the number's templates and their review statuses from WhatsApp into\nyour list. Run it after you create or edit a template in Meta. It runs\nat most once a minute per number: a second call inside that minute\nanswers `429`.",
+        "description": "Sync templates. Pull the number's templates and review statuses from WhatsApp into your\nlist.\n\nRun it after you create or edit a template in Meta. It runs at most once a\nminute per number. A second call inside that minute answers `429`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5381,7 +5381,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "takeOverWhatsappConversation",
-        "description": "Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers. Repeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.",
+        "description": "Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5411,7 +5411,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "testWorkflow",
-        "description": "Test a workflow. Runs the draft once with payload as the trigger data. Every node runs for real: WhatsApp messages, SMS, emails and calls go out and CRM records change. Ask the user before calling it, and use their own phone number or email in the payload.\n\nIt returns an `execution_id` at once. Poll `getWorkflowExecution` for the result.",
+        "description": "Test a workflow. Run the draft once with `payload` as the trigger data.\n\nEvery node runs for real: WhatsApp messages, SMS, emails and calls go out,\nand CRM records change. Ask the user first, and use their own phone number\nor email in the payload.\n\nIt returns an `execution_id` at once. Poll `getWorkflowExecution` for the\nresult.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5446,7 +5446,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "updateAgent",
-        "description": "Update agent. Update an existing agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only when you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when their key is sent, and kept otherwise. If a sent action gives a variable key a new prompt, kept actions that use the same key take the new prompt too. To add, change or remove one action without touching the others, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is an access-gated feature** that we turn on per account. If it isn't enabled for yours yet, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before configuring the `voicemail` object below.",
+        "description": "Update agent. Update an agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only if you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when you send their key. Other actions are kept. If a sent action gives a variable key a new prompt, kept actions with the same key take that prompt too. To change one action alone, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -6194,7 +6194,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "validateWorkflow",
-        "description": "Validate a workflow draft. Check the draft and list what blocks publish. It changes nothing. Call it after your edits and fix every error before `publishWorkflow`.",
+        "description": "Validate a workflow draft. Check the draft and list what blocks publish.\n\nIt changes nothing. Call it after your edits and fix every error before\n`publishWorkflow`.",
         "input_schema": {
             "type": "object",
             "properties": {
