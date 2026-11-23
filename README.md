@@ -12,10 +12,10 @@ You sign in with your OmniDimension account in the browser, so you need no API k
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=omnidim&config=eyJ1cmwiOiJodHRwczovL21jcC5vbW5pZGltLmlvL21jcCJ9)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_omnidim-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=omnidim&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.omnidim.io%2Fmcp%22%7D)
 
-Claude Code:
+Claude Code, with the server and the [OmniDimension skills](https://github.com/Omnidim/skills) in one step:
 
 ```bash
-claude mcp add --transport http omnidim https://mcp.omnidim.io/mcp
+claude plugin install omnidim --marketplace Omnidim/skills
 ```
 
 Codex:
