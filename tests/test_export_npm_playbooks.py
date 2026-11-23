@@ -17,6 +17,17 @@ def test_the_npm_export_carries_every_playbook_and_guide_as_readguide_serves_it(
     entries = exported["playbooks"] + exported["guides"]
     names = [e.get("uri", e.get("name")) for e in entries]
     assert sorted(names) == sorted(GUIDE_NAMES)
-    for entry, name in zip(entries, names, strict=True):
-        assert entry["text"] == guide_text(name)
-    assert all(p["arguments"] is not None for p in exported["playbooks"])
+    for guide in exported["guides"]:
+        assert guide["text"] == guide_text(guide["uri"])
+    for playbook in exported["playbooks"]:
+        unfilled = next(v for v in playbook["variants"] if v["given"] == [])
+        assert unfilled["text"] == guide_text(playbook["name"])
+        assert len(playbook["variants"]) == 2 ** len(playbook["arguments"])
+
+
+def test_each_variant_carries_a_marker_for_every_given_value() -> None:
+    exported = _module.playbooks()["playbooks"]
+    campaign = next(p for p in exported if p["name"] == "build_outbound_campaign")
+    pinned = next(v for v in campaign["variants"] if v["given"] == ["agent_id", "goal"])
+    assert _module.marker("agent_id") in pinned["text"]
+    assert "bot_id" in pinned["text"]
