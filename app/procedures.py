@@ -545,15 +545,14 @@ def _update_agent(args: dict[str, Any]) -> str:
         "`listAgentVersions`. A 409 `version_limit_reached` means there is no room for a backup: stop, "
         "and ask the user which old version to delete. A 403 `feature_disabled` or `feature_not_entitled` "
         "means no history: ask as above. Never apply without a backup `version_number` or the user's yes.\n"
-        "   - Apply exactly these edits with `updateAgent`, sending only the fields you change. If "
-        "`getAgent` returned `config`, take each field from it: it is already in the shape `updateAgent` "
-        "takes. Otherwise use the "
+        "   - Apply exactly these edits with `updateAgent`, sending only the fields you change, in the "
         "shape the `omnidim://reference/agent-config` resource gives for reading an agent back. `getAgent` "
         "names differ: sections come back as `context_title` and `context_body`, but `updateAgent` takes "
-        "`title`, `body` and `is_enabled`, and sending the `getAgent` names back blanks every section. "
+        "`title`, `body` and `is_enabled`, and sending the `getAgent` names back does not save the sections. "
         "Copy `is_enabled` for every section, or a disabled section turns back on. Send the complete "
         "`context_breakdown` list, never only the changed section, because it replaces the whole list. "
-        "In `end_call`, send `enabled` only to turn ending the call on or off.\n"
+        "In `end_call`, send `enabled` only to turn ending the call on or off. If the response has "
+        "`warnings`, part of the edit was not saved: fix each named field and send it again.\n"
         "   - Fetch the agent again and check that every section has its title and body. If any is blank, "
         "restore the backup `version_number` at once and tell the user.\n"
         "   - Save the new version (V1.1, V1.2 and so on) with `createAgentVersion`, and confirm in one "
@@ -1064,10 +1063,9 @@ wrapper; see the routing guide). The fields:
 
 ## Reading an agent back
 
-If `getAgent` returns a `config` object, it is already in the shape below: edit
-it and send back only the fields you change. Otherwise `getAgent` returns flat
-names, and sending them back is ignored, refused, or blanks the prompt. Rename
-them first:
+`getAgent` returns flat names, and sending them back is not saved. Rename them
+first, and send only the fields you change. If `updateAgent` returns `warnings`,
+a field was not saved: fix it and send it again.
 
 | `getAgent` returns | Send to `updateAgent` |
 |---|---|

@@ -152,7 +152,8 @@ def test_the_post_call_step_sends_only_fields_addpostcallaction_accepts() -> Non
 def test_update_maps_the_getagent_section_keys_back_to_updateagent() -> None:
     text = _playbook("update_agent")
     assert "`context_title`" in text and "`context_body`" in text
-    assert "returned `config`" in text
+    assert "`config`" not in text
+    assert "`warnings`" in text and "send it again" in text
     section = _schema("updateAgent")["properties"]["context_breakdown"]["items"]
     assert {"title", "body"} <= set(section["properties"])
 
