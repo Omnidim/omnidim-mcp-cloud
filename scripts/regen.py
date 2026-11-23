@@ -170,6 +170,20 @@ def type_properties(node: Any) -> None:
     type_properties(node.get("items"))
 
 
+BODY_LIST_ARG = "items"
+
+
+def body_list_schema(request_body: dict[str, Any] | None) -> dict[str, Any] | None:
+    schema = ((request_body or {}).get("content", {}).get("application/json", {})).get("schema")
+    if not isinstance(schema, dict):
+        return None
+    lists = [b for b in schema.get("oneOf", []) if isinstance(b, dict) and b.get("type") == "array"]
+    if not lists:
+        return None
+    note = "Send a list, even for one item. It becomes the request body."
+    return {**lists[0], "description": note}
+
+
 def merge_schema(
     parameters: Iterable[dict[str, Any]],
     request_body: dict[str, Any] | None,
@@ -200,6 +214,10 @@ def merge_schema(
             body_props = body_schema.get("properties", {})
             properties.update(body_props)
             required.extend(body_schema.get("required", []))
+        if (as_list := body_list_schema(request_body)) is not None:
+            properties[BODY_LIST_ARG] = as_list
+            if request_body.get("required"):
+                required.append(BODY_LIST_ARG)
 
     return {
         "type": "object",
@@ -268,7 +286,7 @@ def build_tool(
     path_param_names = [p["name"] for p in params if p.get("in") == "path"]
     query_param_names = [p["name"] for p in params if p.get("in") == "query"]
     header_param_names = [p["name"] for p in params if p.get("in") == "header"]
-    return {
+    tool = {
         "name": op_id,
         "description": full_desc,
         "input_schema": schema,
@@ -278,6 +296,9 @@ def build_tool(
         "query_params": query_param_names,
         "header_params": header_param_names,
     }
+    if body_list_schema(request_body) is not None:
+        tool["body_list_arg"] = BODY_LIST_ARG
+    return tool
 
 
 def strip_params(op: dict[str, Any], names: list[str]) -> int:

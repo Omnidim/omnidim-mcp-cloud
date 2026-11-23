@@ -151,17 +151,20 @@ def _trim(data: Any) -> ToolResult:
         return ToolResult(text=full)
 
     arr, key = found
+    page_links = ("next_cursor", "has_more")
     kept = len(arr)
     while kept > 1:
         trimmed = arr[:kept]
         if key is not None and isinstance(redacted, dict):
-            candidate = json.dumps({**redacted, key: trimmed}, indent=2, ensure_ascii=False)
+            rest = {k: v for k, v in redacted.items() if k not in page_links}
+            candidate = json.dumps({**rest, key: trimmed}, indent=2, ensure_ascii=False)
         else:
             candidate = json.dumps(trimmed, indent=2, ensure_ascii=False)
         if len(candidate) <= MAX_LIST_CHARS:
             note = (
-                f"\n\n[Showing {kept} of {len(arr)} items.{drop_note} Lower pagesize, filter "
-                "by name, or fetch a specific item by ID for full detail.]"
+                f"\n\n[Showing {kept} of {len(arr)} items.{drop_note} The rest were cut to fit, "
+                f"and the next page would skip them: ask again with pagesize {kept} to read every "
+                "row, filter, or fetch a specific item by ID for full detail.]"
             )
             return ToolResult(text=candidate + note)
         kept = max(1, int(kept * 0.6))
@@ -297,8 +300,9 @@ async def dispatch_tool(
         return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
-    if method != "GET" and body:
-        request_kwargs["json"] = body
+    sent: Any = body.get(list_arg) if (list_arg := tool.get("body_list_arg")) else body
+    if method != "GET" and sent:
+        request_kwargs["json"] = sent
 
     log.info(
         "tool_call",

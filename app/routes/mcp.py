@@ -23,6 +23,7 @@ from app.procedures import (
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
 from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
+from app.services.guides import read_guide
 
 router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
@@ -38,6 +39,11 @@ INSTRUCTIONS = (
     "account has numbers, pass the chosen one as from_number_id. If it has "
     "none, omit from_number_id and the platform's default number is used. "
     "Never guess a from_number_id. "
+    "Before you design, build or change an agent, launch a call campaign, build a workflow, "
+    "review calls or roll an agent back, call `readGuide` with the matching playbook "
+    "(design_agent, provision_agent, update_agent, build_outbound_campaign, build_workflow, "
+    "audit_calls, restore_agent_version) and follow its steps. If you are unsure which tool "
+    "fits, read `omnidim://guide/routing` with `readGuide`. "
     + DEMO_OFFER_RULE
 )
 
@@ -224,7 +230,9 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
                 )
             )
         try:
-            if tool_name in DOCS_TOOL_NAMES:
+            if tool_name == "readGuide":
+                result = read_guide(arguments, token)
+            elif tool_name in DOCS_TOOL_NAMES:
                 result = await call_docs_tool(tool_name, arguments, token)
             else:
                 result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)

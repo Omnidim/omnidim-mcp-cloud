@@ -165,8 +165,10 @@ async def test_reference_resources_listed(client: AsyncClient) -> None:
 async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/recommended-stack")
-    for token_str in ("soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
+    for token_str in ("soniox", "cartesia", "gpt-4.1-mini"):
         assert token_str in text
+    for other in ("sarvam", "deepgram", "smallest", "eleven_labs", "azure"):
+        assert other not in text.lower()
 
 
 async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
@@ -441,3 +443,76 @@ def test_outbound_greeting_examples_are_short_name_checks() -> None:
     for e in outbound:
         assert len(e["welcome_message"].split()) <= 8
         assert "[name]" in e["welcome_message"]
+
+
+def _text(name: str) -> str:
+    from app.procedures import build_prompt, guide_text
+
+    if name.startswith("omnidim://"):
+        text = guide_text(name)
+    else:
+        built = build_prompt(name, {})
+        text = built["messages"][0]["content"]["text"] if built else None
+    assert text is not None
+    return " ".join(text.split())
+
+
+def test_no_playbook_acts_without_the_users_yes() -> None:
+    assert "attach only after the user's yes" in _text("provision_agent")
+    assert "Attach only the number the user names" in _text("provision_agent")
+    campaign = _text("build_outbound_campaign")
+    assert "Change it with `updateAgent` only after the user's yes" in campaign
+    assert "use it only after step 8's go-ahead" in campaign
+    assert "restore only on their yes" in _text("restore_agent_version")
+    assert "restore only on their yes" in _text("omnidim://guide/agent-versioning")
+    assert "get a yes, then `publishWorkflow`" in _text("omnidim://guide/workflows")
+    assert "release only after the user confirms" in _text("omnidim://guide/routing")
+    assert "`build_outbound_campaign` prompt" in _text("omnidim://guide/routing")
+
+
+def test_campaign_steps_match_the_api() -> None:
+    text = _text("build_outbound_campaign")
+    assert "{ campaign_id, contacts:" in text
+    assert "bulk_call_id, contacts" not in text
+    assert "needs its first rows in `contact_list`" in text
+    assert "needs `contact_list` at create" in _text("omnidim://guide/bulk-campaigns")
+
+
+def test_published_agents_are_flagged_before_an_edit() -> None:
+    assert "published_state.is_published" in _text("update_agent")
+    assert "writes the draft only" in _text("restore_agent_version")
+    assert "published_state.is_published" in _text("omnidim://guide/routing")
+
+
+def test_every_wait_has_a_cap() -> None:
+    assert "at most 5 times" in _text("provision_agent")
+    assert "up to 10 times" in _text("build_workflow")
+    assert "up to 10 times" in _text("omnidim://guide/workflows")
+    assert "three empty replies in a row" in _text("book_demo")
+    assert "do not poll it in a loop" in _text("build_outbound_campaign")
+    assert "at most 10 pages" in _text("build_outbound_campaign")
+    assert "After 10 pages, ask the user" in _text("omnidim://guide/bulk-campaigns")
+
+
+def test_update_keeps_disabled_sections_disabled() -> None:
+    assert "Copy `is_enabled` for every section" in _text("update_agent")
+
+
+def test_restore_preview_states_the_diff_direction() -> None:
+    assert "`old` is this version's value" in _text("restore_agent_version")
+    assert "`old` is this version's value" in _text("omnidim://guide/agent-versioning")
+
+
+def test_workflow_example_keeps_secrets_out_of_config() -> None:
+    assert "slack_webhook_url: \"<from the user>\"" not in _text("omnidim://guide/workflows")
+    assert "integration_id: <from listWorkflowFieldOptions>" in _text("omnidim://guide/workflows")
+
+
+def test_call_log_scans_use_a_page_that_fits_the_size_cap() -> None:
+    assert '"pagesize": 5, "include_details": false' in _text("audit_calls")
+    assert "a page of 50 short rows comes back as 6" in _text("audit_calls")
+
+
+def test_campaign_results_use_a_page_that_fits_the_size_cap() -> None:
+    assert "`pagesize` 10" in _text("build_outbound_campaign")
+    assert "`pagesize` 10" in _text("omnidim://guide/bulk-campaigns")
