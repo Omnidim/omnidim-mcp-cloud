@@ -154,3 +154,14 @@ async def test_tools_list_includes_annotations(client: AsyncClient) -> None:
     assert by_name["dispatchCall"]["annotations"]["destructiveHint"] is True
     assert by_name["dispatchCall"]["annotations"]["openWorldHint"] is True
     assert by_name["listAgents"]["annotations"]["readOnlyHint"] is True
+
+
+def test_a_merged_tool_asks_before_its_strongest_action() -> None:
+    files = tool_annotations("agentKnowledgeBaseActions", "POST")
+    assert files["destructiveHint"] is True
+    assert files["openWorldHint"] is False
+    campaign = tool_annotations("whatsappCampaignActions", "POST")
+    assert campaign["destructiveHint"] is True
+    assert campaign["openWorldHint"] is True
+    providers = tool_annotations("listProviders", "GET")
+    assert providers["readOnlyHint"] is True
