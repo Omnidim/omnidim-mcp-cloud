@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.21.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.0...v0.21.1) (2026-11-24)
+
+
+### Fixed
+
+* answer ping, accept every notification and list no resource templates, as the MCP spec asks ([#141](https://github.com/Omnidim/omnidim-mcp-cloud/issues/141)) ([99541ef](https://github.com/Omnidim/omnidim-mcp-cloud/commit/99541efe65278d4dcb93b2ff1d6ad5a300078efa))
+
 ## [0.21.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.20.0...v0.21.0) (2026-11-24)
 
 
