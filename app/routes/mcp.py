@@ -391,7 +391,12 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
             status_code=400,
             content=_error(req_id, -32600, "missing method"),
         )
+    is_notification = (
+        isinstance(method, str) and method.startswith("notifications/") and req_id is None
+    )
     if not isinstance(params, dict):
+        if is_notification:
+            return Response(status_code=202)
         return JSONResponse(content=_error(req_id, -32602, "params must be an object"))
 
     version = _requested_version(params)
@@ -407,7 +412,7 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
         odoo_user_id=token.odoo_user_id,
     )
 
-    if isinstance(method, str) and method.startswith("notifications/") and req_id is None:
+    if is_notification:
         return Response(status_code=202)
 
     if version is None:

@@ -273,6 +273,19 @@ async def test_params_that_are_not_an_object_are_invalid(client: AsyncClient, pa
     assert res.json()["error"]["code"] == -32602
 
 
+async def test_a_notification_gets_no_answer_whatever_its_params(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "method": "notifications/initialized", "params": "x"},
+    )
+
+    assert res.status_code == 202
+    assert res.content == b""
+
+
 async def test_legacy_results_carry_no_modern_fields(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
 
