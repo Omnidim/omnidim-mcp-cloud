@@ -47,11 +47,22 @@ jobs:
 
             The text was reviewed in that repo. The checks here prove every
             playbook is still served, every tool it names exists, and every
-            rule the tests pin still holds. It merges itself once they pass,
-            and the next release PR ships it.
+            rule the tests pin still holds. Approve it once they pass, and the
+            next release PR ships it.
 
-      - name: Auto-merge once the checks pass
-        if: steps.pr.outputs.pull-request-number != ''
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
-        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto --squash --delete-branch
+      - name: Open an issue if the sync never produced a PR
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'spec-drift',
+            });
+            if (existing.data.some((i) => i.title.startsWith('Skills sync failed'))) return;
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Skills sync failed: the server still serves the old playbooks',
+              labels: ['spec-drift'],
+              body: `\`skills-sync\` failed. Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

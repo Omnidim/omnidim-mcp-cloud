@@ -67,6 +67,20 @@ def test_prompt_inputs_follow_the_playbook_text() -> None:
     assert "test_number: +15551234567" in tail
 
 
+def test_prompt_inputs_are_one_line_and_only_the_declared_ones() -> None:
+    built = build_prompt(
+        "audit_calls", {"focus": "  why\n\nfailed  ", "agent_id": " ", "evil": "x"}
+    )
+    assert built is not None
+    tail = built["messages"][0]["content"]["text"].split("The user gave:\n", 1)[1]
+    assert tail == "- focus: why failed"
+
+
+def test_the_routing_guide_is_listed_first() -> None:
+    assert resources_for_listing()[0]["uri"] == "omnidim://guide/routing"
+    assert GUIDE_NAMES[len(PLAYBOOK_NAMES)] == "omnidim://guide/routing"
+
+
 def test_a_prompt_without_inputs_is_the_playbook_alone() -> None:
     built = build_prompt("audit_calls", {})
     assert built is not None

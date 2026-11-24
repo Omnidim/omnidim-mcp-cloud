@@ -381,7 +381,11 @@ def _guide_file(path: Path) -> Guide:
 
 
 _GUIDES: dict[str, Guide] = {
-    g.uri: g for g in map(_guide_file, sorted((_SKILLS / "guides").glob("*/*.md")))
+    g.uri: g
+    for g in sorted(
+        map(_guide_file, (_SKILLS / "guides").glob("*/*.md")),
+        key=lambda g: (g.uri != "omnidim://guide/routing", g.uri),
+    )
 }
 
 _CANVAS = {
@@ -464,11 +468,8 @@ def build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
     playbook = _PLAYBOOKS.get(name)
     if playbook is None:
         return None
-    given = [
-        f"- {a['name']}: {arguments[a['name']]}"
-        for a in playbook.arguments
-        if arguments.get(a["name"])
-    ]
+    values = {a["name"]: " ".join(str(arguments.get(a["name"]) or "").split()) for a in playbook.arguments}
+    given = [f"- {name}: {value}" for name, value in values.items() if value]
     text = playbook.steps
     if given:
         text += "\n\nThe user gave:\n" + "\n".join(given)
