@@ -24,6 +24,7 @@ from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
 from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
 from app.services.guides import read_guide
+from app.skills import SKILLS_CACHE, read_skill_file, skill_entries, skill_entry
 
 router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
@@ -280,10 +281,21 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
         uri = params.get("uri")
         if not isinstance(uri, str):
             return JSONResponse(content=_error(req_id, -32602, "resources/read requires uri (str)"))
-        resource = read_resource(uri)
+        resource = read_resource(uri) or read_skill_file(uri, read_only=read_only)
         if resource is None:
             return JSONResponse(content=_error(req_id, -32602, f"unknown resource: {uri}"))
         return JSONResponse(content=_result(req_id, resource))
+
+    if method == "skills/list":
+        skills = skill_entries(read_only=read_only)
+        return JSONResponse(content=_result(req_id, {"skills": skills, **SKILLS_CACHE}))
+
+    if method == "skills/get":
+        uri = params.get("uri")
+        entry = skill_entry(uri, read_only=read_only) if isinstance(uri, str) else None
+        if entry is None:
+            return JSONResponse(content=_error(req_id, -32602, f"No skill is served at {uri}"))
+        return JSONResponse(content=_result(req_id, {"skill": entry, **SKILLS_CACHE}))
 
     return JSONResponse(
         status_code=400,
