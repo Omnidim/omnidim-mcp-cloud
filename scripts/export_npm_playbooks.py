@@ -55,7 +55,7 @@ def playbooks() -> dict[str, Any]:
             {
                 "name": skill.frontmatter["name"],
                 "readOnly": skill.served_on(read_only=True),
-                "files": {f.uri.split("/", 3)[3]: f.text for f in skill.files},
+                "files": [{"path": f.uri.split("/", 3)[3], "text": f.text} for f in skill.files],
             }
             for skill in load_skills(SKILLS_DIR, REACH).values()
         ],
