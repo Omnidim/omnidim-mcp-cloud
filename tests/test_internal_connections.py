@@ -116,7 +116,8 @@ async def test_refresh_keeps_one_connection_and_moves_last_active(
     after = (await _connections(client, user))[0]
 
     assert after["connections"] == 1
-    assert str(after["last_active_at"]) > str(before["last_active_at"])
+    moved = datetime.fromisoformat(str(after["last_active_at"]))
+    assert moved > datetime.fromisoformat(str(before["last_active_at"]))
 
 
 async def test_disconnect_ends_every_connection_of_that_app_only(
