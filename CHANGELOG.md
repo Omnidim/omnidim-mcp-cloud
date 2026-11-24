@@ -2,6 +2,18 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.21.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.20.0...v0.21.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* serve 101 MCP tools, folding 24 operations into 9 tools with an action field ([#140](https://github.com/Omnidim/omnidim-mcp-cloud/issues/140))
+
+### Added
+
+* serve 101 MCP tools, folding 24 operations into 9 tools with an action field ([#140](https://github.com/Omnidim/omnidim-mcp-cloud/issues/140)) ([661e7d0](https://github.com/Omnidim/omnidim-mcp-cloud/commit/661e7d00bb467f037bd7754eddde85a90d3a1dcc))
+* serve one MCP tool for operations the spec marks as merged ([#138](https://github.com/Omnidim/omnidim-mcp-cloud/issues/138)) ([498162d](https://github.com/Omnidim/omnidim-mcp-cloud/commit/498162d0918f4518bbf478e163c17119d5521723))
+
 ## [0.20.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.1...v0.20.0) (2026-11-24)
 
 
