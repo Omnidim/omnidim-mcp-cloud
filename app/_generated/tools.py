@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=4b8cc9c6c44a
+Source spec:   openapi.yaml   sha256=895c93ae555f
 """
 from __future__ import annotations
 
@@ -885,7 +885,7 @@ _TOOLS_JSON = r"""[
                 },
                 "context_breakdown": {
                     "type": "array",
-                    "description": "List of context breakdowns, each containing `title`, `body`, and optional `is_enabled`.",
+                    "description": "The agent's prompt sections, each with `title`, `body` and optional `is_enabled`. Sending them replaces the whole list and rebuilds the prompt from the enabled sections in order: each `title` becomes a `# title` heading on its own line, with its `body` below it, the same layout the dashboard uses. A save without `context_breakdown` leaves the prompt unchanged.",
                     "items": {
                         "type": "object",
                         "required": [
@@ -917,7 +917,7 @@ _TOOLS_JSON = r"""[
                         "Incoming",
                         "Outgoing"
                     ],
-                    "description": "Call type of the assistant."
+                    "description": "`Incoming` for an agent that answers calls, `Outgoing` for one that places them, spelled exactly so. Any other value, `incoming` included, saves as `Outgoing` and the response lists it in `warnings`."
                 },
                 "timezone": {
                     "type": "string",
@@ -935,12 +935,18 @@ _TOOLS_JSON = r"""[
                         },
                         "model": {
                             "type": "string",
-                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`. Saved only\nfor `deepgram_stream`, `cartesia` and `sarvam`, and only\nwhen `provider` is in the same request.\n",
                             "example": "nova-3"
                         },
                         "language": {
-                            "type": "string",
-                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). Applies regardless of which\n`provider` is selected.\n",
+                            "type": [
+                                "string",
+                                "array"
+                            ],
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). `soniox` takes a list of codes, such as\n`[\"en\", \"hi\"]`, and an empty list detects the language. Saved only when `provider` is in the\nsame request and is `deepgram_stream`, `cartesia`, `sarvam`,\n`azure` or `soniox`.\n",
                             "example": "en-US"
                         },
                         "silence_timeout_ms": {
@@ -1127,7 +1133,8 @@ _TOOLS_JSON = r"""[
                     "description": "Hang up automatically when a condition is met.",
                     "properties": {
                         "enabled": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Turn ending the call on or off. Leave it out to keep the current setting. `false` also clears `condition` and `message`."
                         },
                         "condition": {
                             "type": "string",
@@ -1208,7 +1215,7 @@ _TOOLS_JSON = r"""[
                 },
                 "languages": {
                     "type": "array",
-                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped.",
+                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped, and the request is refused when none is recognized. The order is not kept.",
                     "items": {
                         "type": "string"
                     },
@@ -2648,7 +2655,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get one agent by ID.\n\nThe response includes `can_publish`: whether [version\nhistory](/docs/api-reference/agents/listAgentVersions) is on for the agent's\norganization.",
+        "description": "Get agent. Get one agent by ID.\n\nThe response includes `can_publish`: whether [version\nhistory](/docs/api-reference/agents/listAgentVersions) is on for the agent's\norganization.\n\nThe response uses stored field names, such as `context_title` and\n`voice_external_id`. `updateAgent` takes the names in its own request\nbody instead, such as `context_breakdown[].title` and `voice.voice_id`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3477,7 +3484,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listAgentVersions",
-        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions, automatic versions, and system backups taken before a restore.",
+        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions and system backups taken before a restore. Nothing is saved automatically.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5489,7 +5496,7 @@ _TOOLS_JSON = r"""[
                 },
                 "context_breakdown": {
                     "type": "array",
-                    "description": "List of context breakdowns, each containing `title`, `body`, and optional `is_enabled`.",
+                    "description": "The agent's prompt sections, each with `title`, `body` and optional `is_enabled`. Sending them replaces the whole list and rebuilds the prompt from the enabled sections in order: each `title` becomes a `# title` heading on its own line, with its `body` below it, the same layout the dashboard uses. A save without `context_breakdown` leaves the prompt unchanged.",
                     "items": {
                         "type": "object",
                         "required": [
@@ -5521,7 +5528,7 @@ _TOOLS_JSON = r"""[
                         "Incoming",
                         "Outgoing"
                     ],
-                    "description": "Call type of the assistant."
+                    "description": "`Incoming` for an agent that answers calls, `Outgoing` for one that places them, spelled exactly so. Any other value, `incoming` included, saves as `Outgoing` and the response lists it in `warnings`."
                 },
                 "timezone": {
                     "type": "string",
@@ -5539,12 +5546,18 @@ _TOOLS_JSON = r"""[
                         },
                         "model": {
                             "type": "string",
-                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`. Saved only\nfor `deepgram_stream`, `cartesia` and `sarvam`, and only\nwhen `provider` is in the same request.\n",
                             "example": "nova-3"
                         },
                         "language": {
-                            "type": "string",
-                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). Applies regardless of which\n`provider` is selected.\n",
+                            "type": [
+                                "string",
+                                "array"
+                            ],
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). `soniox` takes a list of codes, such as\n`[\"en\", \"hi\"]`, and an empty list detects the language. Saved only when `provider` is in the\nsame request and is `deepgram_stream`, `cartesia`, `sarvam`,\n`azure` or `soniox`.\n",
                             "example": "en-US"
                         },
                         "silence_timeout_ms": {
@@ -5731,7 +5744,8 @@ _TOOLS_JSON = r"""[
                     "description": "Hang up automatically when a condition is met.",
                     "properties": {
                         "enabled": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Turn ending the call on or off. Leave it out to keep the current setting. `false` also clears `condition` and `message`."
                         },
                         "condition": {
                             "type": "string",
@@ -5812,7 +5826,7 @@ _TOOLS_JSON = r"""[
                 },
                 "languages": {
                     "type": "array",
-                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped.",
+                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped, and the request is refused when none is recognized. The order is not kept.",
                     "items": {
                         "type": "string"
                     },
