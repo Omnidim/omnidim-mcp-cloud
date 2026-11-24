@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=895c93ae555f
+Source spec:   openapi.yaml   sha256=9cb354281d93
 """
 from __future__ import annotations
 
@@ -15,36 +15,6 @@ Tool = dict[str, Any]
 
 
 _TOOLS_JSON = r"""[
-    {
-        "name": "activateWorkflow",
-        "description": "Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `deactivateWorkflow`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/activate",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Turn workflow on",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
     {
         "name": "addBulkCallContact",
         "description": "Add contact to dynamic campaign. Push one contact into a dynamic bulk-call campaign.\n\nDynamic campaigns are created from the dashboard (Bulk Call > Create New\nCampaign > Dynamic Campaign) and wait for contacts. Use this webhook to feed\nthem from a CRM, form or automation platform. The contact is queued at once.\nThe campaign calls it as soon as it is within operating hours.",
@@ -577,11 +547,19 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "attachAgentIntegration",
-        "description": "Attach an integration to an agent. Attach an integration to an agent.\n\nThe agent can use it on its next call. Integrations already attached stay as\nthey are.",
+        "name": "agentIntegrationActions",
+        "description": "Attach an integration to an agent, or detach it.\n\nSet `action` to pick what to do.\n\n`attach`: Attach an integration to an agent. Attach an integration to an agent.\n\nThe agent can use it on its next call. Integrations already attached stay as\nthey are.\n\n`detach`: Detach an integration from an agent. Remove the integration from the agent. The integration itself is kept and stays available to attach again.",
         "input_schema": {
             "type": "object",
             "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "attach",
+                        "detach"
+                    ],
+                    "description": "What to do: attach, detach."
+                },
                 "agent_id": {
                     "type": "integer",
                     "description": "The ID of the agent."
@@ -592,31 +570,75 @@ _TOOLS_JSON = r"""[
                 }
             },
             "required": [
+                "action",
                 "agent_id",
                 "integration_id"
             ],
             "additionalProperties": true
         },
-        "method": "POST",
-        "path": "/agents/{agent_id}/integrations",
-        "path_params": [
-            "agent_id"
-        ],
-        "query_params": [],
-        "header_params": [],
         "annotations": {
-            "title": "Attach integration to agent",
+            "title": "Attach or detach integration",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": true
+        },
+        "field": "action",
+        "actions": {
+            "attach": {
+                "operation": "attachAgentIntegration",
+                "method": "POST",
+                "path": "/agents/{agent_id}/integrations",
+                "path_params": [
+                    "agent_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "agent_id",
+                    "integration_id"
+                ],
+                "required": [
+                    "agent_id",
+                    "integration_id"
+                ],
+                "sends_field": false
+            },
+            "detach": {
+                "operation": "detachAgentIntegration",
+                "method": "DELETE",
+                "path": "/agents/{agent_id}/integrations/{integration_id}",
+                "path_params": [
+                    "agent_id",
+                    "integration_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "agent_id",
+                    "integration_id"
+                ],
+                "required": [
+                    "agent_id",
+                    "integration_id"
+                ],
+                "sends_field": false
+            }
         }
     },
     {
-        "name": "attachKnowledgeBaseFiles",
-        "description": "Attach files to agent. Attach multiple knowledge-base files to an agent.",
+        "name": "agentKnowledgeBaseActions",
+        "description": "Attach knowledge-base files to an agent, or detach them.\n\nSet `action` to pick what to do.\n\n`attach`: Attach files to agent. Attach multiple knowledge-base files to an agent.\n\n`detach`: Detach files from agent. Detach multiple knowledge-base files from an agent.",
         "input_schema": {
             "type": "object",
             "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "attach",
+                        "detach"
+                    ],
+                    "description": "What to do: attach, detach."
+                },
                 "file_ids": {
                     "type": "array",
                     "minItems": 1,
@@ -635,91 +657,204 @@ _TOOLS_JSON = r"""[
                 },
                 "when_to_use": {
                     "type": "string",
-                    "description": "Instruction to the agent on when to consult these files.",
+                    "description": "Only for `attach`. Instruction to the agent on when to consult these files.",
                     "example": "Use these documents to answer billing-related questions."
                 }
             },
             "required": [
+                "action",
                 "agent_id",
                 "file_ids"
             ],
             "additionalProperties": true
         },
-        "method": "POST",
-        "path": "/knowledge_base/attach",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
         "annotations": {
-            "title": "Attach knowledge base files",
-            "readOnlyHint": false,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "attachPhoneNumber",
-        "description": "Attach phone number to agent. Attach a phone number to an existing agent.\n\nWithout `user_id`, use any number and agent your key can manage. With\n`user_id`, both must belong to that client.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "phone_number_id": {
-                    "type": "integer",
-                    "description": "ID of the phone number to attach.",
-                    "example": 23
-                },
-                "agent_id": {
-                    "type": "integer",
-                    "description": "ID of the agent to attach the phone number to.",
-                    "example": 158910
-                }
-            },
-            "required": [
-                "agent_id",
-                "phone_number_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/phone_number/attach",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Attach phone number",
+            "title": "Attach or detach knowledge base files",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "attach": {
+                "operation": "attachKnowledgeBaseFiles",
+                "method": "POST",
+                "path": "/knowledge_base/attach",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "file_ids",
+                    "agent_id",
+                    "when_to_use"
+                ],
+                "required": [
+                    "agent_id",
+                    "file_ids"
+                ],
+                "sends_field": false
+            },
+            "detach": {
+                "operation": "detachKnowledgeBaseFiles",
+                "method": "POST",
+                "path": "/knowledge_base/detach",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "file_ids",
+                    "agent_id"
+                ],
+                "required": [
+                    "agent_id",
+                    "file_ids"
+                ],
+                "sends_field": false
+            }
+        }
+    },
+    {
+        "name": "agentVersionActions",
+        "description": "Rename, delete or restore one saved version of an agent.\n\nSet `action` to pick what to do.\n\n`rename`: Rename an agent version. Rename a saved version or edit its note. Version history is immutable otherwise; only the name and note can change.\n\n`delete`: Delete an agent version. Delete a saved version.\n\n`restore`: Restore an agent version. Restore a version onto the live agent.\n\nYour current setup is saved first as a backup version, so restoring is\nundoable. Configuration comes back. Knowledge files or integrations deleted\nsince this version was saved can't be re-linked. They are reported in\n`skipped`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "rename",
+                        "delete",
+                        "restore"
+                    ],
+                    "description": "What to do: rename, delete, restore."
+                },
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "version_number": {
+                    "type": "integer",
+                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
+                },
+                "name": {
+                    "type": "string",
+                    "example": "v2 pricing script",
+                    "description": "Only for `rename`. New display name for the version."
+                },
+                "note": {
+                    "type": "string",
+                    "example": "Shorter opener, new objection handling.",
+                    "description": "Only for `rename`. New note for the version."
+                }
+            },
+            "required": [
+                "action",
+                "agent_id",
+                "version_number"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Rename, delete or restore agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "rename": {
+                "operation": "renameAgentVersion",
+                "method": "PATCH",
+                "path": "/agents/{agent_id}/versions/{version_number}",
+                "path_params": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "agent_id",
+                    "version_number",
+                    "name",
+                    "note"
+                ],
+                "required": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "sends_field": false
+            },
+            "delete": {
+                "operation": "deleteAgentVersion",
+                "method": "DELETE",
+                "path": "/agents/{agent_id}/versions/{version_number}",
+                "path_params": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "required": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "sends_field": false
+            },
+            "restore": {
+                "operation": "restoreAgentVersion",
+                "method": "POST",
+                "path": "/agents/{agent_id}/versions/{version_number}/restore",
+                "path_params": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "required": [
+                    "agent_id",
+                    "version_number"
+                ],
+                "sends_field": false
+            }
         }
     },
     {
         "name": "bulkCallActions",
-        "description": "Bulk call actions. Pause, resume, or reschedule a running campaign.",
+        "description": "Start, cancel, pause, resume or reschedule a bulk-call campaign.\n\nSet `action` to pick what to do.\n\n`pause`, `resume`, `reschedule`: Bulk call actions. Pause, resume, or reschedule a running campaign.\n\n`cancel`: Cancel bulk call. Cancel a scheduled bulk-call campaign. A campaign that is already running, or is still a draft, is refused.\n\n`start`: Start a draft campaign. Start a campaign that was created with `save_as_draft: true`.\n\nDrafts let you build a campaign over several requests: create it, add\ncontacts in batches, set the number pool, set concurrency, then start\nwhen everything is in place. A campaign that is already running,\nscheduled, or finished cannot be started.",
         "input_schema": {
             "type": "object",
             "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "pause",
+                        "resume",
+                        "reschedule",
+                        "cancel",
+                        "start"
+                    ],
+                    "description": "What to do: pause, resume, reschedule, cancel, start."
+                },
                 "bulk_call_id": {
                     "type": "integer",
                     "description": "Id of the bulk call campaign."
                 },
-                "action": {
-                    "type": "string",
-                    "example": "pause",
-                    "enum": [
-                        "pause",
-                        "resume",
-                        "reschedule"
-                    ],
-                    "description": "What to do with the campaign."
-                },
                 "new_scheduled_datetime": {
                     "type": "string",
-                    "description": "New start time for `reschedule`. Format `YYYY-MM-DD HH:MM:SS`.",
+                    "description": "Only for `pause`, `resume`, `reschedule`. New start time for `reschedule`. Format `YYYY-MM-DD HH:MM:SS`.",
                     "example": "2026-12-25 10:00:00"
                 },
                 "new_timezone": {
                     "type": "string",
-                    "description": "IANA timezone for `reschedule`.",
+                    "description": "Only for `pause`, `resume`, `reschedule`. IANA timezone for `reschedule`.",
                     "example": "America/New_York"
                 }
             },
@@ -729,114 +864,105 @@ _TOOLS_JSON = r"""[
             ],
             "additionalProperties": true
         },
-        "method": "PUT",
-        "path": "/calls/bulk_call/{bulk_call_id}",
-        "path_params": [
-            "bulk_call_id"
-        ],
-        "query_params": [],
-        "header_params": [],
         "annotations": {
             "title": "Control bulk campaign",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": true
-        }
-    },
-    {
-        "name": "canUploadFile",
-        "description": "Check file upload capability. Check whether a file can be uploaded based on size and type.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "file_size": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Size in bytes.",
-                    "example": 524288
-                },
-                "file_type": {
-                    "type": "string",
-                    "description": "File extension. Only `pdf` is accepted.",
-                    "example": "pdf"
-                }
-            },
-            "required": [
-                "file_size",
-                "file_type"
-            ],
-            "additionalProperties": true
         },
-        "method": "POST",
-        "path": "/knowledge_base/can_upload",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Check file upload eligibility",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "cancelBulkCall",
-        "description": "Cancel bulk call. Cancel a scheduled bulk-call campaign. A campaign that is already running, or is still a draft, is refused.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "bulk_call_id": {
-                    "type": "integer",
-                    "description": "Id of the bulk call campaign."
-                }
+        "field": "action",
+        "actions": {
+            "pause": {
+                "operation": "bulkCallActions",
+                "method": "PUT",
+                "path": "/calls/bulk_call/{bulk_call_id}",
+                "path_params": [
+                    "bulk_call_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "bulk_call_id",
+                    "new_scheduled_datetime",
+                    "new_timezone"
+                ],
+                "required": [
+                    "bulk_call_id"
+                ],
+                "sends_field": true
             },
-            "required": [
-                "bulk_call_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "DELETE",
-        "path": "/calls/bulk_call/{bulk_call_id}",
-        "path_params": [
-            "bulk_call_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Cancel bulk campaign",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "cancelWhatsappCampaign",
-        "description": "Cancel a campaign. Stop a campaign for good. Contacts not yet sent are not sent. A completed\nor already-canceled campaign cannot be canceled.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "campaign_id": {
-                    "type": "integer",
-                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
-                }
+            "resume": {
+                "operation": "bulkCallActions",
+                "method": "PUT",
+                "path": "/calls/bulk_call/{bulk_call_id}",
+                "path_params": [
+                    "bulk_call_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "bulk_call_id",
+                    "new_scheduled_datetime",
+                    "new_timezone"
+                ],
+                "required": [
+                    "bulk_call_id"
+                ],
+                "sends_field": true
             },
-            "required": [
-                "campaign_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/whatsapp/campaigns/{campaign_id}/cancel",
-        "path_params": [
-            "campaign_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Cancel WhatsApp campaign",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
+            "reschedule": {
+                "operation": "bulkCallActions",
+                "method": "PUT",
+                "path": "/calls/bulk_call/{bulk_call_id}",
+                "path_params": [
+                    "bulk_call_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "bulk_call_id",
+                    "new_scheduled_datetime",
+                    "new_timezone"
+                ],
+                "required": [
+                    "bulk_call_id"
+                ],
+                "sends_field": true
+            },
+            "cancel": {
+                "operation": "cancelBulkCall",
+                "method": "DELETE",
+                "path": "/calls/bulk_call/{bulk_call_id}",
+                "path_params": [
+                    "bulk_call_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "bulk_call_id"
+                ],
+                "required": [
+                    "bulk_call_id"
+                ],
+                "sends_field": false
+            },
+            "start": {
+                "operation": "startBulkCall",
+                "method": "POST",
+                "path": "/calls/bulk_call/{bulk_call_id}/start",
+                "path_params": [
+                    "bulk_call_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "bulk_call_id"
+                ],
+                "required": [
+                    "bulk_call_id"
+                ],
+                "sends_field": false
+            }
         }
     },
     {
@@ -2031,36 +2157,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "deactivateWorkflow",
-        "description": "Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/deactivate",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Turn workflow off",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "deleteAgent",
         "description": "Delete agent. Permanently delete an agent.",
         "input_schema": {
@@ -2085,42 +2181,6 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Delete agent",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "deleteAgentVersion",
-        "description": "Delete an agent version. Delete a saved version.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "integer",
-                    "description": "The ID of the agent."
-                },
-                "version_number": {
-                    "type": "integer",
-                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
-                }
-            },
-            "required": [
-                "agent_id",
-                "version_number"
-            ],
-            "additionalProperties": true
-        },
-        "method": "DELETE",
-        "path": "/agents/{agent_id}/versions/{version_number}",
-        "path_params": [
-            "agent_id",
-            "version_number"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Delete agent version",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": false
@@ -2246,112 +2306,6 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Delete workflow",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "detachAgentIntegration",
-        "description": "Detach an integration from an agent. Remove the integration from the agent. The integration itself is kept and stays available to attach again.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "integer",
-                    "description": "The ID of the agent."
-                },
-                "integration_id": {
-                    "type": "integer",
-                    "description": "The ID of the integration to detach."
-                }
-            },
-            "required": [
-                "agent_id",
-                "integration_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "DELETE",
-        "path": "/agents/{agent_id}/integrations/{integration_id}",
-        "path_params": [
-            "agent_id",
-            "integration_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Detach integration from agent",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "detachKnowledgeBaseFiles",
-        "description": "Detach files from agent. Detach multiple knowledge-base files from an agent.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "file_ids": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "integer"
-                    },
-                    "description": "List of knowledge-base file IDs to detach.",
-                    "example": [
-                        17686
-                    ]
-                },
-                "agent_id": {
-                    "type": "integer",
-                    "description": "ID of the agent to detach files from.",
-                    "example": 158910
-                }
-            },
-            "required": [
-                "agent_id",
-                "file_ids"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/knowledge_base/detach",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Detach knowledge base files",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "detachPhoneNumber",
-        "description": "Detach phone number. Detach a phone number from its agent.\n\nWithout `user_id`, use any number your key can manage. With `user_id`, the\nnumber must belong to that client.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "phone_number_id": {
-                    "type": "integer",
-                    "description": "ID of the phone number to detach.",
-                    "example": 23
-                }
-            },
-            "required": [
-                "phone_number_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/phone_number/detach",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Detach phone number",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": false
@@ -2804,36 +2758,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "getClonedVoiceSample",
-        "description": "Play a cloned voice sample. Stream the generated mp3 sample of a cloned voice.\n\nOnly the owner can fetch it. Send your API key in the `Authorization`\nheader. If no sample exists yet, the call returns `404`\n(`sample_not_ready`).",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "voice_id": {
-                    "type": "integer",
-                    "description": "Id of the cloned voice."
-                }
-            },
-            "required": [
-                "voice_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/voices/{voice_id}/sample",
-        "path_params": [
-            "voice_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Get cloned voice sample",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "getVoice",
         "description": "Get voice details. Detailed metadata for a specific voice.",
         "input_schema": {
@@ -3132,36 +3056,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "handBackWhatsappConversation",
-        "description": "Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "conversation_id": {
-                    "type": "string",
-                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
-                }
-            },
-            "required": [
-                "conversation_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/whatsapp/conversations/{conversation_id}/hand_back",
-        "path_params": [
-            "conversation_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Hand WhatsApp conversation back to agent",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "importExotelNumber",
         "description": "Import Exotel number. Import an Exotel number by providing your Exotel credentials.",
         "input_schema": {
@@ -3379,44 +3273,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "launchWhatsappCampaign",
-        "description": "Launch a campaign. Start a draft campaign and queue every pending contact once.\n\nIt needs at least one contact, unless `data_source` is `webhook`. Launch\nchecks the plan's monthly broadcast allowance and the wallet balance.\n`Idempotency-Key` is required, so a retry does not start it twice.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "campaign_id": {
-                    "type": "integer",
-                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
-                },
-                "Idempotency-Key": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "description": "A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`.\n"
-                }
-            },
-            "required": [
-                "Idempotency-Key",
-                "campaign_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/whatsapp/campaigns/{campaign_id}/launch",
-        "path_params": [
-            "campaign_id"
-        ],
-        "query_params": [],
-        "header_params": [
-            "Idempotency-Key"
-        ],
-        "annotations": {
-            "title": "Launch WhatsApp campaign",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": true
-        }
-    },
-    {
         "name": "liftWhatsappOptOut",
         "description": "Lift a block. Lift a block you added, or a marketing block made in WhatsApp.\n\nThe entry stays in the list with `active: false`. You cannot lift a\ncustomer's own STOP over the API. The customer must lift it in WhatsApp or\nmessage you again.",
         "input_schema": {
@@ -3575,26 +3431,6 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "List agents",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "listAllProviders",
-        "description": "List all providers. Comprehensive response with services and voices in one payload.",
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/providers/all",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "List all providers",
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
@@ -3843,26 +3679,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "listLLMProviders",
-        "description": "List LLM providers. Retrieve all available Large Language Model providers.",
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/providers/llms",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "List LLM providers",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "listPhoneNumbers",
         "description": "List phone numbers. Retrieve the phone numbers on your account, whether you bought them\nfrom the OmniDimension number shop or imported your own.",
         "input_schema": {
@@ -3928,43 +3744,79 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "listSTTProviders",
-        "description": "List STT providers. Retrieve all Speech-to-Text providers.",
+        "name": "listProviders",
+        "description": "List the LLM, speech-to-text or text-to-speech providers your organization can use, or all of them with their voices.\n\nSet `type` to pick what to do.\n\n`llm`: List LLM providers. Retrieve all available Large Language Model providers.\n\n`stt`: List STT providers. Retrieve all Speech-to-Text providers.\n\n`tts`: List TTS providers. Retrieve all Text-to-Speech providers.\n\n`all`: List all providers. Comprehensive response with services and voices in one payload.",
         "input_schema": {
             "type": "object",
-            "properties": {},
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "llm",
+                        "stt",
+                        "tts",
+                        "all"
+                    ],
+                    "description": "What to do: llm, stt, tts, all."
+                }
+            },
+            "required": [
+                "type"
+            ],
             "additionalProperties": true
         },
-        "method": "GET",
-        "path": "/providers/stt",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
         "annotations": {
-            "title": "List speech-to-text providers",
+            "title": "List providers",
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
-        }
-    },
-    {
-        "name": "listTTSProviders",
-        "description": "List TTS providers. Retrieve all Text-to-Speech providers.",
-        "input_schema": {
-            "type": "object",
-            "properties": {},
-            "additionalProperties": true
         },
-        "method": "GET",
-        "path": "/providers/tts",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "List text-to-speech providers",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
+        "field": "type",
+        "actions": {
+            "llm": {
+                "operation": "listLLMProviders",
+                "method": "GET",
+                "path": "/providers/llms",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [],
+                "required": [],
+                "sends_field": false
+            },
+            "stt": {
+                "operation": "listSTTProviders",
+                "method": "GET",
+                "path": "/providers/stt",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [],
+                "required": [],
+                "sends_field": false
+            },
+            "tts": {
+                "operation": "listTTSProviders",
+                "method": "GET",
+                "path": "/providers/tts",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [],
+                "required": [],
+                "sends_field": false
+            },
+            "all": {
+                "operation": "listAllProviders",
+                "method": "GET",
+                "path": "/providers/all",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [],
+                "required": [],
+                "sends_field": false
+            }
         }
     },
     {
@@ -4526,33 +4378,76 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "pauseWhatsappCampaign",
-        "description": "Pause a campaign. Stop sending until you resume.\n\nOnly a running campaign can be paused. A pause you make by hand is never\nresumed automatically.",
+        "name": "phoneNumberAgentActions",
+        "description": "Attach a phone number to an agent, or detach it from its agent.\n\nSet `action` to pick what to do.\n\n`attach`: Attach phone number to agent. Attach a phone number to an existing agent.\n\nWithout `user_id`, use any number and agent your key can manage. With\n`user_id`, both must belong to that client.\n\n`detach`: Detach phone number. Detach a phone number from its agent.\n\nWithout `user_id`, use any number your key can manage. With `user_id`, the\nnumber must belong to that client.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "campaign_id": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "attach",
+                        "detach"
+                    ],
+                    "description": "What to do: attach, detach."
+                },
+                "phone_number_id": {
                     "type": "integer",
-                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                    "description": "ID of the phone number to attach.",
+                    "example": 23
+                },
+                "agent_id": {
+                    "type": "integer",
+                    "description": "Only for `attach`. ID of the agent to attach the phone number to.",
+                    "example": 158910
                 }
             },
             "required": [
-                "campaign_id"
+                "action",
+                "phone_number_id"
             ],
             "additionalProperties": true
         },
-        "method": "POST",
-        "path": "/whatsapp/campaigns/{campaign_id}/pause",
-        "path_params": [
-            "campaign_id"
-        ],
-        "query_params": [],
-        "header_params": [],
         "annotations": {
-            "title": "Pause WhatsApp campaign",
+            "title": "Attach or detach phone number",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "attach": {
+                "operation": "attachPhoneNumber",
+                "method": "POST",
+                "path": "/phone_number/attach",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "phone_number_id",
+                    "agent_id"
+                ],
+                "required": [
+                    "agent_id",
+                    "phone_number_id"
+                ],
+                "sends_field": false
+            },
+            "detach": {
+                "operation": "detachPhoneNumber",
+                "method": "POST",
+                "path": "/phone_number/detach",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "phone_number_id"
+                ],
+                "required": [
+                    "phone_number_id"
+                ],
+                "sends_field": false
+            }
         }
     },
     {
@@ -4722,118 +4617,6 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Release phone number",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": true
-        }
-    },
-    {
-        "name": "renameAgentVersion",
-        "description": "Rename an agent version. Rename a saved version or edit its note. Version history is immutable otherwise; only the name and note can change.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "integer",
-                    "description": "The ID of the agent."
-                },
-                "version_number": {
-                    "type": "integer",
-                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
-                },
-                "name": {
-                    "type": "string",
-                    "example": "v2 pricing script",
-                    "description": "New display name for the version."
-                },
-                "note": {
-                    "type": "string",
-                    "example": "Shorter opener, new objection handling.",
-                    "description": "New note for the version."
-                }
-            },
-            "required": [
-                "agent_id",
-                "version_number"
-            ],
-            "additionalProperties": true
-        },
-        "method": "PATCH",
-        "path": "/agents/{agent_id}/versions/{version_number}",
-        "path_params": [
-            "agent_id",
-            "version_number"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Rename agent version",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "restoreAgentVersion",
-        "description": "Restore an agent version. Restore a version onto the live agent.\n\nYour current setup is saved first as a backup version, so restoring is\nundoable. Configuration comes back. Knowledge files or integrations deleted\nsince this version was saved can't be re-linked. They are reported in\n`skipped`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "agent_id": {
-                    "type": "integer",
-                    "description": "The ID of the agent."
-                },
-                "version_number": {
-                    "type": "integer",
-                    "description": "The version number, as returned in `version_number` from the list or save endpoints."
-                }
-            },
-            "required": [
-                "agent_id",
-                "version_number"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/agents/{agent_id}/versions/{version_number}/restore",
-        "path_params": [
-            "agent_id",
-            "version_number"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Restore agent version",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "resumeWhatsappCampaign",
-        "description": "Resume a campaign. Resume a paused campaign.\n\nPending contacts are sent. A contact already sent is never sent again.\nResume checks the wallet and allowance again, so it can answer `402`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "campaign_id": {
-                    "type": "integer",
-                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
-                }
-            },
-            "required": [
-                "campaign_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/whatsapp/campaigns/{campaign_id}/resume",
-        "path_params": [
-            "campaign_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Resume WhatsApp campaign",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": true
@@ -5327,36 +5110,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "startBulkCall",
-        "description": "Start a draft campaign. Start a campaign that was created with `save_as_draft: true`.\n\nDrafts let you build a campaign over several requests: create it, add\ncontacts in batches, set the number pool, set concurrency, then start\nwhen everything is in place. A campaign that is already running,\nscheduled, or finished cannot be started.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "bulk_call_id": {
-                    "type": "integer",
-                    "description": "Id of the bulk call campaign."
-                }
-            },
-            "required": [
-                "bulk_call_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/calls/bulk_call/{bulk_call_id}/start",
-        "path_params": [
-            "bulk_call_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Start draft campaign",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": true
-        }
-    },
-    {
         "name": "syncWhatsappTemplates",
         "description": "Sync templates. Pull the number's templates and review statuses from WhatsApp into your\nlist.\n\nRun it after you create or edit a template in Meta. It runs at most once a\nminute per number. A second call inside that minute answers `429`.",
         "input_schema": {
@@ -5383,36 +5136,6 @@ _TOOLS_JSON = r"""[
             "title": "Sync WhatsApp templates",
             "readOnlyHint": false,
             "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "takeOverWhatsappConversation",
-        "description": "Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "conversation_id": {
-                    "type": "string",
-                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
-                }
-            },
-            "required": [
-                "conversation_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/whatsapp/conversations/{conversation_id}/take_over",
-        "path_params": [
-            "conversation_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Take over WhatsApp conversation",
-            "readOnlyHint": false,
-            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -6234,6 +5957,258 @@ _TOOLS_JSON = r"""[
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
+        }
+    },
+    {
+        "name": "whatsappCampaignActions",
+        "description": "Launch, pause, resume or cancel a WhatsApp campaign.\n\nSet `action` to pick what to do.\n\n`launch`: Launch a campaign. Start a draft campaign and queue every pending contact once.\n\nIt needs at least one contact, unless `data_source` is `webhook`. Launch\nchecks the plan's monthly broadcast allowance and the wallet balance.\n`Idempotency-Key` is required, so a retry does not start it twice.\n\n`pause`: Pause a campaign. Stop sending until you resume.\n\nOnly a running campaign can be paused. A pause you make by hand is never\nresumed automatically.\n\n`resume`: Resume a campaign. Resume a paused campaign.\n\nPending contacts are sent. A contact already sent is never sent again.\nResume checks the wallet and allowance again, so it can answer `402`.\n\n`cancel`: Cancel a campaign. Stop a campaign for good. Contacts not yet sent are not sent. A completed\nor already-canceled campaign cannot be canceled.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "launch",
+                        "pause",
+                        "resume",
+                        "cancel"
+                    ],
+                    "description": "What to do: launch, pause, resume, cancel."
+                },
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "Only for `launch`. A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`."
+                }
+            },
+            "required": [
+                "action",
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Control WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        },
+        "field": "action",
+        "actions": {
+            "launch": {
+                "operation": "launchWhatsappCampaign",
+                "method": "POST",
+                "path": "/whatsapp/campaigns/{campaign_id}/launch",
+                "path_params": [
+                    "campaign_id"
+                ],
+                "query_params": [],
+                "header_params": [
+                    "Idempotency-Key"
+                ],
+                "inputs": [
+                    "campaign_id",
+                    "Idempotency-Key"
+                ],
+                "required": [
+                    "Idempotency-Key",
+                    "campaign_id"
+                ],
+                "sends_field": false
+            },
+            "pause": {
+                "operation": "pauseWhatsappCampaign",
+                "method": "POST",
+                "path": "/whatsapp/campaigns/{campaign_id}/pause",
+                "path_params": [
+                    "campaign_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "campaign_id"
+                ],
+                "required": [
+                    "campaign_id"
+                ],
+                "sends_field": false
+            },
+            "resume": {
+                "operation": "resumeWhatsappCampaign",
+                "method": "POST",
+                "path": "/whatsapp/campaigns/{campaign_id}/resume",
+                "path_params": [
+                    "campaign_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "campaign_id"
+                ],
+                "required": [
+                    "campaign_id"
+                ],
+                "sends_field": false
+            },
+            "cancel": {
+                "operation": "cancelWhatsappCampaign",
+                "method": "POST",
+                "path": "/whatsapp/campaigns/{campaign_id}/cancel",
+                "path_params": [
+                    "campaign_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "campaign_id"
+                ],
+                "required": [
+                    "campaign_id"
+                ],
+                "sends_field": false
+            }
+        }
+    },
+    {
+        "name": "whatsappConversationActions",
+        "description": "Take a conversation from the agent so your team answers, or hand it back to the agent.\n\nSet `action` to pick what to do.\n\n`take_over`: Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.\n\n`hand_back`: Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "take_over",
+                        "hand_back"
+                    ],
+                    "description": "What to do: take_over, hand_back."
+                },
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "action",
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Take over or hand back WhatsApp conversation",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "take_over": {
+                "operation": "takeOverWhatsappConversation",
+                "method": "POST",
+                "path": "/whatsapp/conversations/{conversation_id}/take_over",
+                "path_params": [
+                    "conversation_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "conversation_id"
+                ],
+                "required": [
+                    "conversation_id"
+                ],
+                "sends_field": false
+            },
+            "hand_back": {
+                "operation": "handBackWhatsappConversation",
+                "method": "POST",
+                "path": "/whatsapp/conversations/{conversation_id}/hand_back",
+                "path_params": [
+                    "conversation_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "conversation_id"
+                ],
+                "required": [
+                    "conversation_id"
+                ],
+                "sends_field": false
+            }
+        }
+    },
+    {
+        "name": "workflowActions",
+        "description": "Turn a published workflow on, or turn it off.\n\nSet `action` to pick what to do.\n\n`activate`: Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `deactivateWorkflow`.\n\n`deactivate`: Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "activate",
+                        "deactivate"
+                    ],
+                    "description": "What to do: activate, deactivate."
+                },
+                "workflow_id": {
+                    "type": "integer",
+                    "description": "Id of the workflow."
+                }
+            },
+            "required": [
+                "action",
+                "workflow_id"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Turn workflow on or off",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "activate": {
+                "operation": "activateWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/activate",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "deactivate": {
+                "operation": "deactivateWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/deactivate",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            }
         }
     }
 ]"""

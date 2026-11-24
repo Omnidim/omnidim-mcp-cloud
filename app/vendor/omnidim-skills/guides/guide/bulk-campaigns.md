@@ -32,7 +32,7 @@ description: "The campaign lifecycle end to end: draft, batch contacts (two cont
 - `addBulkCallContacts` accepts up to 1000 contacts per request. Invalid rows come
   back in `rejected` with their index and reason; valid rows are still added, so one
   bad number never costs the batch.
-- `startBulkCall` launches a draft.
+- `bulkCallActions` with `action: "start"` launches a draft.
 - Adding contacts is NOT dynamic-only: any campaign that is not cancelled or failed
   accepts them, and a completed campaign wakes up and dials again.
 

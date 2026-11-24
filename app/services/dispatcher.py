@@ -274,7 +274,14 @@ def _pick_action(
         other_inputs.add(field)
     other_lower = {name.lower() for name in other_inputs}
     kept = {k: v for k, v in arguments.items() if k.lower() not in other_lower}
-    if missing := [r for r in route["required"] if r not in kept]:
+    headers_sent = {k.lower() for k in kept}
+    header_params = set(route["header_params"])
+    missing = [
+        r
+        for r in route["required"]
+        if r not in kept and not (r in header_params and r.lower() in headers_sent)
+    ]
+    if missing:
         raise DispatchError(-32602, f"{field} {action} needs: {', '.join(missing)}")
     return action, route, kept
 

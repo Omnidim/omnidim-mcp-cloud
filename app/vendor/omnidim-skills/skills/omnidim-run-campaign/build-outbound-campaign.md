@@ -20,7 +20,7 @@ Set up and launch an OmniDimension bulk-call campaign for this goal:
 
 Follow these steps in order. Write tools take flat top-level arguments (no `requestBody` wrapper).
 A campaign dials real people and spends real money: confirm the plan with the user before
-`startBulkCall`, and never start one they have not approved.
+`bulkCallActions` with `action: "start"`, and never start one they have not approved.
 
 1. Decide the shape: a one-time list is a normal campaign; continuously arriving leads mean a
    dynamic campaign (`is_dynamic: true`, no `contact_list`) fed by `addBulkCallContact` instead of
@@ -53,7 +53,7 @@ A campaign dials real people and spends real money: confirm the plan with the us
    8 words or fewer loses far fewer calls in the first seconds). Suggest changes; never edit the
    agent without the user's yes.
 8. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get
-   their explicit go-ahead. Then `startBulkCall`.
+   their explicit go-ahead. Then `bulkCallActions` with `action: "start"`.
 9. Watch it: `getBulkCallLiveStatus` for progress when the user asks; do not poll it in a loop.
    When it finishes, read per-contact outcomes
    with `listBulkCallLines` (`pagesize` 10, since each row is about 2 KB and a bigger page is cut;
