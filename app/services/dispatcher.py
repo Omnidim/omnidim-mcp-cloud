@@ -272,7 +272,8 @@ def _pick_action(
     other_inputs = set(tool["input_schema"]["properties"]) - set(route["inputs"]) - {field}
     if not route["sends_field"]:
         other_inputs.add(field)
-    kept = {k: v for k, v in arguments.items() if k not in other_inputs}
+    other_lower = {name.lower() for name in other_inputs}
+    kept = {k: v for k, v in arguments.items() if k.lower() not in other_lower}
     if missing := [r for r in route["required"] if r not in kept]:
         raise DispatchError(-32602, f"{field} {action} needs: {', '.join(missing)}")
     return action, route, kept

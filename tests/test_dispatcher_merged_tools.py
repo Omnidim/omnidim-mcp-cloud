@@ -41,7 +41,14 @@ SPEC: dict[str, Any] = {
         "phoneNumberAgentActions": {"title": "Attach", "description": "Attach or detach."},
     },
     "paths": {
-        "/bulk/{id}/start": {"post": _op("startBulkCall", "bulkCallActions", "start")},
+        "/bulk/{id}/start": {
+            "post": _op(
+                "startBulkCall",
+                "bulkCallActions",
+                "start",
+                parameters=[*ID, {"name": "Idempotency-Key", "in": "header", "required": True}],
+            )
+        },
         "/bulk/{id}/actions": {
             "put": _op(
                 "bulkCallActions",
@@ -90,10 +97,18 @@ async def _sent(name: str, arguments: dict[str, Any]) -> list[httpx.Request]:
 
 
 async def test_the_action_picks_the_operation_route() -> None:
-    [req] = await _sent("bulkCallActions", {"action": "start", "id": 4})
+    [req] = await _sent("bulkCallActions", {"action": "start", "id": 4, "Idempotency-Key": "k"})
     assert req.method == "POST"
     assert req.url.path.endswith("/bulk/4/start")
     assert not req.content
+
+
+async def test_a_header_input_of_one_action_is_a_header_there_and_dropped_elsewhere() -> None:
+    [start] = await _sent("bulkCallActions", {"action": "start", "id": 4, "Idempotency-Key": "k"})
+    assert start.headers["Idempotency-Key"] == "k"
+    assert not start.content
+    [pause] = await _sent("bulkCallActions", {"action": "pause", "id": 4, "idempotency-key": "k"})
+    assert json.loads(pause.content) == {"action": "pause"}
 
 
 async def test_a_listed_action_reaches_the_api_in_the_body() -> None:
