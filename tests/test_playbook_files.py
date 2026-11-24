@@ -170,14 +170,14 @@ def test_a_playbook_name_is_used_once(tmp_path: Path, taken: str) -> None:
         load_playbooks(root, reserved=frozenset({"book_demo"}))
 
 
-@pytest.mark.parametrize(
-    "text",
-    [
-        "---\r\nname: do_x\r\n---\r\n\r\n# Do x\r\n\r\n1. Step.\r\n",
-        "---\narguments: []\n---\n\n# Do x\n\n1. Step.\n",
-    ],
-)
-def test_a_broken_playbook_header_fails_naming_the_file(tmp_path: Path, text: str) -> None:
-    root = _skill_folder(tmp_path, {"do-x.md": text})
-    with pytest.raises(ValueError, match="do-x.md"):
+def test_a_playbook_saved_with_windows_line_endings_loads(tmp_path: Path) -> None:
+    root = _skill_folder(
+        tmp_path, {"do-x.md": "---\r\nname: do_x\r\n---\r\n\r\n# Do x\r\n\r\n1. Step.\r\n"}
+    )
+    assert load_playbooks(root)["do_x"].steps == "1. Step."
+
+
+def test_a_playbook_header_without_a_name_fails_naming_the_file(tmp_path: Path) -> None:
+    root = _skill_folder(tmp_path, {"do-x.md": "---\narguments: []\n---\n\n# Do x\n\n1. Step.\n"})
+    with pytest.raises(ValueError, match=r"do-x\.md"):
         load_playbooks(root)
