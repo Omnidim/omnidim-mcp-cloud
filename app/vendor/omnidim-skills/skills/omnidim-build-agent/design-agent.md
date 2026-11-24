@@ -1,3 +1,11 @@
+---
+name: design_agent
+arguments:
+  - name: purpose
+    description: "What the agent should do, plus any material the user has (requirements, notes, an old script)."
+    required: true
+---
+
 # Design a new voice agent's calls before building it: ask about the gaps, stress-test the plan, then write the call script for the user to approve.
 
 Design the calls for a new OmniDimension voice agent, before anything is built:

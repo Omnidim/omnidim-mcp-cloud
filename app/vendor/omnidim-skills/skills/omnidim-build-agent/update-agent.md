@@ -1,3 +1,11 @@
+---
+name: update_agent
+arguments:
+  - name: change
+    description: "Which agent, and what went wrong or what to change. Add a call id or transcript lines if there are any."
+    required: true
+---
+
 # Change an agent safely: read what is saved, show the exact edits, back it up, apply on the user's word, and undo if asked.
 
 Update an existing OmniDimension agent:

@@ -229,10 +229,6 @@ _BOOK_DEMO_STEPS = (
 )
 
 
-def _arg(name: str, description: str, required: bool = False) -> dict[str, Any]:
-    return {"name": name, "description": description, "required": required}
-
-
 @dataclass(frozen=True)
 class Playbook:
     name: str
@@ -252,106 +248,22 @@ class Guide:
 _SKILLS = Path(__file__).parent / "vendor" / "omnidim-skills"
 _FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n+", re.S)
 
-_PLAYBOOK_INPUTS: dict[str, tuple[str, list[dict[str, Any]]]] = {
-    "build_workflow": (
-        "omnidim-build-workflow",
-        [
-            _arg(
-                "goal",
-                "What should happen and when, in plain language (e.g. 'after a call, WhatsApp interested leads our follow-up template').",
-                True,
-            ),
-        ],
-    ),
-    "design_agent": (
-        "omnidim-build-agent",
-        [
-            _arg(
-                "purpose",
-                "What the agent should do, plus any material the user has (requirements, notes, an old script).",
-                True,
-            ),
-        ],
-    ),
-    "provision_agent": (
-        "omnidim-build-agent",
-        [
-            _arg(
-                "purpose",
-                "What the agent should do, in plain language (e.g. 'book dental appointments and answer FAQs').",
-                True,
-            ),
-            _arg(
-                "voice_id",
-                "Optional voice name from listVoices. If omitted, an OmniDimension voice for the agent's language is used.",
-            ),
-            _arg(
-                "test_number",
-                "Optional E.164 number to place a verification call to after setup (e.g. +15551234567).",
-            ),
-        ],
-    ),
-    "update_agent": (
-        "omnidim-build-agent",
-        [
-            _arg(
-                "change",
-                "Which agent, and what went wrong or what to change. Add a call id or transcript lines if there are any.",
-                True,
-            ),
-        ],
-    ),
-    "audit_calls": (
-        "omnidim-audit-calls",
-        [
-            _arg(
-                "focus",
-                "What to look into, in plain language (e.g. 'why are calls failing', 'summarize today's calls for agent 123').",
-                True,
-            ),
-            _arg("agent_id", "Optional agent id to filter to (the listAgents / createAgent id)."),
-            _arg(
-                "call_status",
-                "Optional status filter. Note the enum uses a hyphen for no-answer: completed | busy | failed | no-answer.",
-            ),
-        ],
-    ),
-    "build_outbound_campaign": (
-        "omnidim-run-campaign",
-        [
-            _arg(
-                "goal",
-                "Who to call and why, in plain language (e.g. 'call 8,000 renewal leads today between 9 and 6 Eastern').",
-                True,
-            ),
-            _arg(
-                "agent_id",
-                "Optional agent to run the calls (the listAgents id). If omitted, the agent attached to the chosen number runs them.",
-            ),
-            _arg(
-                "phone_number_id",
-                "Optional number id to dial from (from listPhoneNumbers). If omitted, pick with the user from their numbers.",
-            ),
-        ],
-    ),
-    "restore_agent_version": (
-        "omnidim-build-agent",
-        [
-            _arg("agent_id", "The agent to roll back (the listAgents / createAgent id).", True),
-            _arg(
-                "goal",
-                "What you want to get back to, in plain language (e.g. 'the version before I broke the transfer flow').",
-            ),
-        ],
-    ),
-}
+
+def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
+    text = path.read_text()
+    match = _FRONTMATTER.match(text)
+    assert match, f"{path} has no frontmatter"
+    meta = yaml.safe_load(match.group(1))
+    assert isinstance(meta, dict), path
+    return meta, text[match.end() :]
 
 
-def _playbook_file(name: str, folder: str) -> Playbook:
-    title, steps = (
-        (_SKILLS / "skills" / folder / f"{name.replace('_', '-')}.md").read_text().split("\n", 1)
+def _playbook_file(path: Path) -> Playbook:
+    meta, body = _split_frontmatter(path)
+    title, steps = body.split("\n", 1)
+    return Playbook(
+        meta["name"], title.removeprefix("# "), meta.get("arguments", []), steps.strip()
     )
-    return Playbook(name, title.removeprefix("# "), _PLAYBOOK_INPUTS[name][1], steps.strip())
 
 
 _PLAYBOOKS: dict[str, Playbook] = {
@@ -362,7 +274,13 @@ _PLAYBOOKS: dict[str, Playbook] = {
         [],
         _BOOK_DEMO_STEPS,
     ),
-    **{name: _playbook_file(name, folder) for name, (folder, _) in _PLAYBOOK_INPUTS.items()},
+    **{
+        p.name: p
+        for p in map(
+            _playbook_file,
+            sorted(f for f in (_SKILLS / "skills").glob("*/*.md") if f.name != "SKILL.md"),
+        )
+    },
 }
 
 _SERVER_ADDITIONS = {
@@ -371,13 +289,11 @@ _SERVER_ADDITIONS = {
 
 
 def _guide_file(path: Path) -> Guide:
-    text = path.read_text()
-    match = _FRONTMATTER.match(text)
-    assert match, f"{path} has no frontmatter"
-    meta = yaml.safe_load(match.group(1))
+    meta, body = _split_frontmatter(path)
     uri = f"omnidim://{path.parent.name}/{path.stem}"
-    body = text[match.end() :].rstrip() + _SERVER_ADDITIONS.get(uri, "")
-    return Guide(uri, meta["name"], meta["description"], body)
+    return Guide(
+        uri, meta["name"], meta["description"], body.rstrip() + _SERVER_ADDITIONS.get(uri, "")
+    )
 
 
 _GUIDES: dict[str, Guide] = {
@@ -468,7 +384,9 @@ def build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
     playbook = _PLAYBOOKS.get(name)
     if playbook is None:
         return None
-    values = {a["name"]: " ".join(str(arguments.get(a["name"]) or "").split()) for a in playbook.arguments}
+    values = {
+        a["name"]: " ".join(str(arguments.get(a["name"]) or "").split()) for a in playbook.arguments
+    }
     given = [f"- {name}: {value}" for name, value in values.items() if value]
     text = playbook.steps
     if given:

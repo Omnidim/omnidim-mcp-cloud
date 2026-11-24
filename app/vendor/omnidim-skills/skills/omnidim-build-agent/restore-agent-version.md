@@ -1,3 +1,14 @@
+---
+name: restore_agent_version
+arguments:
+  - name: agent_id
+    description: "The agent to roll back (the listAgents / createAgent id)."
+    required: true
+  - name: goal
+    description: "What you want to get back to, in plain language (e.g. 'the version before I broke the transfer flow')."
+    required: false
+---
+
 # Safely roll an agent back to an earlier saved version: find the right snapshot, preview exactly what restoring changes, then restore.
 
 Roll agent <agent_id> back to an earlier version.

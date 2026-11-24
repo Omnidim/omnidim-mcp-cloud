@@ -1,3 +1,17 @@
+---
+name: provision_agent
+arguments:
+  - name: purpose
+    description: "What the agent should do, in plain language (e.g. 'book dental appointments and answer FAQs')."
+    required: true
+  - name: voice_id
+    description: "Optional voice name from listVoices. If omitted, an OmniDimension voice for the agent's language is used."
+    required: false
+  - name: test_number
+    description: "Optional E.164 number to place a verification call to after setup (e.g. +15551234567)."
+    required: false
+---
+
 # Build a voice agent from its approved design: the full prompt and settings, a number, results after each call, and a test call to prove it speaks.
 
 Build a production-ready OmniDimension voice agent for this purpose:

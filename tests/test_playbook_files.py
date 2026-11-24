@@ -12,6 +12,7 @@ from app.procedures import (
     PLAYBOOK_NAMES,
     build_prompt,
     guide_text,
+    prompts_for_listing,
     read_resource,
     resources_for_listing,
 )
@@ -37,7 +38,8 @@ def test_every_playbook_file_is_served_by_name() -> None:
     names = {p.stem.replace("-", "_") for p in _playbook_files()}
     assert names <= set(PLAYBOOK_NAMES), f"not served: {sorted(names - set(PLAYBOOK_NAMES))}"
     for path in _playbook_files():
-        body = path.read_text().split("\n", 1)[1].strip()
+        _, text = _frontmatter(path.read_text())
+        body = text.split("\n", 1)[1].strip()
         assert body in (guide_text(path.stem.replace("-", "_")) or "")
 
 
@@ -60,7 +62,9 @@ def test_prompt_inputs_follow_the_playbook_text() -> None:
     )
     assert built is not None
     text = built["messages"][0]["content"]["text"]
-    steps = (SKILLS / "skills" / "omnidim-build-agent" / "provision-agent.md").read_text()
+    _, steps = _frontmatter(
+        (SKILLS / "skills" / "omnidim-build-agent" / "provision-agent.md").read_text()
+    )
     assert steps.split("\n", 1)[1].strip() in text
     tail = text[text.index("The user gave") :]
     assert "purpose: book dental appointments" in tail
@@ -121,3 +125,12 @@ def test_every_omnidim_link_is_served() -> None:
     text = "".join(p.read_text() for p in SKILLS.rglob("*.md"))
     for uri in set(re.findall(r"omnidim://[a-z]+/[a-z0-9-]+", text)):
         assert uri in GUIDE_NAMES, uri
+
+
+def test_each_playbook_declares_its_own_prompt_inputs() -> None:
+    listed = {p["name"]: p for p in prompts_for_listing()}
+    for path in _playbook_files():
+        meta, body = _frontmatter(path.read_text())
+        assert meta["name"] == path.stem.replace("-", "_")
+        assert listed[meta["name"]]["arguments"] == meta.get("arguments", [])
+        assert listed[meta["name"]]["description"] == body.split("\n", 1)[0].removeprefix("# ")

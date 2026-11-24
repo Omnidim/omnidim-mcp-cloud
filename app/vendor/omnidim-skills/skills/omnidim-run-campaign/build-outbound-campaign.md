@@ -1,3 +1,17 @@
+---
+name: build_outbound_campaign
+arguments:
+  - name: goal
+    description: "Who to call and why, in plain language (e.g. 'call 8,000 renewal leads today between 9 and 6 Eastern')."
+    required: true
+  - name: agent_id
+    description: "Optional agent to run the calls (the listAgents id). If omitted, the agent attached to the chosen number runs them."
+    required: false
+  - name: phone_number_id
+    description: "Optional number id to dial from (from listPhoneNumbers). If omitted, pick with the user from their numbers."
+    required: false
+---
+
 # Set up and launch a bulk-call campaign safely: draft it, batch the contacts in, size concurrency from the numbers, check calling hours, then start and watch it.
 
 Set up and launch an OmniDimension bulk-call campaign for this goal:

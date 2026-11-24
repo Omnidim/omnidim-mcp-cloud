@@ -29,7 +29,7 @@ When in doubt, grep the docs repo (`omnidim-docs/content`) for the canonical pat
 
 ## Playbooks and guides come from Omnidim/skills
 
-The playbooks (`readGuide`, MCP prompts) and the `omnidim://` guides are markdown files in the [Omnidim/skills](https://github.com/Omnidim/skills) repo. Edit them there, never in `app/vendor/omnidim-skills/`. `scripts/skills_sync.py <commit>` copies them in, and the `skills-sync` workflow opens that PR every morning when the skills repo has moved. `app/procedures.py` keeps only what the server owns: the prompt inputs, `book_demo`, the demo offer rule and the workflow canvas. A new playbook is one markdown file in the skills repo plus one row in `_PLAYBOOK_INPUTS`.
+The playbooks (`readGuide`, MCP prompts) and the `omnidim://` guides are markdown files in the [Omnidim/skills](https://github.com/Omnidim/skills) repo. Edit them there, never in `app/vendor/omnidim-skills/`. `scripts/skills_sync.py <commit>` copies them in, and the `skills-sync` workflow opens that PR every morning when the skills repo has moved. `app/procedures.py` keeps only what the server owns: `book_demo`, the demo offer rule and the workflow canvas. A new playbook is one markdown file in the skills repo: its header names it and lists its prompt inputs.
 
 ## Architecture invariants
 

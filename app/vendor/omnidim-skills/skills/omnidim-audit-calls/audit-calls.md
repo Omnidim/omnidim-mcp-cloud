@@ -1,3 +1,17 @@
+---
+name: audit_calls
+arguments:
+  - name: focus
+    description: "What to look into, in plain language (e.g. 'why are calls failing', 'summarize today's calls for agent 123')."
+    required: true
+  - name: agent_id
+    description: "Optional agent id to filter to (the listAgents / createAgent id)."
+    required: false
+  - name: call_status
+    description: "Optional status filter. Note the enum uses a hyphen for no-answer: completed | busy | failed | no-answer."
+    required: false
+---
+
 # Review and summarize call logs: find failures, inspect transcripts and sentiment, or audit a specific agent or campaign.
 
 Audit OmniDimension call logs for this question:

@@ -1,3 +1,11 @@
+---
+name: build_workflow
+arguments:
+  - name: goal
+    description: "What should happen and when, in plain language (e.g. 'after a call, WhatsApp interested leads our follow-up template')."
+    required: true
+---
+
 # Build an automation workflow from a plain-language goal: pick the trigger and nodes, wire them, validate, test with the user's consent, then publish.
 
 Build an OmniDimension workflow for this goal:
