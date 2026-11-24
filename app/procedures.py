@@ -252,16 +252,20 @@ _FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n+", re.S)
 def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
     text = path.read_text()
     match = _FRONTMATTER.match(text)
-    assert match, f"{path} has no frontmatter"
+    if not match:
+        raise ValueError(f"{path}: the header must sit between two --- lines")
     meta = yaml.safe_load(match.group(1))
-    assert isinstance(meta, dict), path
+    if not isinstance(meta, dict):
+        raise ValueError(f"{path}: the header must be YAML keys")
     return meta, text[match.end() :]
 
 
 def _playbook_file(path: Path) -> Playbook | None:
-    if not path.read_text().startswith("---\n"):
+    if not path.read_text().lstrip().startswith("---"):
         return None
     meta, body = _split_frontmatter(path)
+    if "name" not in meta:
+        raise ValueError(f"{path}: the header must give the playbook a name")
     title, steps = body.split("\n", 1)
     return Playbook(
         meta["name"], title.removeprefix("# "), meta.get("arguments", []), steps.strip()
