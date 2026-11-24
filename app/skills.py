@@ -9,7 +9,6 @@ from typing import Any
 from app.procedures import split_frontmatter
 
 SKILLS_EXTENSION = "io.modelcontextprotocol/skills"
-SKILLS_CACHE: dict[str, Any] = {"ttlMs": 3_600_000, "cacheScope": "public"}
 
 
 class Reach(Enum):

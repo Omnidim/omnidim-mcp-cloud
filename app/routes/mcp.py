@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 from typing import Annotated, Any
 
@@ -24,7 +25,7 @@ from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
 from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
 from app.services.guides import read_guide
-from app.skills import SKILLS_CACHE, read_skill_file, skill_entries, skill_entry
+from app.skills import SKILLS_EXTENSION, read_skill_file, skill_entries, skill_entry
 
 router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
@@ -163,6 +164,210 @@ async def _log_error(
     )
 
 
+MODERN_VERSION = "2026-07-28"
+SUPPORTED_VERSIONS = [MODERN_VERSION, PROTOCOL_VERSION]
+CACHE_HINTS: dict[str, Any] = {"ttlMs": 3_600_000, "cacheScope": "public"}
+_VERSION_KEY = "io.modelcontextprotocol/protocolVersion"
+_CACHEABLE = frozenset(
+    {
+        "server/discover",
+        "tools/list",
+        "prompts/list",
+        "resources/list",
+        "resources/read",
+        "resources/templates/list",
+        "skills/list",
+        "skills/get",
+    }
+)
+_NAME_FIELD = {"tools/call": "name", "prompts/get": "name", "resources/read": "uri"}
+_BASE64_START, _BASE64_END = "=?base64?", "?="
+_CAPABILITIES: dict[str, Any] = {
+    "tools": {"listChanged": False},
+    "prompts": {"listChanged": False},
+    "resources": {"listChanged": False},
+}
+
+
+class RpcError(Exception):
+    def __init__(self, code: int, message: str, data: Any = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.data = data
+
+
+class MethodNotFound(RpcError):
+    def __init__(self, method: str) -> None:
+        super().__init__(-32601, f"method not supported: {method}")
+
+
+def _requested_version(params: dict[str, Any]) -> str | None:
+    meta = params.get("_meta")
+    if not isinstance(meta, dict) or meta.get(_VERSION_KEY) is None:
+        return None
+    return str(meta[_VERSION_KEY])
+
+
+def _decoded(value: str | None) -> str | None:
+    if value is None or not (value.startswith(_BASE64_START) and value.endswith(_BASE64_END)):
+        return value
+    try:
+        encoded = value[len(_BASE64_START) : -len(_BASE64_END)]
+        return base64.b64decode(encoded, validate=True).decode()
+    except ValueError:
+        return None
+
+
+def _header_mismatch(
+    request: Request, method: str, params: dict[str, Any], version: str
+) -> str | None:
+    headers = request.headers
+    if headers.get("mcp-protocol-version") != version:
+        return "the MCP-Protocol-Version header does not match the body"
+    if headers.get("mcp-method") != method:
+        return "the Mcp-Method header does not match the body"
+    field = _NAME_FIELD.get(method)
+    if field is not None and _decoded(headers.get("mcp-name")) != params.get(field):
+        return "the Mcp-Name header does not match the body"
+    return None
+
+
+async def _call(
+    method: str, params: dict[str, Any], token: ResolvedToken, *, read_only: bool
+) -> dict[str, Any]:
+    if method == "initialize":
+        return {
+            "protocolVersion": PROTOCOL_VERSION,
+            "serverInfo": SERVER_INFO,
+            "capabilities": _CAPABILITIES,
+            "instructions": INSTRUCTIONS,
+        }
+
+    if method == "server/discover":
+        return {
+            "supportedVersions": SUPPORTED_VERSIONS,
+            "capabilities": {**_CAPABILITIES, "extensions": {SKILLS_EXTENSION: {}}},
+            "instructions": INSTRUCTIONS,
+        }
+
+    if method == "ping":
+        return {}
+
+    if method == "tools/list":
+        return {"tools": _tools_for_listing(read_only)}
+
+    if method == "tools/call":
+        tool_name = params.get("name")
+        arguments = params.get("arguments") or {}
+        if not isinstance(tool_name, str) or not isinstance(arguments, dict):
+            raise RpcError(-32602, "tools/call requires name (str) + arguments (object)")
+        if read_only and tool_name not in _READ_ONLY_TOOLS:
+            raise RpcError(
+                -32602, f"{tool_name} changes data, so the read-only endpoint does not run it"
+            )
+        try:
+            if tool_name == "readGuide":
+                result = read_guide(arguments, token)
+            elif tool_name in DOCS_TOOL_NAMES:
+                result = await call_docs_tool(tool_name, arguments, token)
+            else:
+                result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
+        except DispatchError as exc:
+            raise RpcError(exc.code, exc.message, exc.data) from exc
+        return {"content": [{"type": "text", "text": result.text}], "isError": result.is_error}
+
+    if method == "prompts/list":
+        return {"prompts": prompts_for_listing()}
+
+    if method == "prompts/get":
+        prompt_name = params.get("name")
+        arguments = params.get("arguments") or {}
+        if not isinstance(prompt_name, str) or not isinstance(arguments, dict):
+            raise RpcError(-32602, "prompts/get requires name (str) + arguments (object)")
+        prompt = build_prompt(prompt_name, arguments)
+        if prompt is None:
+            raise RpcError(-32602, f"unknown prompt: {prompt_name}")
+        return prompt
+
+    if method == "resources/list":
+        return {"resources": resources_for_listing()}
+
+    if method == "resources/templates/list":
+        return {"resourceTemplates": []}
+
+    if method == "resources/read":
+        uri = params.get("uri")
+        if not isinstance(uri, str):
+            raise RpcError(-32602, "resources/read requires uri (str)")
+        resource = read_resource(uri) or read_skill_file(uri, read_only=read_only)
+        if resource is None:
+            raise RpcError(-32602, f"unknown resource: {uri}")
+        return resource
+
+    if method == "skills/list":
+        return {"skills": skill_entries(read_only=read_only), **CACHE_HINTS}
+
+    if method == "skills/get":
+        uri = params.get("uri")
+        entry = skill_entry(uri, read_only=read_only) if isinstance(uri, str) else None
+        if entry is None:
+            raise RpcError(-32602, f"No skill is served at {uri}")
+        return {"skill": entry, **CACHE_HINTS}
+
+    raise MethodNotFound(method)
+
+
+async def _answer_legacy(
+    method: str, req_id: object, params: dict[str, Any], token: ResolvedToken, *, read_only: bool
+) -> Response:
+    try:
+        result = await _call(method, params, token, read_only=read_only)
+    except MethodNotFound as exc:
+        return JSONResponse(status_code=400, content=_error(req_id, exc.code, exc.message))
+    except RpcError as exc:
+        return JSONResponse(content=_error(req_id, exc.code, exc.message, exc.data))
+    return JSONResponse(content=_result(req_id, result))
+
+
+async def _answer_modern(
+    request: Request,
+    method: str,
+    req_id: object,
+    params: dict[str, Any],
+    version: str,
+    token: ResolvedToken,
+    *,
+    read_only: bool,
+) -> Response:
+    if version != MODERN_VERSION:
+        return JSONResponse(
+            status_code=400,
+            content=_error(
+                req_id,
+                -32022,
+                "Unsupported protocol version",
+                {"supported": SUPPORTED_VERSIONS, "requested": version},
+            ),
+        )
+    mismatch = _header_mismatch(request, method, params, version)
+    if mismatch:
+        return JSONResponse(
+            status_code=400, content=_error(req_id, -32020, f"Header mismatch: {mismatch}")
+        )
+    try:
+        result = await _call(method, params, token, read_only=read_only)
+    except MethodNotFound as exc:
+        return JSONResponse(status_code=404, content=_error(req_id, exc.code, exc.message))
+    except RpcError as exc:
+        return JSONResponse(content=_error(req_id, exc.code, exc.message, exc.data))
+    meta = {**result.get("_meta", {}), "io.modelcontextprotocol/serverInfo": SERVER_INFO}
+    shaped = {**result, "resultType": "complete", "_meta": meta}
+    if method in _CACHEABLE:
+        shaped.update(CACHE_HINTS)
+    return JSONResponse(content=_result(req_id, shaped))
+
+
 async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) -> Response:
     try:
         body = await request.json()
@@ -182,122 +387,24 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
             content=_error(req_id, -32600, "missing method"),
         )
 
+    version = _requested_version(params)
+    uri = params.get("uri") if method in ("resources/read", "skills/get") else None
     log.info(
         "mcp_request",
         method=method,
+        protocol_version=version,
+        uri=str(uri)[:200] if uri is not None else None,
         read_only=read_only,
         client_id=token.client_id,
         client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
-    if method == "initialize":
-        return JSONResponse(
-            content=_result(
-                req_id,
-                {
-                    "protocolVersion": PROTOCOL_VERSION,
-                    "serverInfo": SERVER_INFO,
-                    "capabilities": {
-                        "tools": {"listChanged": False},
-                        "prompts": {"listChanged": False},
-                        "resources": {"listChanged": False},
-                    },
-                    "instructions": INSTRUCTIONS,
-                },
-            )
-        )
-
     if isinstance(method, str) and method.startswith("notifications/") and req_id is None:
         return Response(status_code=202)
 
-    if method == "ping":
-        return JSONResponse(content=_result(req_id, {}))
-
-    if method == "tools/list":
-        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing(read_only)}))
-
-    if method == "tools/call":
-        tool_name = params.get("name")
-        arguments = params.get("arguments") or {}
-        if not isinstance(tool_name, str) or not isinstance(arguments, dict):
-            return JSONResponse(
-                content=_error(
-                    req_id, -32602,
-                    "tools/call requires name (str) + arguments (object)",
-                ),
-            )
-        if read_only and tool_name not in _READ_ONLY_TOOLS:
-            return JSONResponse(
-                content=_error(
-                    req_id,
-                    -32602,
-                    f"{tool_name} changes data, so the read-only endpoint does not run it",
-                )
-            )
-        try:
-            if tool_name == "readGuide":
-                result = read_guide(arguments, token)
-            elif tool_name in DOCS_TOOL_NAMES:
-                result = await call_docs_tool(tool_name, arguments, token)
-            else:
-                result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
-        except DispatchError as exc:
-            return JSONResponse(content=_error(req_id, exc.code, exc.message, exc.data))
-        return JSONResponse(
-            content=_result(
-                req_id,
-                {
-                    "content": [{"type": "text", "text": result.text}],
-                    "isError": result.is_error,
-                },
-            )
-        )
-
-    if method == "prompts/list":
-        return JSONResponse(content=_result(req_id, {"prompts": prompts_for_listing()}))
-
-    if method == "prompts/get":
-        prompt_name = params.get("name")
-        arguments = params.get("arguments") or {}
-        if not isinstance(prompt_name, str) or not isinstance(arguments, dict):
-            return JSONResponse(
-                content=_error(
-                    req_id, -32602, "prompts/get requires name (str) + arguments (object)",
-                ),
-            )
-        prompt = build_prompt(prompt_name, arguments)
-        if prompt is None:
-            return JSONResponse(content=_error(req_id, -32602, f"unknown prompt: {prompt_name}"))
-        return JSONResponse(content=_result(req_id, prompt))
-
-    if method == "resources/list":
-        return JSONResponse(content=_result(req_id, {"resources": resources_for_listing()}))
-
-    if method == "resources/templates/list":
-        return JSONResponse(content=_result(req_id, {"resourceTemplates": []}))
-
-    if method == "resources/read":
-        uri = params.get("uri")
-        if not isinstance(uri, str):
-            return JSONResponse(content=_error(req_id, -32602, "resources/read requires uri (str)"))
-        resource = read_resource(uri) or read_skill_file(uri, read_only=read_only)
-        if resource is None:
-            return JSONResponse(content=_error(req_id, -32602, f"unknown resource: {uri}"))
-        return JSONResponse(content=_result(req_id, resource))
-
-    if method == "skills/list":
-        skills = skill_entries(read_only=read_only)
-        return JSONResponse(content=_result(req_id, {"skills": skills, **SKILLS_CACHE}))
-
-    if method == "skills/get":
-        uri = params.get("uri")
-        entry = skill_entry(uri, read_only=read_only) if isinstance(uri, str) else None
-        if entry is None:
-            return JSONResponse(content=_error(req_id, -32602, f"No skill is served at {uri}"))
-        return JSONResponse(content=_result(req_id, {"skill": entry, **SKILLS_CACHE}))
-
-    return JSONResponse(
-        status_code=400,
-        content=_error(req_id, -32601, f"method not supported: {method}"),
+    if version is None:
+        return await _answer_legacy(str(method), req_id, params, token, read_only=read_only)
+    return await _answer_modern(
+        request, str(method), req_id, params, version, token, read_only=read_only
     )
