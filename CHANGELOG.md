@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.21.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.1...v0.21.2) (2026-11-24)
+
+
+### Fixed
+
+* replace a browser's older MCP grant when it approves the same app again ([#143](https://github.com/Omnidim/omnidim-mcp-cloud/issues/143)) ([7c93539](https://github.com/Omnidim/omnidim-mcp-cloud/commit/7c935398956951d8e9f9d5d58cc5d86a2aea94db))
+
 ## [0.21.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.0...v0.21.1) (2026-11-24)
 
 
