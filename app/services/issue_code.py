@@ -97,6 +97,7 @@ async def issue_code(
     odoo_api_key_id: int,
     odoo_api_key_value: str | None,
     approved_scope: str,
+    browser_id: str | None = None,
 ) -> IssuedCode:
     now = datetime.now(UTC)
     req = await _pending_request(session, request_id, now)
@@ -120,6 +121,7 @@ async def issue_code(
         odoo_user_id=odoo_user_id,
         odoo_api_key_id=odoo_api_key_id,
         odoo_api_key_value=encrypted_api_key,
+        browser_id_hash=_hash(browser_id) if browser_id else None,
         redirect_uri=req.redirect_uri,
         scope=" ".join(approved),
         code_challenge=req.code_challenge,

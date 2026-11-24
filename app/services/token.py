@@ -85,6 +85,32 @@ async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> 
     await revoke_api_keys(key_ids, grant_id=grant_id)
 
 
+async def _replace_browser_grants(
+    session: AsyncSession,
+    *,
+    browser_id_hash: str,
+    client_name: str,
+    keep_grant_id: str,
+    now: datetime,
+) -> None:
+    replaced = list(
+        (
+            await session.execute(
+                select(AccessToken.grant_id)
+                .join(OAuthClient, OAuthClient.client_id == AccessToken.client_id)
+                .where(AccessToken.browser_id_hash == browser_id_hash)
+                .where(OAuthClient.client_name == client_name)
+                .where(AccessToken.revoked_at.is_(None))
+                .where(AccessToken.grant_id != keep_grant_id)
+                .distinct()
+            )
+        ).scalars()
+    )
+    for old_grant_id in replaced:
+        await _revoke_grant(session, old_grant_id, now)
+        log.info("grant_replaced", grant_id=old_grant_id, replaced_by=keep_grant_id)
+
+
 async def _authenticate_client(
     session: AsyncSession, client_id: str, client_secret: str | None
 ) -> OAuthClient:
@@ -263,6 +289,7 @@ async def exchange_authorization_code(
             odoo_api_key_id=auth_code.odoo_api_key_id,
             odoo_api_key_value=auth_code.odoo_api_key_value,
             grant_id=grant_id,
+            browser_id_hash=auth_code.browser_id_hash,
             scope=auth_code.scope,
             expires_at=now + ACCESS_TOKEN_TTL,
         )
@@ -284,6 +311,14 @@ async def exchange_authorization_code(
         odoo_user_id=auth_code.odoo_user_id,
         grant_id=grant_id,
     )
+    if auth_code.browser_id_hash:
+        await _replace_browser_grants(
+            session,
+            browser_id_hash=auth_code.browser_id_hash,
+            client_name=client.client_name,
+            keep_grant_id=grant_id,
+            now=now,
+        )
 
     return IssuedTokens(
         access_token=access_plain,
