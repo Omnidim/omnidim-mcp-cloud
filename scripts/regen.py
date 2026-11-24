@@ -331,7 +331,7 @@ def strip_params(op: dict[str, Any], names: list[str]) -> int:
     return dropped
 
 
-_MCP_KEYS = {"title", "effect", "open-world", "hide-params", "hidden"}
+_MCP_KEYS = {"title", "effect", "open-world", "hide-params", "hidden", "merge"}
 _EFFECTS = {"read", "write", "destructive"}
 
 
@@ -367,7 +367,135 @@ def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
     hide = marks.get("hide-params", [])
     if not isinstance(hide, list) or not all(isinstance(n, str) for n in hide):
         raise bad("hide-params is a list of input names")
+    if "merge" in marks and not _valid_merge(marks["merge"]):
+        raise bad("merge takes tool, as text, and action, a snake_case word or a list of them")
     return marks
+
+
+_ACTION_RE = re.compile(r"[a-z][a-z_]*")
+_EFFECT_RANK = {"read": 0, "write": 1, "destructive": 2}
+_MERGE_GROUP_KEYS = {"title", "description", "field"}
+
+
+def _valid_merge(merge: Any) -> bool:
+    if not isinstance(merge, dict) or set(merge) != {"tool", "action"}:
+        return False
+    if not isinstance(merge["tool"], str) or not merge["tool"]:
+        return False
+    actions = merge_actions(merge)
+    return bool(actions) and all(isinstance(a, str) and _ACTION_RE.fullmatch(a) for a in actions)
+
+
+def merge_actions(merge: dict[str, Any]) -> list[Any]:
+    action = merge["action"]
+    return list(action) if isinstance(action, list) else [action]
+
+
+def _without_description(prop: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in prop.items() if k != "description"}
+
+
+def _merge_group(name: str, groups: dict[str, Any]) -> dict[str, Any]:
+    group = groups.get(name)
+    if not isinstance(group, dict):
+        raise SystemExit(f"{name} is not declared under x-mcp-tools")
+    if unknown := set(group) - _MERGE_GROUP_KEYS:
+        raise SystemExit(f"bad x-mcp-tools entry {name}: unknown keys {sorted(unknown)}")
+    for key in ("title", "description"):
+        if not isinstance(group.get(key), str) or not group[key].strip():
+            raise SystemExit(f"bad x-mcp-tools entry {name}: {key} is required, as text")
+    if not isinstance(group.get("field", "action"), str):
+        raise SystemExit(f"bad x-mcp-tools entry {name}: field is text")
+    return group
+
+
+def _action_route(tool: dict[str, Any], inputs: list[str], passes: bool) -> dict[str, Any]:
+    route = {
+        "operation": tool["name"],
+        "method": tool["method"],
+        "path": tool["path"],
+        "path_params": tool["path_params"],
+        "query_params": tool["query_params"],
+        "header_params": tool["header_params"],
+        "inputs": inputs,
+        "required": sorted(r for r in tool["input_schema"].get("required", []) if r in inputs),
+        "sends_field": passes,
+    }
+    if "body_list_arg" in tool:
+        route["body_list_arg"] = tool["body_list_arg"]
+    return route
+
+
+def _label_partial_inputs(
+    props: dict[str, Any], takers: dict[str, list[str]], every_action: list[str]
+) -> None:
+    for key, acts in takers.items():
+        if len(set(acts)) < len(every_action):
+            only = ", ".join(f"`{a}`" for a in acts)
+            said = props[key].get("description", "")
+            props[key] = {**props[key], "description": f"Only for {only}. {said}".strip()}
+
+
+def _merged_annotations(
+    group: dict[str, Any], members: list[tuple[dict[str, Any], dict[str, Any]]]
+) -> dict[str, Any]:
+    effect = max((m["effect"] for _, m in members), key=_EFFECT_RANK.__getitem__)
+    marks: dict[str, Any] = {"title": group["title"], "effect": effect}
+    if any(m.get("open-world") for _, m in members):
+        marks["open-world"] = True
+    return annotations_for(marks)
+
+
+def merged_tool(
+    name: str, group: dict[str, Any], members: list[tuple[dict[str, Any], dict[str, Any]]]
+) -> dict[str, Any]:
+    if len(members) < 2:
+        raise SystemExit(f"{name} folds one operation: merge two or more, or drop the mark")
+    field: str = group.get("field", "action")
+    routes: dict[str, dict[str, Any]] = {}
+    props: dict[str, Any] = {}
+    takers: dict[str, list[str]] = {}
+    sections: list[str] = []
+    for tool, marks in members:
+        actions = merge_actions(marks["merge"])
+        passes = isinstance(marks["merge"]["action"], list)
+        own = tool["input_schema"].get("properties", {})
+        inputs = [k for k in own if not (passes and k == field)]
+        for key in inputs:
+            if key in props and _without_description(props[key]) != _without_description(own[key]):
+                raise SystemExit(f"{name}: input {key} differs between its actions")
+            props.setdefault(key, own[key])
+            takers.setdefault(key, []).extend(actions)
+        route = _action_route(tool, inputs, passes)
+        for action in actions:
+            if action in routes:
+                raise SystemExit(f"{name}: action {action} names two operations")
+            routes[action] = route
+        sections.append(f"`{'`, `'.join(actions)}`: {tool['description']}")
+    every_action = list(routes)
+    _label_partial_inputs(props, takers, every_action)
+    required = sorted(k for k in props if all(k in r["required"] for r in routes.values()))
+    picker = {
+        "type": "string",
+        "enum": every_action,
+        "description": f"What to do: {', '.join(every_action)}.",
+    }
+    return {
+        "name": name,
+        "description": (
+            f"{group['description'].strip()}\n\nSet `{field}` to pick what to do.\n\n"
+            + "\n\n".join(sections)
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {field: picker, **props},
+            "required": [field, *required],
+            "additionalProperties": True,
+        },
+        "annotations": _merged_annotations(group, members),
+        "field": field,
+        "actions": routes,
+    }
 
 
 def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
@@ -410,6 +538,7 @@ def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     apply_briefs(spec)
     tools: list[dict[str, Any]] = []
     skipped: list[str] = []
+    to_merge: dict[str, list[tuple[dict[str, Any], dict[str, Any]]]] = {}
     for path, methods in spec.get("paths", {}).items():
         path_item_params = methods.get("parameters", []) or []
         for method, op in methods.items():
@@ -423,7 +552,16 @@ def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
             strip_params(op, list(marks.get("hide-params") or []))
             tool = build_tool(path, method, op, path_item_params, spec)
             tool["annotations"] = annotations_for(marks)
-            tools.append(tool)
+            if "merge" in marks:
+                to_merge.setdefault(marks["merge"]["tool"], []).append((tool, marks))
+            else:
+                tools.append(tool)
+    groups = spec.get("x-mcp-tools") or {}
+    single_names = {t["name"] for t in tools}
+    for name, members in to_merge.items():
+        if name in single_names:
+            raise SystemExit(f"{name} is both a merged tool and another tool")
+        tools.append(merged_tool(name, _merge_group(name, groups), members))
     tools.sort(key=lambda t: t["name"])
     return tools, skipped
 
