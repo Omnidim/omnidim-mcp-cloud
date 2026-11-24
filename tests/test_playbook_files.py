@@ -189,3 +189,17 @@ def test_only_a_first_line_of_three_dashes_starts_a_playbook_header(
 ) -> None:
     root = _skill_folder(tmp_path, {"notes.md": text})
     assert load_playbooks(root) == {}
+
+
+def test_every_playbook_a_skill_links_to_is_served() -> None:
+    for skill in sorted((SKILLS / "skills").glob("*/SKILL.md")):
+        for link in re.findall(r"\]\(([^)#:/]+\.md)\)", skill.read_text()):
+            assert link.removesuffix(".md").replace("-", "_") in PLAYBOOK_NAMES, (skill, link)
+
+
+def test_a_playbook_saved_with_a_byte_order_mark_loads(tmp_path: Path) -> None:
+    root = _skill_folder(tmp_path, {})
+    (root / "skills" / "omnidim-x" / "do-x.md").write_bytes(
+        b"\xef\xbb\xbf---\nname: do_x\n---\n\n# Do x\n\n1. Step.\n"
+    )
+    assert list(load_playbooks(root)) == ["do_x"]

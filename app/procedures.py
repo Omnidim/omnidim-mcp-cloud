@@ -250,7 +250,7 @@ _FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n+", re.S)
 
 
 def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8-sig")
     match = _FRONTMATTER.match(text)
     if not match:
         raise ValueError(f"{path}: the header must sit between two --- lines")
@@ -261,7 +261,7 @@ def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
 
 
 def _playbook_file(path: Path) -> Playbook | None:
-    if path.read_text().split("\n", 1)[0] != "---":
+    if path.read_text(encoding="utf-8-sig").split("\n", 1)[0] != "---":
         return None
     meta, body = _split_frontmatter(path)
     if "name" not in meta:
