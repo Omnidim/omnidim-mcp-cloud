@@ -250,6 +250,35 @@ def _coerce_args(args: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]
     return out
 
 
+def _unknown_tool(name: str) -> DispatchError:
+    for tool in _TOOLS_BY_NAME.values():
+        for action, route in tool.get("actions", {}).items():
+            if route["operation"] == name != tool["name"]:
+                return DispatchError(
+                    -32602,
+                    f"unknown tool: {name}. Call {tool['name']} with {tool['field']} {action}.",
+                )
+    return DispatchError(-32602, f"unknown tool: {name}")
+
+
+def _pick_action(
+    tool: dict[str, Any], arguments: dict[str, Any]
+) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    field = tool["field"]
+    action = arguments.get(field)
+    route = tool["actions"].get(action) if isinstance(action, str) else None
+    if not isinstance(action, str) or route is None:
+        raise DispatchError(-32602, f"{field} must be one of: {', '.join(tool['actions'])}")
+    other_inputs = set(tool["input_schema"]["properties"]) - set(route["inputs"]) - {field}
+    if not route["sends_field"]:
+        other_inputs.add(field)
+    other_lower = {name.lower() for name in other_inputs}
+    kept = {k: v for k, v in arguments.items() if k.lower() not in other_lower}
+    if missing := [r for r in route["required"] if r not in kept]:
+        raise DispatchError(-32602, f"{field} {action} needs: {', '.join(missing)}")
+    return action, route, kept
+
+
 async def dispatch_tool(
     *,
     name: str,
@@ -258,20 +287,25 @@ async def dispatch_tool(
 ) -> ToolResult:
     tool = _TOOLS_BY_NAME.get(name)
     if tool is None:
-        raise DispatchError(-32602, f"unknown tool: {name}")
+        raise _unknown_tool(name)
 
     if not token.odoo_api_key_value:
         raise DispatchError(-32000, "missing upstream credential")
+
+    action: str | None = None
+    route = tool
+    if "actions" in tool:
+        action, route, arguments = _pick_action(tool, arguments)
 
     # Schemas allow extra keys: drop the reseller switch regen strips (acts on a client).
     if "user_id" not in tool["input_schema"].get("properties", {}):
         arguments = {k: v for k, v in arguments.items() if k != "user_id"}
     arguments = _coerce_args(arguments, tool["input_schema"])
     path = _substitute_path(
-        tool["path"], arguments, tool["path_params"], tool["input_schema"]
+        route["path"], arguments, route["path_params"], tool["input_schema"]
     )
     query, spec_headers, body = _split_args(
-        arguments, tool["path_params"], tool["query_params"], tool["header_params"]
+        arguments, route["path_params"], route["query_params"], route["header_params"]
     )
 
     url = f"{BACKEND_BASE_URL}{path}"
@@ -283,12 +317,13 @@ async def dispatch_tool(
     }
     if request_id := structlog.contextvars.get_contextvars().get("request_id"):
         headers["X-Request-ID"] = request_id
-    method = tool["method"]
+    method = route["method"]
     # Every PUT and PATCH tool changes fields; with none, the API gets no body at all.
     if method in ("PUT", "PATCH") and not body:
         log.info(
             "tool_result",
             tool=name,
+            action=action,
             outcome="no_fields",
             status=None,
             duration_ms=0,
@@ -300,13 +335,14 @@ async def dispatch_tool(
         return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
-    sent: Any = body.get(list_arg) if (list_arg := tool.get("body_list_arg")) else body
+    sent: Any = body.get(list_arg) if (list_arg := route.get("body_list_arg")) else body
     if method != "GET" and sent:
         request_kwargs["json"] = sent
 
     log.info(
         "tool_call",
         tool=name,
+        action=action,
         method=method,
         path=path,
         client_id=token.client_id,
@@ -390,6 +426,7 @@ async def dispatch_tool(
         log.info(
             "tool_result",
             tool=name,
+            action=action,
             outcome=outcome,
             status=status,
             duration_ms=round((time.monotonic() - started) * 1000),

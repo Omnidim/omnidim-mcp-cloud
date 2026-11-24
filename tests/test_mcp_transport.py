@@ -226,7 +226,8 @@ def test_all_of_request_body_flattened() -> None:
     assert set(cb["items"]["required"]) == {"title", "body"}
     # No body-bearing tool may publish an empty schema.
     for tool in TOOLS:
-        if tool["method"] in ("POST", "PUT"):
+        routes = tool.get("actions", {"": tool}).values()
+        if any(r["method"] in ("POST", "PUT") for r in routes):
             assert tool["input_schema"]["properties"], tool["name"]
 
 

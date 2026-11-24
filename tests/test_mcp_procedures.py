@@ -383,7 +383,8 @@ def test_no_tool_exposes_the_reseller_user_id():
     leaked = [
         t["name"]
         for t in TOOLS
-        if "user_id" in t["input_schema"].get("properties", {}) or "user_id" in t["query_params"]
+        if "user_id" in t["input_schema"].get("properties", {})
+        or any("user_id" in r["query_params"] for r in t.get("actions", {"": t}).values())
     ]
     assert not leaked, f"reseller user_id exposed on: {leaked}"
 
