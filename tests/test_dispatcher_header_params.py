@@ -48,7 +48,9 @@ async def test_idempotency_key_is_a_header_on_a_body_request() -> None:
 
 
 async def test_idempotency_key_is_a_header_with_no_body() -> None:
-    req = await _sent("launchWhatsappCampaign", {"campaign_id": 5, "Idempotency-Key": "k-2"})
+    req = await _sent(
+        "whatsappCampaignActions", {"action": "launch", "campaign_id": 5, "Idempotency-Key": "k-2"}
+    )
     assert req.headers["Idempotency-Key"] == "k-2"
     assert req.url.path.endswith("/whatsapp/campaigns/5/launch")
     assert not req.content
@@ -58,23 +60,34 @@ async def test_a_header_param_cannot_replace_the_credential(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # No spec tool declares Authorization today; a future one must not leak it.
-    tool = dict(dispatcher._TOOLS_BY_NAME["launchWhatsappCampaign"])
-    tool["header_params"] = ["Idempotency-Key", "Authorization"]
-    monkeypatch.setitem(dispatcher._TOOLS_BY_NAME, "launchWhatsappCampaign", tool)
+    tool = dict(dispatcher._TOOLS_BY_NAME["whatsappCampaignActions"])
+    launch = {**tool["actions"]["launch"], "header_params": ["Idempotency-Key", "Authorization"]}
+    tool["actions"] = {**tool["actions"], "launch": launch}
+    monkeypatch.setitem(dispatcher._TOOLS_BY_NAME, "whatsappCampaignActions", tool)
     req = await _sent(
-        "launchWhatsappCampaign",
-        {"campaign_id": 5, "Idempotency-Key": "k-3", "Authorization": "Bearer other"},
+        "whatsappCampaignActions",
+        {
+            "action": "launch",
+            "campaign_id": 5,
+            "Idempotency-Key": "k-3",
+            "Authorization": "Bearer other",
+        },
     )
     assert req.headers["Authorization"] == "Bearer key"
 
 
 async def test_header_param_names_match_in_any_case() -> None:
-    req = await _sent("launchWhatsappCampaign", {"campaign_id": 5, "idempotency-key": "k-4"})
+    req = await _sent(
+        "whatsappCampaignActions", {"action": "launch", "campaign_id": 5, "idempotency-key": "k-4"}
+    )
     assert req.headers["Idempotency-Key"] == "k-4"
     assert not req.content
 
 
 async def test_a_header_value_that_is_not_ascii_is_refused() -> None:
     with pytest.raises(dispatcher.DispatchError) as err:
-        await _sent("launchWhatsappCampaign", {"campaign_id": 5, "Idempotency-Key": "clé"})
+        await _sent(
+            "whatsappCampaignActions",
+            {"action": "launch", "campaign_id": 5, "Idempotency-Key": "clé"},
+        )
     assert err.value.code == -32602
