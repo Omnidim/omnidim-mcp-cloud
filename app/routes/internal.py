@@ -153,6 +153,7 @@ async def get_connections(
                 "connections": row.connections,
                 "connected_at": row.connected_at.isoformat(),
                 "last_active_at": row.last_active_at.isoformat(),
+                "site": row.site,
             }
             for row in rows
         ]

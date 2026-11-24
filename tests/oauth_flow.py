@@ -21,9 +21,11 @@ async def approve(
     odoo_user_id: int,
     api_key_id: int,
     browser_id: str | None,
+    redirect_uris: list[str] | None = None,
 ) -> dict[str, str]:
+    redirect_uris = redirect_uris or [REDIRECT]
     res = await client.post(
-        "/register", json={"redirect_uris": [REDIRECT], "client_name": app_name}
+        "/register", json={"redirect_uris": redirect_uris, "client_name": app_name}
     )
     client_id = res.json()["client_id"]
     verifier, challenge = pkce()
@@ -31,7 +33,7 @@ async def approve(
         "/authorize",
         params={
             "client_id": client_id,
-            "redirect_uri": REDIRECT,
+            "redirect_uri": redirect_uris[0],
             "response_type": "code",
             "code_challenge": challenge,
             "code_challenge_method": "S256",
@@ -58,7 +60,7 @@ async def approve(
             "grant_type": "authorization_code",
             "client_id": client_id,
             "code": res.json()["code"],
-            "redirect_uri": REDIRECT,
+            "redirect_uri": redirect_uris[0],
             "code_verifier": verifier,
         },
     )

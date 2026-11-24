@@ -240,3 +240,35 @@ async def test_refresh_waiting_on_a_disconnect_is_refused(
 
     assert (await refreshing).status_code == 400
     assert await _connections(client, user) == []
+
+
+async def test_names_the_website_each_app_returns_to(
+    client: AsyncClient, revoked_key_ids: list[int]
+) -> None:
+    user = new_user_id()
+    glama = ["https://glama.ai/api/app/mcp/oauth/callback", "http://localhost:6749/callback"]
+    cursor = ["http://localhost:8787/callback", "https://www.cursor.com/agents/mcp/oauth/callback"]
+    apps = (
+        (871, "Glama", glama),
+        (872, "Cursor", cursor),
+        (873, "Claude Code (omnidim)", ["http://localhost:3118/callback"]),
+        (874, "Codex", ["http://127.0.0.1:50044/callback"]),
+    )
+    for key, name, uris in apps:
+        await approve(
+            client,
+            app_name=name,
+            odoo_user_id=user,
+            api_key_id=key,
+            browser_id=None,
+            redirect_uris=uris,
+        )
+
+    rows = await _connections(client, user)
+
+    assert {r["app"]: r["site"] for r in rows} == {
+        "Glama": "glama.ai",
+        "Cursor": "cursor.com",
+        "Claude Code (omnidim)": None,
+        "Codex": None,
+    }

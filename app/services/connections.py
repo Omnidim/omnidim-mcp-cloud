@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,16 @@ class Connection:
     connections: int
     connected_at: datetime
     last_active_at: datetime
+    site: str | None
+
+
+def web_site(redirect_uris: list[str]) -> str | None:
+    hosts = sorted(
+        host.removeprefix("www.")
+        for uri in redirect_uris
+        if (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
+    )
+    return hosts[0] if hosts else None
 
 
 async def list_connections(
@@ -24,10 +35,11 @@ async def list_connections(
         text(
             """
             SELECT c.client_name, count(DISTINCT r.grant_id),
-                   min(a.created_at), max(a.created_at)
+                   min(a.created_at), max(a.created_at), array_agg(DISTINCT u.uri)
             FROM oauth_refresh_token r
             JOIN oauth_client c ON c.client_id = r.client_id
             JOIN oauth_access_token a ON a.grant_id = r.grant_id
+            CROSS JOIN LATERAL json_array_elements_text(c.redirect_uris) AS u(uri)
             WHERE r.odoo_user_id = :odoo_user_id
               AND r.consumed_at IS NULL
               AND r.expires_at > :now
@@ -37,7 +49,10 @@ async def list_connections(
         ),
         {"odoo_user_id": odoo_user_id, "now": now},
     )
-    return [Connection(*row) for row in rows.tuples()]
+    return [
+        Connection(app, count, connected_at, last_active_at, web_site(uris))
+        for app, count, connected_at, last_active_at, uris in rows.tuples()
+    ]
 
 
 async def end_connections(
