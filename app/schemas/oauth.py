@@ -92,7 +92,9 @@ class DisconnectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     odoo_user_id: int
-    app: str = Field(min_length=1, max_length=255)
+    apps: list[Annotated[str, Field(min_length=1, max_length=255)]] = Field(
+        min_length=1, max_length=20
+    )
 
 
 class DenyRequest(BaseModel):

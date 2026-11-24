@@ -41,7 +41,7 @@ async def list_connections(
 
 
 async def end_connections(
-    session: AsyncSession, odoo_user_id: int, app: str, now: datetime
+    session: AsyncSession, odoo_user_id: int, apps: list[str], now: datetime
 ) -> dict[str, list[int]]:
     grant_ids = list(
         (
@@ -54,10 +54,10 @@ async def end_connections(
                     WHERE r.odoo_user_id = :odoo_user_id
                       AND r.consumed_at IS NULL
                       AND r.expires_at > :now
-                      AND c.client_name = :app
+                      AND c.client_name = ANY(:apps)
                     """
                 ),
-                {"odoo_user_id": odoo_user_id, "now": now, "app": app},
+                {"odoo_user_id": odoo_user_id, "now": now, "apps": apps},
             )
         ).scalars()
     )

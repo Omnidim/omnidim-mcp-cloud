@@ -166,14 +166,14 @@ async def post_disconnect(
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
 ) -> dict[str, int]:
     async with factory() as session:
-        ended = await end_connections(session, body.odoo_user_id, body.app, datetime.now(UTC))
+        ended = await end_connections(session, body.odoo_user_id, body.apps, datetime.now(UTC))
         await session.commit()
     for grant_id, key_ids in ended.items():
         background.add_task(revoke_api_keys, key_ids, grant_id=grant_id)
     log.info(
         "connections_disconnected",
         odoo_user_id=body.odoo_user_id,
-        app=body.app,
+        apps=body.apps,
         grants=len(ended),
     )
     return {"disconnected": len(ended)}
