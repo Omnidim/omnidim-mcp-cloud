@@ -2,6 +2,14 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.20.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.1...v0.20.0) (2026-11-24)
+
+
+### Added
+
+* export the skills as a Claude plugin the claude.ai directory accepts ([#132](https://github.com/Omnidim/omnidim-mcp-cloud/issues/132)) ([58c5345](https://github.com/Omnidim/omnidim-mcp-cloud/commit/58c5345e8dde7dee06408b836ca84b19af2c9720))
+* serve the playbooks and guides written in Omnidim/skills ([#135](https://github.com/Omnidim/omnidim-mcp-cloud/issues/135)) ([9af321b](https://github.com/Omnidim/omnidim-mcp-cloud/commit/9af321ba1baf9f3567fc7cc9c1322dec56eefd25))
+
 ## [0.19.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.0...v0.19.1) (2026-11-24)
 
 
