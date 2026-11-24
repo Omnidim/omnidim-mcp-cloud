@@ -181,3 +181,11 @@ def test_a_playbook_header_without_a_name_fails_naming_the_file(tmp_path: Path) 
     root = _skill_folder(tmp_path, {"do-x.md": "---\narguments: []\n---\n\n# Do x\n\n1. Step.\n"})
     with pytest.raises(ValueError, match=r"do-x\.md"):
         load_playbooks(root)
+
+
+@pytest.mark.parametrize("text", ["----\n\n# Notes\n", "  ---\n# Notes\n", "---notes\n"])
+def test_only_a_first_line_of_three_dashes_starts_a_playbook_header(
+    tmp_path: Path, text: str
+) -> None:
+    root = _skill_folder(tmp_path, {"notes.md": text})
+    assert load_playbooks(root) == {}
