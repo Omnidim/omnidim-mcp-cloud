@@ -5,15 +5,26 @@ import hmac
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+import structlog
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings, get_settings
 from app.dependencies import get_session_factory
 from app.models import AuthorizationRequest, OAuthClient
-from app.schemas.oauth import DenyRequest, DenyResponse, IssueCodeRequest, IssueCodeResponse
+from app.schemas.oauth import (
+    DenyRequest,
+    DenyResponse,
+    DisconnectRequest,
+    IssueCodeRequest,
+    IssueCodeResponse,
+)
+from app.services.connections import end_connections, list_connections
 from app.services.issue_code import IssueCodeError, deny_request, issue_code
+from app.services.upstream_keys import revoke_api_keys
+
+log = structlog.get_logger()
 
 router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=False)
 
@@ -50,18 +61,14 @@ async def get_authorization_request(
         ).scalar_one_or_none()
 
         if row is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="request not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="request not found")
 
         now = datetime.now(UTC)
         expired = row.expires_at <= now
         consumed = row.consumed_at is not None
 
         client: OAuthClient | None = (
-            await session.execute(
-                select(OAuthClient).where(OAuthClient.client_id == row.client_id)
-            )
+            await session.execute(select(OAuthClient).where(OAuthClient.client_id == row.client_id))
         ).scalar_one_or_none()
 
     return {
@@ -130,3 +137,43 @@ async def post_deny(
             detail={"error": exc.code, "error_description": exc.description},
         ) from exc
     return DenyResponse(redirect_to=redirect_to)
+
+
+@router.get("/connections/{odoo_user_id}", dependencies=[Depends(_require_shared_secret)])
+async def get_connections(
+    odoo_user_id: int,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> dict[str, list[dict[str, object]]]:
+    async with factory() as session:
+        rows = await list_connections(session, odoo_user_id, datetime.now(UTC))
+    return {
+        "connections": [
+            {
+                "app": row.app,
+                "connections": row.connections,
+                "connected_at": row.connected_at.isoformat(),
+                "last_active_at": row.last_active_at.isoformat(),
+            }
+            for row in rows
+        ]
+    }
+
+
+@router.post("/connections/disconnect", dependencies=[Depends(_require_shared_secret)])
+async def post_disconnect(
+    body: DisconnectRequest,
+    background: BackgroundTasks,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> dict[str, int]:
+    async with factory() as session:
+        ended = await end_connections(session, body.odoo_user_id, body.apps, datetime.now(UTC))
+        await session.commit()
+    for grant_id, key_ids in ended.items():
+        background.add_task(revoke_api_keys, key_ids, grant_id=grant_id)
+    log.info(
+        "connections_disconnected",
+        odoo_user_id=body.odoo_user_id,
+        apps=body.apps,
+        grants=len(ended),
+    )
+    return {"disconnected": len(ended)}

@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Final
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AccessToken, AuthorizationCode, OAuthClient, RefreshToken
@@ -64,14 +64,22 @@ async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> 
     must survive both an upstream failure and a caller that aborts the request
     afterwards (reuse detection does exactly that).
     """
-    key_ids = (await _revoke_grants_locally(session, [grant_id], now)).get(grant_id, [])
+    key_ids = (await revoke_grants_locally(session, [grant_id], now)).get(grant_id, [])
     await session.commit()
     await revoke_api_keys(key_ids, grant_id=grant_id)
 
 
-async def _revoke_grants_locally(
+async def lock_grant(session: AsyncSession, grant_id: str) -> None:
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": f"grant:{grant_id}"}
+    )
+
+
+async def revoke_grants_locally(
     session: AsyncSession, grant_ids: list[str], now: datetime
 ) -> dict[str, list[int]]:
+    for grant_id in sorted(grant_ids):
+        await lock_grant(session, grant_id)
     key_ids: dict[str, list[int]] = {}
     for grant_id, key_id in (
         await session.execute(
@@ -116,7 +124,7 @@ async def _replace_browser_grants(
     )
     for old_grant_id in replaced:
         log.info("grant_replaced", grant_id=old_grant_id, replaced_by=keep_grant_id)
-    return await _revoke_grants_locally(session, replaced, now) if replaced else {}
+    return await revoke_grants_locally(session, replaced, now) if replaced else {}
 
 
 async def _authenticate_client(
@@ -158,6 +166,8 @@ async def exchange_refresh_token(
 
     if presented is None or presented.client_id != client.client_id:
         raise TokenError("invalid_grant", "refresh token not recognised")
+    await lock_grant(session, presented.grant_id)
+    await session.refresh(presented)
     if presented.expires_at <= now:
         raise TokenError("invalid_grant", "refresh token expired")
     if presented.consumed_at is not None:
