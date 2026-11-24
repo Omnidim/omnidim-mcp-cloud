@@ -180,6 +180,7 @@ _CACHEABLE = frozenset(
         "skills/get",
     }
 )
+_MODERN_ONLY = frozenset({"server/discover", "skills/list", "skills/get"})
 _NAME_FIELD = {"tools/call": "name", "prompts/get": "name", "resources/read": "uri"}
 _BASE64_START, _BASE64_END = "=?base64?", "?="
 _CAPABILITIES: dict[str, Any] = {
@@ -234,8 +235,11 @@ def _header_mismatch(
 
 
 async def _call(
-    method: str, params: dict[str, Any], token: ResolvedToken, *, read_only: bool
+    method: str, params: dict[str, Any], token: ResolvedToken, *, read_only: bool, modern: bool
 ) -> dict[str, Any]:
+    if method in _MODERN_ONLY and not modern:
+        raise MethodNotFound(method)
+
     if method == "initialize":
         return {
             "protocolVersion": PROTOCOL_VERSION,
@@ -300,7 +304,8 @@ async def _call(
         uri = params.get("uri")
         if not isinstance(uri, str):
             raise RpcError(-32602, "resources/read requires uri (str)")
-        resource = read_resource(uri) or read_skill_file(uri, read_only=read_only)
+        skill_file = read_skill_file(uri, read_only=read_only) if modern else None
+        resource = read_resource(uri) or skill_file
         if resource is None:
             raise RpcError(-32602, f"unknown resource: {uri}")
         return resource
@@ -322,7 +327,7 @@ async def _answer_legacy(
     method: str, req_id: object, params: dict[str, Any], token: ResolvedToken, *, read_only: bool
 ) -> Response:
     try:
-        result = await _call(method, params, token, read_only=read_only)
+        result = await _call(method, params, token, read_only=read_only, modern=False)
     except MethodNotFound as exc:
         return JSONResponse(status_code=400, content=_error(req_id, exc.code, exc.message))
     except RpcError as exc:
@@ -356,7 +361,7 @@ async def _answer_modern(
             status_code=400, content=_error(req_id, -32020, f"Header mismatch: {mismatch}")
         )
     try:
-        result = await _call(method, params, token, read_only=read_only)
+        result = await _call(method, params, token, read_only=read_only, modern=True)
     except MethodNotFound as exc:
         return JSONResponse(status_code=404, content=_error(req_id, exc.code, exc.message))
     except RpcError as exc:
@@ -386,6 +391,8 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
             status_code=400,
             content=_error(req_id, -32600, "missing method"),
         )
+    if not isinstance(params, dict):
+        return JSONResponse(content=_error(req_id, -32602, "params must be an object"))
 
     version = _requested_version(params)
     uri = params.get("uri") if method in ("resources/read", "skills/get") else None
@@ -405,6 +412,7 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
 
     if version is None:
         return await _answer_legacy(str(method), req_id, params, token, read_only=read_only)
+
     return await _answer_modern(
         request, str(method), req_id, params, version, token, read_only=read_only
     )

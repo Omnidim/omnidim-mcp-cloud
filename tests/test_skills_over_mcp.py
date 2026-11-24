@@ -7,6 +7,7 @@ import yaml
 from httpx import AsyncClient
 
 from app.skills import REACH, Reach, load_skills
+from tests.test_mcp_modern_protocol import _modern
 from tests.test_mcp_transport import _mint_access_token
 
 VENDOR = Path(__file__).resolve().parents[1] / "app" / "vendor" / "omnidim-skills" / "skills"
@@ -20,11 +21,7 @@ FULL_SKILLS = {
 
 
 async def _rpc(client: AsyncClient, token: str, path: str, method: str, params: Any = None) -> Any:
-    body: dict[str, Any] = {"jsonrpc": "2.0", "id": 1, "method": method}
-    if params is not None:
-        body["params"] = params
-    res = await client.post(path, headers={"Authorization": f"Bearer {token}"}, json=body)
-    return res.json()
+    return (await _modern(client, token, method, params, path=path)).json()
 
 
 def _file_frontmatter(skill: str) -> dict[str, Any]:
@@ -76,8 +73,10 @@ async def test_manifest_lists_every_file_with_the_digest_and_size_of_what_reads_
             raw = content["text"].encode("utf-8")
             assert content["uri"] == resource["uri"]
             assert content["mimeType"] == "text/markdown"
-            assert resource["size"] == len(raw)
-            assert resource["digest"] == "sha256:" + hashlib.sha256(raw).hexdigest()
+            on_disk = (VENDOR / resource["uri"].removeprefix("skill://")).read_bytes()
+            assert raw == on_disk
+            assert resource["size"] == len(on_disk)
+            assert resource["digest"] == "sha256:" + hashlib.sha256(on_disk).hexdigest()
 
 
 async def test_get_returns_the_same_entry_as_the_listing(client: AsyncClient) -> None:

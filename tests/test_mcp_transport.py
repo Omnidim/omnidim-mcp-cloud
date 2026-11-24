@@ -190,9 +190,8 @@ async def test_mcp_still_refuses_an_unknown_request(client: AsyncClient) -> None
     res = await client.post(
         "/mcp",
         headers={"Authorization": f"Bearer {token}"},
-        json={"jsonrpc": "2.0", "id": 9, "method": "tasks/get"},
+        json={"jsonrpc": "2.0", "id": 9, "method": "server/discover"},
     )
-    assert res.status_code == 400
     assert res.json()["error"]["code"] == -32601
 
 

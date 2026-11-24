@@ -238,6 +238,41 @@ async def test_legacy_handshake_is_unchanged(client: AsyncClient) -> None:
     assert "resultType" not in result
 
 
+@pytest.mark.parametrize(
+    ("method", "params", "code"),
+    [
+        ("server/discover", None, -32601),
+        ("skills/list", None, -32601),
+        ("skills/get", {"uri": "skill://omnidim-audit-calls/SKILL.md"}, -32601),
+        ("resources/read", {"uri": "skill://omnidim-audit-calls/SKILL.md"}, -32602),
+    ],
+)
+async def test_legacy_requests_get_no_modern_methods(
+    client: AsyncClient, method: str, params: dict[str, Any] | None, code: int
+) -> None:
+    token = await _mint_access_token(client)
+    body: dict[str, Any] = {"jsonrpc": "2.0", "id": 1, "method": method}
+    if params is not None:
+        body["params"] = params
+
+    res = await client.post("/mcp", headers={"Authorization": f"Bearer {token}"}, json=body)
+
+    assert res.json()["error"]["code"] == code
+
+
+@pytest.mark.parametrize("params", ["x", 5, ["a"]])
+async def test_params_that_are_not_an_object_are_invalid(client: AsyncClient, params: Any) -> None:
+    token = await _mint_access_token(client)
+
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 1, "method": "ping", "params": params},
+    )
+
+    assert res.json()["error"]["code"] == -32602
+
+
 async def test_legacy_results_carry_no_modern_fields(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
 
