@@ -200,3 +200,26 @@ async def test_approval_without_browser_id_replaces_nothing(
 
     assert await _mcp_status(client, old) == 200
     assert revoked_key_ids == []
+
+
+async def test_odoo_outage_still_connects_and_ends_old_grant(
+    client: AsyncClient,
+) -> None:
+    def down(_req: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("odoo down")
+
+    transport = httpx.MockTransport(down)
+    upstream_keys.set_client_factory(lambda: httpx.AsyncClient(transport=transport))
+    try:
+        browser = _browser()
+        demo = await _approve(
+            client, app_name="Claude", odoo_user_id=33, api_key_id=701, browser_id=browser
+        )
+        mine = await _approve(
+            client, app_name="Claude", odoo_user_id=13, api_key_id=702, browser_id=browser
+        )
+    finally:
+        upstream_keys.reset_client_factory()
+
+    assert await _mcp_status(client, demo) == 401
+    assert await _mcp_status(client, mine) == 200

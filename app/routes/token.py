@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -11,6 +11,7 @@ from app.services.token import (
     exchange_refresh_token,
     revoke,
 )
+from app.services.upstream_keys import revoke_api_keys
 
 router = APIRouter(tags=["oauth"])
 
@@ -25,6 +26,7 @@ def _raise(exc: TokenError) -> None:
 @router.post("/token")
 async def token(
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    background: BackgroundTasks,
     grant_type: Annotated[str, Form()],
     code: Annotated[str | None, Form()] = None,
     redirect_uri: Annotated[str | None, Form()] = None,
@@ -66,6 +68,8 @@ async def token(
                 await session.commit()
         except TokenError as exc:
             _raise(exc)
+        for old_grant_id, key_ids in tokens.replaced_grants.items():
+            background.add_task(revoke_api_keys, key_ids, grant_id=old_grant_id)
 
     elif grant_type == "refresh_token":
         if not client_id or not refresh_token:
