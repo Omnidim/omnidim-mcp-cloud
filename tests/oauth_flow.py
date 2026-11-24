@@ -2,7 +2,7 @@ import base64
 import hashlib
 import secrets
 
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 
 SECRET = {"X-Internal-Secret": "test-shared-secret"}
 REDIRECT = "https://claude.ai/api/mcp/auth_callback"
@@ -66,8 +66,8 @@ async def approve(
     return {"client_id": client_id, **res.json()}
 
 
-async def refresh(client: AsyncClient, grant: dict[str, str]) -> dict[str, str]:
-    res = await client.post(
+async def post_refresh(client: AsyncClient, grant: dict[str, str]) -> Response:
+    return await client.post(
         "/token",
         data={
             "grant_type": "refresh_token",
@@ -75,6 +75,10 @@ async def refresh(client: AsyncClient, grant: dict[str, str]) -> dict[str, str]:
             "refresh_token": grant["refresh_token"],
         },
     )
+
+
+async def refresh(client: AsyncClient, grant: dict[str, str]) -> dict[str, str]:
+    res = await post_refresh(client, grant)
     assert res.status_code == 200, res.text
     return {"client_id": grant["client_id"], **res.json()}
 

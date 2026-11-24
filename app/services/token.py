@@ -78,6 +78,8 @@ async def lock_grant(session: AsyncSession, grant_id: str) -> None:
 async def revoke_grants_locally(
     session: AsyncSession, grant_ids: list[str], now: datetime
 ) -> dict[str, list[int]]:
+    if not grant_ids:
+        return {}
     for grant_id in sorted(grant_ids):
         await lock_grant(session, grant_id)
     key_ids: dict[str, list[int]] = {}
@@ -124,7 +126,7 @@ async def _replace_browser_grants(
     )
     for old_grant_id in replaced:
         log.info("grant_replaced", grant_id=old_grant_id, replaced_by=keep_grant_id)
-    return await revoke_grants_locally(session, replaced, now) if replaced else {}
+    return await revoke_grants_locally(session, replaced, now)
 
 
 async def _authenticate_client(

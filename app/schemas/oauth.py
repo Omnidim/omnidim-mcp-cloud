@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
@@ -88,6 +89,17 @@ class IssueCodeResponse(BaseModel):
     redirect_to: str
 
 
+class AppConnection(BaseModel):
+    app: str
+    connections: int
+    connected_at: datetime
+    last_active_at: datetime
+
+
+class ConnectionsResponse(BaseModel):
+    connections: list[AppConnection]
+
+
 class DisconnectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -95,6 +107,10 @@ class DisconnectRequest(BaseModel):
     apps: list[Annotated[str, Field(min_length=1, max_length=255)]] = Field(
         min_length=1, max_length=20
     )
+
+
+class DisconnectResponse(BaseModel):
+    disconnected: int
 
 
 class DenyRequest(BaseModel):

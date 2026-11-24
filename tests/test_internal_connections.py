@@ -3,12 +3,20 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import RefreshToken
 from app.services.token import lock_grant, revoke_grants_locally
-from tests.oauth_flow import SECRET, approve, mcp_status, new_browser_id, new_user_id, refresh
+from tests.oauth_flow import (
+    SECRET,
+    approve,
+    mcp_status,
+    new_browser_id,
+    new_user_id,
+    post_refresh,
+    refresh,
+)
 
 
 async def _connections(client: AsyncClient, odoo_user_id: int) -> list[dict[str, object]]:
@@ -27,6 +35,38 @@ async def _disconnect(client: AsyncClient, odoo_user_id: int, app: str) -> int:
     assert res.status_code == 200, res.text
     disconnected: int = res.json()["disconnected"]
     return disconnected
+
+
+async def _only_grant(session: AsyncSession, odoo_user_id: int) -> tuple[str, str]:
+    row = (
+        await session.execute(
+            select(RefreshToken.grant_id, RefreshToken.client_id).where(
+                RefreshToken.odoo_user_id == odoo_user_id
+            )
+        )
+    ).one()
+    return row.grant_id, row.client_id
+
+
+async def _rotate_refresh_token(
+    session: AsyncSession, grant_id: str, client_id: str, odoo_user_id: int
+) -> None:
+    now = datetime.now(UTC)
+    await session.execute(
+        update(RefreshToken)
+        .where(RefreshToken.grant_id == grant_id, RefreshToken.consumed_at.is_(None))
+        .values(consumed_at=now)
+    )
+    session.add(
+        RefreshToken(
+            token_hash=secrets.token_hex(32),
+            client_id=client_id,
+            odoo_user_id=odoo_user_id,
+            grant_id=grant_id,
+            scope="omnidim:all",
+            expires_at=now + timedelta(days=90),
+        )
+    )
 
 
 async def test_lists_one_row_per_app(client: AsyncClient, revoked_key_ids: list[int]) -> None:
@@ -140,40 +180,11 @@ async def test_disconnect_also_ends_a_refresh_that_was_in_flight(
     user = new_user_id()
     await approve(client, app_name="Claude", odoo_user_id=user, api_key_id=851, browser_id=None)
     async with session_factory() as refreshing:
-        grant_id = (
-            await refreshing.execute(
-                text("SELECT grant_id FROM oauth_refresh_token WHERE odoo_user_id = :u"),
-                {"u": user},
-            )
-        ).scalar_one()
+        grant_id, client_id = await _only_grant(refreshing, user)
         await lock_grant(refreshing, grant_id)
         disconnecting = asyncio.create_task(_disconnect(client, user, "Claude"))
         await asyncio.sleep(0.3)
-        now = datetime.now(UTC)
-        await refreshing.execute(
-            text(
-                "UPDATE oauth_refresh_token SET consumed_at = :now "
-                "WHERE grant_id = :g AND consumed_at IS NULL"
-            ),
-            {"now": now, "g": grant_id},
-        )
-        refreshing.add(
-            RefreshToken(
-                token_hash=secrets.token_hex(32),
-                client_id=(
-                    await refreshing.execute(
-                        text("SELECT client_id FROM oauth_refresh_token WHERE grant_id = :g"),
-                        {"g": grant_id},
-                    )
-                )
-                .scalars()
-                .first(),
-                odoo_user_id=user,
-                grant_id=grant_id,
-                scope="omnidim:all",
-                expires_at=now + timedelta(days=90),
-            )
-        )
+        await _rotate_refresh_token(refreshing, grant_id, client_id, user)
         await refreshing.commit()
 
     assert await disconnecting == 1
@@ -218,23 +229,9 @@ async def test_refresh_waiting_on_a_disconnect_is_refused(
         client, app_name="Claude", odoo_user_id=user, api_key_id=871, browser_id=None
     )
     async with session_factory() as disconnecting:
-        grant_id = (
-            await disconnecting.execute(
-                text("SELECT grant_id FROM oauth_refresh_token WHERE odoo_user_id = :u"),
-                {"u": user},
-            )
-        ).scalar_one()
+        grant_id, _ = await _only_grant(disconnecting, user)
         await revoke_grants_locally(disconnecting, [grant_id], datetime.now(UTC))
-        refreshing = asyncio.create_task(
-            client.post(
-                "/token",
-                data={
-                    "grant_type": "refresh_token",
-                    "client_id": grant["client_id"],
-                    "refresh_token": grant["refresh_token"],
-                },
-            )
-        )
+        refreshing = asyncio.create_task(post_refresh(client, grant))
         await asyncio.sleep(0.3)
         await disconnecting.commit()
 

@@ -14,9 +14,11 @@ from app.config import Settings, get_settings
 from app.dependencies import get_session_factory
 from app.models import AuthorizationRequest, OAuthClient
 from app.schemas.oauth import (
+    ConnectionsResponse,
     DenyRequest,
     DenyResponse,
     DisconnectRequest,
+    DisconnectResponse,
     IssueCodeRequest,
     IssueCodeResponse,
 )
@@ -61,14 +63,18 @@ async def get_authorization_request(
         ).scalar_one_or_none()
 
         if row is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="request not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="request not found"
+            )
 
         now = datetime.now(UTC)
         expired = row.expires_at <= now
         consumed = row.consumed_at is not None
 
         client: OAuthClient | None = (
-            await session.execute(select(OAuthClient).where(OAuthClient.client_id == row.client_id))
+            await session.execute(
+                select(OAuthClient).where(OAuthClient.client_id == row.client_id)
+            )
         ).scalar_one_or_none()
 
     return {
@@ -143,20 +149,10 @@ async def post_deny(
 async def get_connections(
     odoo_user_id: int,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
-) -> dict[str, list[dict[str, object]]]:
+) -> ConnectionsResponse:
     async with factory() as session:
-        rows = await list_connections(session, odoo_user_id, datetime.now(UTC))
-    return {
-        "connections": [
-            {
-                "app": row.app,
-                "connections": row.connections,
-                "connected_at": row.connected_at.isoformat(),
-                "last_active_at": row.last_active_at.isoformat(),
-            }
-            for row in rows
-        ]
-    }
+        connections = await list_connections(session, odoo_user_id, datetime.now(UTC))
+    return ConnectionsResponse(connections=connections)
 
 
 @router.post("/connections/disconnect", dependencies=[Depends(_require_shared_secret)])
@@ -164,7 +160,7 @@ async def post_disconnect(
     body: DisconnectRequest,
     background: BackgroundTasks,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
-) -> dict[str, int]:
+) -> DisconnectResponse:
     async with factory() as session:
         ended = await end_connections(session, body.odoo_user_id, body.apps, datetime.now(UTC))
         await session.commit()
@@ -176,4 +172,4 @@ async def post_disconnect(
         apps=body.apps,
         grants=len(ended),
     )
-    return {"disconnected": len(ended)}
+    return DisconnectResponse(disconnected=len(ended))
