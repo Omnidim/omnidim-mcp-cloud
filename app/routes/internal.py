@@ -97,6 +97,7 @@ async def post_issue_code(
                 odoo_api_key_id=body.odoo_api_key_id,
                 odoo_api_key_value=body.odoo_api_key_value,
                 approved_scope=body.approved_scope,
+                browser_id=body.browser_id,
             )
             await session.commit()
     except IssueCodeError as exc:

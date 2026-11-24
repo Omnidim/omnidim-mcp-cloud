@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Final
 
@@ -36,6 +36,7 @@ class IssuedTokens:
     refresh_token: str
     expires_in: int
     scope: str
+    replaced_grants: dict[str, list[int]] = field(default_factory=dict)
 
 
 def _hash(value: str) -> str:
@@ -63,26 +64,59 @@ async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> 
     must survive both an upstream failure and a caller that aborts the request
     afterwards (reuse detection does exactly that).
     """
-    key_ids = list(
+    key_ids = (await _revoke_grants_locally(session, [grant_id], now)).get(grant_id, [])
+    await session.commit()
+    await revoke_api_keys(key_ids, grant_id=grant_id)
+
+
+async def _revoke_grants_locally(
+    session: AsyncSession, grant_ids: list[str], now: datetime
+) -> dict[str, list[int]]:
+    key_ids: dict[str, list[int]] = {}
+    for grant_id, key_id in (
+        await session.execute(
+            select(AccessToken.grant_id, AccessToken.odoo_api_key_id)
+            .where(AccessToken.grant_id.in_(grant_ids))
+            .distinct()
+        )
+    ).tuples():
+        key_ids.setdefault(grant_id, []).append(key_id)
+    await session.execute(
+        update(AccessToken).where(AccessToken.grant_id.in_(grant_ids)).values(revoked_at=now)
+    )
+    await session.execute(
+        update(RefreshToken)
+        .where(RefreshToken.grant_id.in_(grant_ids))
+        .where(RefreshToken.consumed_at.is_(None))
+        .values(consumed_at=now)
+    )
+    return key_ids
+
+
+async def _replace_browser_grants(
+    session: AsyncSession,
+    *,
+    browser_id_hash: str,
+    client_name: str,
+    keep_grant_id: str,
+    now: datetime,
+) -> dict[str, list[int]]:
+    replaced = list(
         (
             await session.execute(
-                select(AccessToken.odoo_api_key_id)
-                .where(AccessToken.grant_id == grant_id)
+                select(AccessToken.grant_id)
+                .join(OAuthClient, OAuthClient.client_id == AccessToken.client_id)
+                .where(AccessToken.browser_id_hash == browser_id_hash)
+                .where(OAuthClient.client_name == client_name)
+                .where(AccessToken.revoked_at.is_(None))
+                .where(AccessToken.grant_id != keep_grant_id)
                 .distinct()
             )
         ).scalars()
     )
-    await session.execute(
-        update(AccessToken).where(AccessToken.grant_id == grant_id).values(revoked_at=now)
-    )
-    await session.execute(
-        update(RefreshToken)
-        .where(RefreshToken.grant_id == grant_id)
-        .where(RefreshToken.consumed_at.is_(None))
-        .values(consumed_at=now)
-    )
-    await session.commit()
-    await revoke_api_keys(key_ids, grant_id=grant_id)
+    for old_grant_id in replaced:
+        log.info("grant_replaced", grant_id=old_grant_id, replaced_by=keep_grant_id)
+    return await _revoke_grants_locally(session, replaced, now) if replaced else {}
 
 
 async def _authenticate_client(
@@ -263,6 +297,7 @@ async def exchange_authorization_code(
             odoo_api_key_id=auth_code.odoo_api_key_id,
             odoo_api_key_value=auth_code.odoo_api_key_value,
             grant_id=grant_id,
+            browser_id_hash=auth_code.browser_id_hash,
             scope=auth_code.scope,
             expires_at=now + ACCESS_TOKEN_TTL,
         )
@@ -284,10 +319,20 @@ async def exchange_authorization_code(
         odoo_user_id=auth_code.odoo_user_id,
         grant_id=grant_id,
     )
+    replaced_grants: dict[str, list[int]] = {}
+    if auth_code.browser_id_hash:
+        replaced_grants = await _replace_browser_grants(
+            session,
+            browser_id_hash=auth_code.browser_id_hash,
+            client_name=client.client_name,
+            keep_grant_id=grant_id,
+            now=now,
+        )
 
     return IssuedTokens(
         access_token=access_plain,
         refresh_token=refresh_plain,
         expires_in=int(ACCESS_TOKEN_TTL.total_seconds()),
         scope=auth_code.scope,
+        replaced_grants=replaced_grants,
     )
