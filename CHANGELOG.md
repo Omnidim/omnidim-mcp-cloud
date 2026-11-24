@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.19.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.0...v0.19.1) (2026-11-24)
+
+
+### Fixed
+
+* refresh tool descriptions from the updated API spec ([#130](https://github.com/Omnidim/omnidim-mcp-cloud/issues/130)) ([f652fc7](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f652fc79617c761fff579af6e59c3b7be0335c48))
+
 ## [0.19.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.18.0...v0.19.0) (2026-11-23)
 
 
