@@ -27,6 +27,10 @@ Discovery endpoints and error responses are read by automated clients AND by hum
 
 When in doubt, grep the docs repo (`omnidim-docs/content`) for the canonical path. Never invent.
 
+## Playbooks and guides come from Omnidim/skills
+
+The playbooks (`readGuide`, MCP prompts) and the `omnidim://` guides are markdown files in the [Omnidim/skills](https://github.com/Omnidim/skills) repo. Edit them there, never in `app/vendor/omnidim-skills/`. `scripts/skills_sync.py <commit>` copies them in, and the `skills-sync` workflow opens that PR every morning when the skills repo has moved. `app/procedures.py` keeps only what the server owns: the prompt inputs, `book_demo`, the demo offer rule and the workflow canvas. A new playbook is one markdown file in the skills repo plus one row in `_PLAYBOOK_INPUTS`.
+
 ## Architecture invariants
 
 These do not bend without an explicit decision:

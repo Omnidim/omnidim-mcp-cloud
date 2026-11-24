@@ -1,0 +1,57 @@
+name: skills-sync
+
+on:
+  repository_dispatch:
+    types: [skills-changed]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+
+      - id: sync
+        run: echo "sha=$(python scripts/skills_sync.py main)" >> "$GITHUB_OUTPUT"
+
+      - name: Mint an installation token
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: "4881703"
+          private-key: ${{ secrets.SPEC_BOT_PRIVATE_KEY }}
+
+      - name: Open a PR if the playbooks changed
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.token.outputs.token }}
+          branch: chore/skills-sync
+          delete-branch: true
+          add-paths: app/vendor/omnidim-skills
+          commit-message: "fix: refresh playbooks and guides from Omnidim/skills"
+          title: "fix: refresh playbooks and guides from Omnidim/skills"
+          body: |
+            Copies the playbooks and guides from Omnidim/skills at
+            https://github.com/Omnidim/skills/commit/${{ steps.sync.outputs.sha }}.
+
+            The text was reviewed in that repo. The checks here prove every
+            playbook is still served, every tool it names exists, and every
+            rule the tests pin still holds. It merges itself once they pass,
+            and the next release PR ships it.
+
+      - name: Auto-merge once the checks pass
+        if: steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto --squash --delete-branch
