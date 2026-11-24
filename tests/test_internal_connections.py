@@ -242,17 +242,19 @@ async def test_refresh_waiting_on_a_disconnect_is_refused(
     assert await _connections(client, user) == []
 
 
-async def test_names_the_website_each_app_returns_to(
+async def test_names_the_website_each_app_signed_in_through(
     client: AsyncClient, revoked_key_ids: list[int]
 ) -> None:
     user = new_user_id()
     glama = ["https://glama.ai/api/app/mcp/oauth/callback", "http://localhost:6749/callback"]
-    cursor = ["http://localhost:8787/callback", "https://www.cursor.com/agents/mcp/oauth/callback"]
+    vscode = ["http://127.0.0.1:33418/", "https://insiders.vscode.dev/redirect"]
+    spoof = ["https://evil.example/cb", "https://claude.ai/api/mcp/auth_callback"]
     apps = (
         (871, "Glama", glama),
-        (872, "Cursor", cursor),
-        (873, "Claude Code (omnidim)", ["http://localhost:3118/callback"]),
+        (872, "Cursor", ["https://www.cursor.com/agents/mcp/oauth/callback"]),
+        (873, "Visual Studio Code", vscode),
         (874, "Codex", ["http://127.0.0.1:50044/callback"]),
+        (875, "Clauude", spoof),
     )
     for key, name, uris in apps:
         await approve(
@@ -269,6 +271,24 @@ async def test_names_the_website_each_app_returns_to(
     assert {r["app"]: r["site"] for r in rows} == {
         "Glama": "glama.ai",
         "Cursor": "cursor.com",
-        "Claude Code (omnidim)": None,
+        "Visual Studio Code": None,
         "Codex": None,
+        "Clauude": "evil.example",
     }
+
+
+async def test_prefers_a_website_when_one_app_signed_in_both_ways(
+    client: AsyncClient, revoked_key_ids: list[int]
+) -> None:
+    user = new_user_id()
+    for key, uri in ((881, "http://localhost:8787/callback"), (882, "https://cursor.com/cb")):
+        await approve(
+            client,
+            app_name="Cursor",
+            odoo_user_id=user,
+            api_key_id=key,
+            browser_id=None,
+            redirect_uris=[uri],
+        )
+
+    assert [r["site"] for r in await _connections(client, user)] == ["cursor.com"]

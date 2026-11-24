@@ -19,11 +19,11 @@ class Connection:
     site: str | None
 
 
-def web_site(redirect_uris: list[str]) -> str | None:
+def web_site(used_redirects: list[str | None]) -> str | None:
     hosts = sorted(
         host.removeprefix("www.")
-        for uri in redirect_uris
-        if (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
+        for uri in used_redirects
+        if uri and (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
     )
     return hosts[0] if hosts else None
 
@@ -35,11 +35,14 @@ async def list_connections(
         text(
             """
             SELECT c.client_name, count(DISTINCT r.grant_id),
-                   min(a.created_at), max(a.created_at), array_agg(DISTINCT u.uri)
+                   min(a.created_at), max(a.created_at), array_agg(DISTINCT code.redirect_uri)
             FROM oauth_refresh_token r
             JOIN oauth_client c ON c.client_id = r.client_id
             JOIN oauth_access_token a ON a.grant_id = r.grant_id
-            CROSS JOIN LATERAL json_array_elements_text(c.redirect_uris) AS u(uri)
+            LEFT JOIN oauth_authorization_code code
+              ON code.client_id = r.client_id
+             AND code.odoo_user_id = r.odoo_user_id
+             AND code.consumed_at IS NOT NULL
             WHERE r.odoo_user_id = :odoo_user_id
               AND r.consumed_at IS NULL
               AND r.expires_at > :now
