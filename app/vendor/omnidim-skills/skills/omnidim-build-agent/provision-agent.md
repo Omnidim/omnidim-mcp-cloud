@@ -50,7 +50,7 @@ Follow these steps in order. Write tools take flat top-level arguments (no `requ
 9. Give it a number, as the design's number plan says. List numbers with
    `listPhoneNumbers` and show each one with the agent it serves now
    (`active_bot_id` is that agent's id, or false; name it from `listAgents`). Attach only the number the user names, with
-   `attachPhoneNumber` { phone_number_id, agent_id }. If that number serves
+   `phoneNumberAgentActions` { action: "attach", phone_number_id, agent_id }. If that number serves
    another agent, say that agent stops answering on it, and attach only after
    the user's yes. If no number exists, ask the user whether to buy one or
    import one they own. To buy: ask for the region and for landline or mobile,
@@ -58,8 +58,8 @@ Follow these steps in order. Write tools take flat top-level arguments (no `requ
    `searchPhoneNumbers` { region, carrier }, and confirm the exact number and
    price before `purchasePhoneNumber`, which charges the account. To import:
    importTwilioNumber / importExotelNumber / importSipTrunk.
-   Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }.
-10. If `getAgent` showed `can_publish: true`, save this as version "V1" with `createAgentVersion`. A 409 `no_changes` means a saved version already holds this state: rename that newest version to "V1" with `renameAgentVersion`.
+   Optional knowledge base: `uploadKnowledgeBaseFile` then `agentKnowledgeBaseActions` { action: "attach", file_ids, agent_id }.
+10. If `getAgent` showed `can_publish: true`, save this as version "V1" with `createAgentVersion`. A 409 `no_changes` means a saved version already holds this state: rename that newest version to "V1" with `agentVersionActions` (`action: "rename"`).
 11. If the user gave a test number, call it. Otherwise ask the user whether to call their phone now to test the agent. With their number, place the call with `dispatchCall`. Pass `call_context` with a value for every [variable] the welcome and prompt use, and the number from step 9 as `from_number_id` (omit it only if the account has no numbers).
 12. Check `listCallLogs` { agentid, pagesize: 1 } at most 5 times, 30 seconds apart; if no new row appears, tell the user and stop. Then `getCallLog` on its id. The call is verified ONLY if `call_conversation` is non-empty (the agent actually spoke). A successful dispatch response alone is not proof. Tell the user what happened on the call and propose fixes with the `update_agent` playbook.
 

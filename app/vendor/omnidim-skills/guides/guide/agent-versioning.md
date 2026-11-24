@@ -18,10 +18,10 @@ if a change makes the agent worse.
 - `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
   config as a named version.
 - `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
-- `restoreAgentVersion` { agent_id, version_number } - write a version back onto
+- `agentVersionActions` { action: "restore", agent_id, version_number } - write a version back onto
   the agent. On a published agent it writes the draft: callers hear it after
   the user publishes in the dashboard.
-- `renameAgentVersion` / `deleteAgentVersion` - tidy the timeline.
+- `agentVersionActions` with `action` `rename` or `delete` - tidy the timeline.
 
 `kind` is `manual` (someone saved it) or `system` (a safety backup taken right
 before a restore). Nothing saves versions automatically.
@@ -53,7 +53,7 @@ comparison with `against`:
 2. `diffAgentVersion` { version_number, against: "current" } to preview exactly
    what restoring changes. If nothing meaningful changed, there is nothing to do.
    Show the user the preview, and restore only on their yes.
-3. `restoreAgentVersion` { agent_id, version_number }. This first keeps the
+3. `agentVersionActions` { action: "restore", agent_id, version_number }. This first keeps the
    current state as a backup (a new `system` "Backup before restore" version, or
    an existing version that already holds the same state), so the restore is
    itself undoable, then writes the chosen config back. The response's `skipped`

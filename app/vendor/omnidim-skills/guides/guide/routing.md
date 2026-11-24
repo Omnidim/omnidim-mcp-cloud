@@ -36,7 +36,7 @@ give it a **phone number** and optionally a **knowledge base**, then place
 ## Rules that are easy to get wrong (proven against the live API)
 
 1. **Write tools take flat top-level arguments.** `createAgent`,
-   `updateAgent`, `attachPhoneNumber`, `dispatchCall`, etc. take their fields
+   `updateAgent`, `phoneNumberAgentActions`, `dispatchCall`, etc. take their fields
    directly (e.g. `{ "agent_id": 1, "to_number": "+1..." }`). Do NOT wrap them
    in a `requestBody` object.
 2. **Voices: use the `name` string as `voice_id`.** `listVoices` returns
@@ -90,8 +90,8 @@ give it a **phone number** and optionally a **knowledge base**, then place
 13. **Knowledge-base files over a few KB: the user uploads them at
     https://omnidim.io/files.** `uploadKnowledgeBaseFile` takes the PDF as
     Base64 in the call, so use it only for a small file. Then find the file
-    with `listKnowledgeBaseFiles` and attach it with `attachKnowledgeBaseFiles`.
+    with `listKnowledgeBaseFiles` and attach it with `agentKnowledgeBaseActions` (`action: "attach"`).
 14. **A published agent keeps serving its published version.** If `getAgent`
     shows `published_state.is_published: true`, `updateAgent` and
-    `restoreAgentVersion` change only the draft. Callers hear the change after
+    `agentVersionActions` (`action: "restore"`) change only the draft. Callers hear the change after
     the user publishes in the dashboard. There is no publish tool for agents.

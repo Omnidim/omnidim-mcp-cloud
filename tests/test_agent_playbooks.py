@@ -83,7 +83,7 @@ def test_update_backs_up_before_it_applies_and_can_undo() -> None:
     assert "agent 42 says the clinic name wrong" in text
     assert text.index("getAgent") < text.index("createAgentVersion") < text.index("updateAgent")
     assert '"Apply"' in text
-    assert "restoreAgentVersion" in text
+    assert "agentVersionActions" in text
     assert "SMALL FIX" in text
 
 

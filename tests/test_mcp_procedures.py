@@ -120,7 +120,7 @@ async def test_versioning_prompt_and_resource(client: AsyncClient) -> None:
     )
     text = res.json()["result"]["messages"][0]["content"]["text"]
     assert "6391" in text
-    assert "restoreAgentVersion" in text
+    assert "agentVersionActions" in text
     assert 'against: "current"' in text
     # The versioning guide resource explains the diff modes and the gotchas.
     res = await client.post(

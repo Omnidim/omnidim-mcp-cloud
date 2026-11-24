@@ -7,14 +7,14 @@ description: "Which transcriber (STT), voice (TTS), and language model to choose
 
 Each agent uses a transcriber (speech-to-text), a voice (text-to-speech), and a
 language model, all set on `createAgent`. The pairings below work well in
-production, grouped by the language your callers speak. Use `listSTTProviders`,
-`listTTSProviders`, `listLLMProviders`, and `listVoices` for the live catalog.
+production, grouped by the language your callers speak. Use `listProviders`
+(`type` `stt`, `tts` or `llm`) and `listVoices` for the live catalog.
 
 ## Language model
 
 - Default: `gpt-4.1-mini` -- fast and accurate across languages, a good first
   choice for almost any agent.
-- Alternatives: any other `name` from `listLLMProviders`, which lists only the
+- Alternatives: any other `name` from `listProviders` with `type: "llm"`, which lists only the
   models your organization can use.
 
 ## Voice
@@ -40,7 +40,7 @@ production, grouped by the language your callers speak. Use `listSTTProviders`,
 ## Field notes
 
 - `transcriber.provider` is `soniox` unless the user asks for another one by
-  name. Any other choice must be a `name` from `listSTTProviders`, which lists
+  name. Any other choice must be a `name` from `listProviders` with `type: "stt"`, which lists
   only the transcribers your organization can use.
 - `voice.provider` is the `service` of a voice from `listVoices`, which lists
   only voices your organization can use. Send only `provider` and `voice_id`:

@@ -15,7 +15,8 @@ def tool_annotations(name: str, method: str) -> dict[str, Any]:
     """The marks a tool ships with. Regen writes them from the spec's x-mcp."""
     tool = _BY_NAME[name]
     # The old callers passed "POST" for any non-GET; only GET versus not matters.
-    assert (tool["method"] == "GET") == (method.upper() == "GET"), f"{name} is {tool['method']}"
+    methods = {r["method"] for r in tool.get("actions", {"": tool}).values()}
+    assert (methods == {"GET"}) == (method.upper() == "GET"), f"{name} is {methods}"
     return dict(tool["annotations"])
 
 
@@ -23,12 +24,12 @@ def test_every_generated_tool_has_a_title() -> None:
     """Regen adds tools; titles are hand-authored. Without this guard a new
     tool ships with no display name (the version-history tools did).
     """
-    missing = [t["name"] for t in TOOLS if "title" not in tool_annotations(t["name"], t["method"])]
+    missing = [t["name"] for t in TOOLS if "title" not in t["annotations"]]
     assert missing == []
 
 
 def test_version_overwrite_and_removal_are_destructive() -> None:
-    for name in ("deleteAgentVersion", "restoreAgentVersion"):
+    for name in ("agentVersionActions",):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is False, name
@@ -42,10 +43,6 @@ def test_get_tools_are_read_only() -> None:
     assert a["title"] == "List agents"
 
 
-def test_preview_posts_are_read_only() -> None:
-    assert tool_annotations("canUploadFile", "POST")["readOnlyHint"] is True
-
-
 def test_plain_writes_are_not_destructive() -> None:
     a = tool_annotations("createAgent", "POST")
     assert a["readOnlyHint"] is False
@@ -54,7 +51,7 @@ def test_plain_writes_are_not_destructive() -> None:
 
 
 def test_removals_are_destructive_not_open_world() -> None:
-    for name in ("deleteAgent", "cancelBulkCall", "detachPhoneNumber"):
+    for name in ("deleteAgent", "phoneNumberAgentActions"):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is False, name
@@ -66,9 +63,7 @@ def test_call_placing_tools_are_destructive_and_open_world() -> None:
         "createBulkCall",
         "addBulkCallContact",
         "addBulkCallContacts",
-        "startBulkCall",
         "retryBulkCall",
-        # Its resume action restarts a paused campaign, which places paid calls.
         "bulkCallActions",
     ):
         a = tool_annotations(name, "POST")
@@ -90,7 +85,7 @@ def test_changing_existing_settings_is_destructive() -> None:
         ("setBulkCallNumberActive", "PUT"),
         ("updateAgent", "PUT"),
         ("editWorkflow", "PATCH"),
-        ("pauseWhatsappCampaign", "POST"),
+        ("whatsappCampaignActions", "POST"),
     ):
         a = tool_annotations(name, method)
         assert a["readOnlyHint"] is False, name
@@ -114,11 +109,10 @@ def test_phone_number_purchase_and_release_are_destructive_and_open_world() -> N
 def test_messaging_and_outside_url_tools_are_destructive_and_open_world() -> None:
     for name in (
         "sendWhatsappMessage",
-        "launchWhatsappCampaign",
-        "resumeWhatsappCampaign",
+        "whatsappCampaignActions",
         "addWhatsappCampaignContacts",
         "importWhatsappNumbers",
-        "attachAgentIntegration",
+        "agentIntegrationActions",
     ):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
@@ -128,8 +122,6 @@ def test_messaging_and_outside_url_tools_are_destructive_and_open_world() -> Non
 def test_opt_out_lift_cancel_and_auto_renew_are_destructive() -> None:
     for name in (
         "liftWhatsappOptOut",
-        "cancelWhatsappCampaign",
-        "detachAgentIntegration",
         "setPhoneNumberAutoRenew",
     ):
         a = tool_annotations(name, "POST")

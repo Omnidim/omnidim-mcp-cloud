@@ -22,7 +22,7 @@ edges. It runs on OmniDimension's servers each time its trigger fires.
 5. `editWorkflow` with the `revision` from the last read and a list of `ops`.
 6. `validateWorkflow`, then fix what it reports with another `editWorkflow`.
 7. `testWorkflow` only after the user agrees (see "Test runs are real").
-8. Show the user the flow and get a yes, then `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
+8. Show the user the flow and get a yes, then `publishWorkflow`. The workflow is live at once: real events run it. Do not call `workflowActions` with `action: "activate"` after it.
 
 `getWorkflow` with `view: structure` shows nodes and edges without config.
 Use it to orient in a large workflow. Use `view: full` before you edit config.
@@ -32,8 +32,8 @@ Use it to orient in a large workflow. Use `view: full` before you edit config.
 - You always edit the **draft**. A published workflow is never changed in place.
 - `publishWorkflow` copies the draft to the live version and leaves a fresh draft
   for the next round of edits. It refuses while `validateWorkflow` has errors.
-- `deactivateWorkflow` pauses a published workflow. `activateWorkflow` resumes a paused one. Neither is
-  needed to go live.
+- `workflowActions` with `action: "deactivate"` pauses a published workflow, and `action: "activate"`
+  resumes a paused one. Neither is needed to go live.
 - Every edit needs the current `revision`. On `409 revision_conflict`, someone
   (often the user in the dashboard) saved first. Call `getWorkflow` and retry.
 
@@ -47,8 +47,8 @@ Most harm comes from changing a workflow the user did not ask you to touch.
   `webhook_enabled` on the trigger: it switches the live webhook URL at once. Ask
   before you change it on an existing workflow.
 - `publishWorkflow` overwrites the live version that real events run. Publishing a
-  paused workflow turns it back on. `deactivateWorkflow`
-  pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
+  paused workflow turns it back on. `workflowActions`
+  with `action: "deactivate"` pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
   these on an existing workflow, tell the user exactly what will change and get a yes.
 - Never publish, activate, deactivate, delete or test a workflow as a side effect of another task.
 
