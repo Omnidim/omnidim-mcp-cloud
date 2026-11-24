@@ -21,6 +21,7 @@ SKILLS = [
     "omnidim-build-agent",
     "omnidim-build-workflow",
     "omnidim-connect",
+    "omnidim-onboard-client",
     "omnidim-run-campaign",
 ]
 
@@ -39,7 +40,7 @@ def _frontmatter(text: str) -> dict[str, str]:
     return meta
 
 
-def test_writes_the_five_skills(out: Path) -> None:
+def test_writes_every_skill(out: Path) -> None:
     assert sorted(p.name for p in out.iterdir() if p.is_dir()) == SKILLS
 
 
@@ -67,6 +68,18 @@ def test_links_point_at_files_that_exist(out: Path, skill: str) -> None:
     for link in re.findall(r"\]\((references/[^)]+)\)", text):
         assert (out / skill / link).is_file(), link
     assert "omnidim://" not in "\n".join(p.read_text() for p in (out / skill).rglob("*.md"))
+
+
+def test_client_onboarding_keeps_every_rule_that_protects_money(out: Path) -> None:
+    text = (out / "omnidim-onboard-client" / "SKILL.md").read_text()
+    for guard in [
+        "Idempotency-Key",
+        "/reseller/credits/logs",
+        "monthly_rental_usd",
+        "Check its balance and numbers before any retry",
+        "Never retry an Aadhaar or `redirect` step in a loop",
+    ]:
+        assert guard in text, guard
 
 
 def test_export_is_deterministic(tmp_path: Path) -> None:
