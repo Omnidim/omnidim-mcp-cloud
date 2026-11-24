@@ -88,7 +88,8 @@ def load_skills(root: Path, reach: dict[str, Reach]) -> dict[str, Skill]:
     return skills
 
 
-_SKILLS = load_skills(Path(__file__).parent / "vendor" / "omnidim-skills" / "skills", REACH)
+SKILLS_DIR = Path(__file__).parent / "vendor" / "omnidim-skills" / "skills"
+_SKILLS = load_skills(SKILLS_DIR, REACH)
 _FILES = {f.uri: (skill, f) for skill in _SKILLS.values() for f in skill.files}
 
 
