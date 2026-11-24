@@ -1,23 +1,24 @@
-"""Write Agent Skills (agentskills.io) from this server's prompts and guides.
-
-    uv run python scripts/export_skills.py <out-dir>
-
-One source: the skills are the same text the MCP prompts and resources serve, so they never drift
-from the server. The Omnidim/skills repo holds the output.
-"""
-
 from __future__ import annotations
 
 import json
 import re
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.procedures import _RESOURCES, DEMO_OFFER_RULE, build_prompt
+
+_REPO = Path(__file__).resolve().parents[1]
+_USAGE = "uv run python scripts/export_skills.py <path to a clone of Omnidim/skills>"
+
+_PLUGIN_DESCRIPTION = (
+    "Build, test and update voice AI phone agents, place calls, run call campaigns, review call "
+    "logs, and automate workflows and WhatsApp in your OmniDimension account."
+)
 
 _PREAMBLE = (
     "Needs the OmniDimension MCP server: hosted at `https://mcp.omnidim.io/mcp`, or local with "
@@ -222,7 +223,47 @@ def export(out: Path) -> None:
     (out / "omnidim-onboard-client" / "SKILL.md").write_text(_CLIENT_ONBOARDING)
 
 
+def _write_json(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def export_plugin(root: Path) -> None:
+    version = tomllib.loads((_REPO / "pyproject.toml").read_text())["project"]["version"]
+    owner = {"name": "OmniDimension", "url": "https://omnidim.io"}
+    _write_json(
+        root / ".claude-plugin" / "plugin.json",
+        {
+            "name": "omnidim",
+            "displayName": "OmniDimension",
+            "version": version,
+            "description": _PLUGIN_DESCRIPTION,
+            "author": owner,
+            "homepage": "https://docs.omnidim.io/docs/mcp",
+            "repository": "https://github.com/Omnidim/skills",
+            "license": "Apache-2.0",
+            "privacyPolicyUrl": "https://omnidim.io/privacy-policy",
+            "keywords": ["voice-ai", "phone-calls", "voice-agents", "call-campaigns", "workflows"],
+        },
+    )
+    _write_json(
+        root / ".claude-plugin" / "marketplace.json",
+        {
+            "name": "omnidim",
+            "owner": owner,
+            "description": _PLUGIN_DESCRIPTION,
+            "plugins": [{"name": "omnidim", "source": "./", "description": _PLUGIN_DESCRIPTION}],
+        },
+    )
+    _write_json(
+        root / ".mcp.json",
+        {"mcpServers": {"omnidim": {"type": "http", "url": "https://mcp.omnidim.io/mcp"}}},
+    )
+    shutil.copyfile(_REPO / "scripts" / "omnidim-icon.png", root / ".claude-plugin" / "icon.png")
+    export(root / "skills")
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    export(Path(sys.argv[1]))
+        sys.exit(_USAGE)
+    export_plugin(Path(sys.argv[1]))

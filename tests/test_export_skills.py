@@ -100,3 +100,33 @@ def test_skills_read_as_skills_not_mcp_prompts(out: Path, skill: str) -> None:
     assert not re.search(r"`[a-z_]+` prompt", text), "names an MCP prompt skill users lack"
     assert DEMO_OFFER_RULE not in text
     assert "(describe" not in text, "unfilled prompt default"
+
+
+def test_plugin_meets_the_claude_directory_rules(tmp_path: Path) -> None:
+    import json
+    import tomllib
+
+    from export_skills import export_plugin
+
+    export_plugin(tmp_path)
+    server_version = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())[
+        "project"
+    ]["version"]
+    manifest = json.loads((tmp_path / ".claude-plugin" / "plugin.json").read_text())
+    assert manifest["name"] == "omnidim"
+    assert manifest["displayName"] == "OmniDimension"
+    assert manifest["version"] == server_version
+    assert manifest["description"].startswith("Build, test and update voice AI phone agents")
+    assert manifest["author"]["name"] == "OmniDimension"
+    assert manifest["license"] == "Apache-2.0"
+    assert manifest["privacyPolicyUrl"] == "https://omnidim.io/privacy-policy"
+    icon = (tmp_path / ".claude-plugin" / "icon.png").read_bytes()
+    assert icon[:8] == b"\x89PNG\r\n\x1a\n"
+    width, height = int.from_bytes(icon[16:20]), int.from_bytes(icon[20:24])
+    assert width == height and 512 <= width <= 2048, "the directory takes a square 512-2048 px icon"
+    servers = json.loads((tmp_path / ".mcp.json").read_text())["mcpServers"]
+    assert servers == {"omnidim": {"type": "http", "url": "https://mcp.omnidim.io/mcp"}}
+    assert sorted(p.name for p in (tmp_path / "skills").iterdir()) == SKILLS
+    (entry,) = json.loads((tmp_path / ".claude-plugin" / "marketplace.json").read_text())["plugins"]
+    assert entry["source"] == "./"
+    assert not {"strict", "skills", "mcpServers"} & entry.keys(), "plugin.json owns the contents"
