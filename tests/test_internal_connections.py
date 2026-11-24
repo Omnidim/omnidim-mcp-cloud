@@ -292,3 +292,59 @@ async def test_prefers_a_website_when_one_app_signed_in_both_ways(
         )
 
     assert [r["site"] for r in await _connections(client, user)] == ["cursor.com"]
+
+
+async def test_site_ignores_codes_never_exchanged_and_other_users(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    revoked_key_ids: list[int],
+) -> None:
+    owner, other = new_user_id(), new_user_id()
+    grant = await approve(
+        client,
+        app_name="Glama",
+        odoo_user_id=owner,
+        api_key_id=891,
+        browser_id=None,
+        redirect_uris=["https://glama.ai/cb"],
+    )
+    async with session_factory() as session:
+        for user, uri, consumed in (
+            (owner, "https://claude.ai/x", None),
+            (other, "https://b.example/cb", datetime.now(UTC)),
+        ):
+            await session.execute(
+                text(
+                    "INSERT INTO oauth_authorization_code (code_hash, client_id, odoo_user_id, "
+                    "odoo_api_key_id, redirect_uri, scope, code_challenge, code_challenge_method, "
+                    "expires_at, consumed_at, created_at, updated_at) VALUES (:h, :c, :u, 1, :r, "
+                    "'omnidim:all', 'x', 'S256', now(), :consumed, now(), now())"
+                ),
+                {
+                    "h": secrets.token_hex(16),
+                    "c": grant["client_id"],
+                    "u": user,
+                    "r": uri,
+                    "consumed": consumed,
+                },
+            )
+        await session.commit()
+
+    assert [r["site"] for r in await _connections(client, owner)] == ["glama.ai"]
+
+
+async def test_leaves_site_out_when_no_sign_in_is_on_record(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    revoked_key_ids: list[int],
+) -> None:
+    user = new_user_id()
+    await approve(client, app_name="Glama", odoo_user_id=user, api_key_id=892, browser_id=None)
+    async with session_factory() as session:
+        await session.execute(
+            text("DELETE FROM oauth_authorization_code WHERE odoo_user_id = :u"), {"u": user}
+        )
+        await session.commit()
+
+    [row] = await _connections(client, user)
+    assert "site" not in row

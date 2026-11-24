@@ -16,14 +16,14 @@ class Connection:
     connections: int
     connected_at: datetime
     last_active_at: datetime
-    site: str | None
+    used_redirects: list[str]
 
 
-def web_site(used_redirects: list[str | None]) -> str | None:
+def web_site(used_redirects: list[str]) -> str | None:
     hosts = sorted(
         host.removeprefix("www.")
         for uri in used_redirects
-        if uri and (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
+        if (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
     )
     return hosts[0] if hosts else None
 
@@ -35,7 +35,8 @@ async def list_connections(
         text(
             """
             SELECT c.client_name, count(DISTINCT r.grant_id),
-                   min(a.created_at), max(a.created_at), array_agg(DISTINCT code.redirect_uri)
+                   min(a.created_at), max(a.created_at),
+                   array_remove(array_agg(DISTINCT code.redirect_uri), NULL)
             FROM oauth_refresh_token r
             JOIN oauth_client c ON c.client_id = r.client_id
             JOIN oauth_access_token a ON a.grant_id = r.grant_id
@@ -52,10 +53,7 @@ async def list_connections(
         ),
         {"odoo_user_id": odoo_user_id, "now": now},
     )
-    return [
-        Connection(app, count, connected_at, last_active_at, web_site(uris))
-        for app, count, connected_at, last_active_at, uris in rows.tuples()
-    ]
+    return [Connection(*row) for row in rows.tuples()]
 
 
 async def end_connections(

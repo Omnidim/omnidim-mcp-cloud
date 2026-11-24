@@ -20,7 +20,7 @@ from app.schemas.oauth import (
     IssueCodeRequest,
     IssueCodeResponse,
 )
-from app.services.connections import end_connections, list_connections
+from app.services.connections import end_connections, list_connections, web_site
 from app.services.issue_code import IssueCodeError, deny_request, issue_code
 from app.services.upstream_keys import revoke_api_keys
 
@@ -153,7 +153,7 @@ async def get_connections(
                 "connections": row.connections,
                 "connected_at": row.connected_at.isoformat(),
                 "last_active_at": row.last_active_at.isoformat(),
-                "site": row.site,
+                **({"site": web_site(row.used_redirects)} if row.used_redirects else {}),
             }
             for row in rows
         ]
