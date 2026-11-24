@@ -196,11 +196,9 @@ def _skill_body(prompts: list[tuple[str, dict[str, Any]]]) -> str:
 
 def export(out: Path) -> None:
     guides = _guides()
-    out.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(out, ignore_errors=True)
     for skill, description, prompts, carried in _SKILLS:
         root = out / skill
-        if root.exists():
-            shutil.rmtree(root)
         (root / "references").mkdir(parents=True)
         body = _skill_body(prompts)
         # Carry every guide the text or another carried guide links to.

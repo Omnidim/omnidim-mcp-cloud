@@ -130,3 +130,10 @@ def test_plugin_meets_the_claude_directory_rules(tmp_path: Path) -> None:
     (entry,) = json.loads((tmp_path / ".claude-plugin" / "marketplace.json").read_text())["plugins"]
     assert entry["source"] == "./"
     assert not {"strict", "skills", "mcpServers"} & entry.keys(), "plugin.json owns the contents"
+
+
+def test_export_drops_skills_that_no_longer_exist(tmp_path: Path) -> None:
+    (tmp_path / "omnidim-retired-skill").mkdir()
+    (tmp_path / "omnidim-retired-skill" / "SKILL.md").write_text("old")
+    export(tmp_path)
+    assert sorted(p.name for p in tmp_path.iterdir()) == SKILLS
