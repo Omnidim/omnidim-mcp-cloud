@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.22.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.2...v0.22.0) (2026-11-24)
+
+
+### Added
+
+* list and disconnect a user's connected apps over the internal API ([#145](https://github.com/Omnidim/omnidim-mcp-cloud/issues/145)) ([e447c5c](https://github.com/Omnidim/omnidim-mcp-cloud/commit/e447c5cea0b18692c1f40e21c1057a6e50081042))
+
 ## [0.21.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.1...v0.21.2) (2026-11-24)
 
 
