@@ -1,10 +1,9 @@
 """Auto-generated MCP tool registry. Do not edit by hand.
 
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
-or mcp-config.yaml changes.
+changes.
 
-Source spec:   openapi.yaml   sha256=2a35849a45ef
-Config:        mcp-config.yaml  sha256=85659a617170
+Source spec:   openapi.yaml   sha256=895c93ae555f
 """
 from __future__ import annotations
 
@@ -37,11 +36,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Turn workflow on",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "addBulkCallContact",
-        "description": "Add contact to dynamic campaign. Push a single contact into a dynamic bulk-call campaign in real\ntime. Dynamic campaigns are created from the dashboard (Bulk Call\n> Create New Campaign > Dynamic Campaign) and stay alive waiting\nfor contacts, so this webhook is how you feed them from a CRM,\nform, or automation platform. The contact is queued immediately,\nand the campaign starts calling it as soon as it is within\noperating hours.",
+        "description": "Add contact to dynamic campaign. Push one contact into a dynamic bulk-call campaign.\n\nDynamic campaigns are created from the dashboard (Bulk Call > Create New\nCampaign > Dynamic Campaign) and wait for contacts. Use this webhook to feed\nthem from a CRM, form or automation platform. The contact is queued at once.\nThe campaign calls it as soon as it is within operating hours.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -71,6 +77,11 @@ _TOOLS_JSON = r"""[
                         "crm_lead_id": "lead_9876",
                         "source": "website_form"
                     }
+                },
+                "previous_from_number": {
+                    "type": "string",
+                    "description": "The number that called this person last. With\n`call_back_from_different_number` on, the call goes out\nfrom another number in the pool.\n",
+                    "example": "+15557654321"
                 }
             },
             "required": [
@@ -84,11 +95,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Add contact to campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "addBulkCallContacts",
-        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful: one request of 500 contacts is\nfar cheaper than 500 requests, on your side and ours.\n\nRepeated numbers are kept, not merged. If the same number appears twice\nwith different variables, it is called twice, because two rows for one\nnumber usually means two real reasons to call.\n\nRows that fail validation are reported in `rejected` and the rest are\nstill added, so a single bad number does not lose the batch. A row that\nis missing a column the campaign's `call_conditions` need is reported in\n`rejected`; the condition values themselves are not evaluated on this\nroute.",
+        "description": "Add contacts in bulk. Add up to 1000 contacts to a campaign in one request.\n\nThis is the batch form of Add contact to dynamic campaign. Prefer it\nwhenever you have more than a handful of contacts.\n\nRepeated numbers are kept, not merged. The same number with different\nvariables is called twice.\n\nRows that fail validation are reported in `rejected`, and the rest are still\nadded. A row missing a column that the campaign's `call_conditions` need is\nalso rejected. The condition values are not evaluated on this route.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -123,6 +141,11 @@ _TOOLS_JSON = r"""[
                                 "type": "object",
                                 "description": "Stored with the contact and returned on its row in\nBulk call results. Not shown to the agent.\n",
                                 "additionalProperties": true
+                            },
+                            "previous_from_number": {
+                                "type": "string",
+                                "description": "The number that called this person last. With\n`call_back_from_different_number` on, the call goes\nout from another number in the pool.\n",
+                                "example": "+15557654321"
                             }
                         }
                     }
@@ -139,11 +162,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "campaign_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Add contacts to campaign in bulk",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "addBulkCallNumber",
-        "description": "Add number to rotation pool. Add one of your numbers to the campaign's rotation pool. Works while the\ncampaign is running, which is how you bring in a fresh number when the\npool is running out of healthy ones.\n\nThe number must belong to you and must not already be in the pool. A\nnumber with no agent attached gets this campaign's agent attached\nautomatically; a number attached to a **different** agent is refused.",
+        "description": "Add number to rotation pool. Add one of your numbers to the campaign's rotation pool.\n\nIt works while the campaign runs, so use it to bring in a fresh number when\nhealthy ones run low.\n\nThe number must be yours and not already in the pool. A number with no agent\ngets this campaign's agent attached. A number attached to a **different**\nagent is refused.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -168,11 +198,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Add number to rotation pool",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "addPostCallAction",
-        "description": "Add a post-call action. Add one post-call action to the agent. The agent's other actions are not changed. Send an `Idempotency-Key` header to make a retry safe: the same key and body return the action the first request added.",
+        "description": "Add a post-call action. Add one post-call action to an agent.\n\nThe agent's other actions stay as they are. Send an `Idempotency-Key` header\nto retry safely: the same key and body return the action the first request\nadded.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -243,6 +280,27 @@ _TOOLS_JSON = r"""[
                 "create_contact": {
                     "type": "boolean",
                     "description": "`zoho_bigin` only: create a contact when no contact matches. Defaults to true."
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "create",
+                        "upsert"
+                    ],
+                    "description": "`salesforce` only: `upsert` finds the record by the caller's number\nand updates it or creates it. `create` creates a new record every\ncall. Defaults to `create`.\n"
+                },
+                "match_field": {
+                    "type": "string",
+                    "description": "`salesforce` only, with `upsert`: the phone field the caller's number is looked up in. Defaults to `Phone`.",
+                    "example": "Phone"
+                },
+                "log_call": {
+                    "type": "boolean",
+                    "description": "`salesforce` only: log the call on the record, with the summary and recording link. Defaults to false."
+                },
+                "add_note": {
+                    "type": "boolean",
+                    "description": "`salesforce` only: add the call summary as a note on the record. Defaults to false."
                 },
                 "recipients": {
                     "type": "array",
@@ -412,7 +470,146 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ],
+        "annotations": {
+            "title": "Add a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "addWhatsappCampaignContacts",
+        "description": "Add campaign contacts. Add one contact, or up to 500 at once, to a campaign.\n\nOn a draft they are stored for launch. On a running campaign they are sent\nnow. A contact already in the campaign is skipped, so a retry is safe.\n\nEach contact needs a `phone_number`. Every other key is kept and can fill a\ntemplate parameter through `variable_mapping`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "items": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "items": {
+                        "type": "object",
+                        "description": "One contact. `phone_number` is required. Any other key is kept on the\ncontact and can fill a template parameter through `variable_mapping`.\n",
+                        "required": [
+                            "phone_number"
+                        ],
+                        "properties": {
+                            "phone_number": {
+                                "type": "string",
+                                "description": "The customer's number in international format, such as `+15551234567`."
+                            },
+                            "contact_name": {
+                                "type": "string",
+                                "description": "A name for your team. `name` works too."
+                            }
+                        },
+                        "additionalProperties": true
+                    },
+                    "description": "Send a list, even for one item. It becomes the request body."
+                }
+            },
+            "required": [
+                "campaign_id",
+                "items"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/contacts",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "body_list_arg": "items",
+        "annotations": {
+            "title": "Add contacts to WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
+    },
+    {
+        "name": "addWhatsappOptOut",
+        "description": "Block a customer. Block a customer from receiving messages you start from this number.\n\nThe block lasts until you lift it. The response is `201` for a new block. It\nis `200` with the entry unchanged if the customer was already blocked.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "The customer's number in international format, such as `+15551234567`."
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "A note for your team."
+                }
+            },
+            "required": [
+                "customer",
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Add WhatsApp opt-out",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "attachAgentIntegration",
+        "description": "Attach an integration to an agent. Attach an integration to an agent.\n\nThe agent can use it on its next call. Integrations already attached stay as\nthey are.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "integration_id": {
+                    "type": "integer",
+                    "description": "The integration's id, from `listIntegrations` or a create response."
+                }
+            },
+            "required": [
+                "agent_id",
+                "integration_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/agents/{agent_id}/integrations",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Attach integration to agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "attachKnowledgeBaseFiles",
@@ -451,11 +648,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/attach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Attach knowledge base files",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "attachPhoneNumber",
-        "description": "Attach phone number to agent. Attach a phone number to an existing agent. Without `user_id`, use any\nnumber and agent your key can manage. With `user_id`, the number and the\nagent must both belong to that client.",
+        "description": "Attach phone number to agent. Attach a phone number to an existing agent.\n\nWithout `user_id`, use any number and agent your key can manage. With\n`user_id`, both must belong to that client.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -479,7 +683,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/attach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Attach phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "bulkCallActions",
@@ -523,7 +734,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Control bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "canUploadFile",
@@ -552,7 +770,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/can_upload",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Check file upload eligibility",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "cancelBulkCall",
@@ -575,11 +800,48 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Cancel bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "cancelWhatsappCampaign",
+        "description": "Cancel a campaign. Stop a campaign for good. Contacts not yet sent are not sent. A completed\nor already-canceled campaign cannot be canceled.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/cancel",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Cancel WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createAgent",
-        "description": "Create agent. Create a new agent with the provided configuration. The full\nconfig supports transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM,\nCloud WhatsApp, or a workflow),\nambient background track, initial ringing sound, and multilingual support.\n\n> **Voicemail detection is an access-gated feature** that we turn on per\naccount. If it isn't enabled for yours yet,\n[request access](https://omnidim.io/contact-us?reason=product&lock=1)\nbefore configuring the `voicemail` object.",
+        "description": "Create agent. Create an agent from a name and a context. Every other setting is optional.\n\nOptional settings: transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM, Cloud\nWhatsApp, or a workflow), ambient background track, initial ringing\nsound and multilingual support.\n\nLeave out `model`, `transcriber` and `voice` to get your organization's\ndefaults, which always work. To pick one, use the LLM, STT or TTS provider\nlist: it shows only the models your organization can use. Any other model is\nrefused, and the error names the default to use.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -623,7 +885,7 @@ _TOOLS_JSON = r"""[
                 },
                 "context_breakdown": {
                     "type": "array",
-                    "description": "List of context breakdowns, each containing `title`, `body`, and optional `is_enabled`.",
+                    "description": "The agent's prompt sections, each with `title`, `body` and optional `is_enabled`. Sending them replaces the whole list and rebuilds the prompt from the enabled sections in order: each `title` becomes a `# title` heading on its own line, with its `body` below it, the same layout the dashboard uses. A save without `context_breakdown` leaves the prompt unchanged.",
                     "items": {
                         "type": "object",
                         "required": [
@@ -655,7 +917,7 @@ _TOOLS_JSON = r"""[
                         "Incoming",
                         "Outgoing"
                     ],
-                    "description": "Call type of the assistant."
+                    "description": "`Incoming` for an agent that answers calls, `Outgoing` for one that places them, spelled exactly so. Any other value, `incoming` included, saves as `Outgoing` and the response lists it in `warnings`."
                 },
                 "timezone": {
                     "type": "string",
@@ -668,24 +930,23 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "deepgram_stream",
-                                "cartesia",
-                                "sarvam",
-                                "azure_stream",
-                                "soniox"
-                            ],
-                            "description": "The speech-to-text provider to use.",
+                            "description": "The speech-to-text provider to use: a `name` from the STT providers list, which returns the ones your organization can use. Leave it out to use your organization's default transcriber.",
                             "example": "deepgram_stream"
                         },
                         "model": {
                             "type": "string",
-                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`. Saved only\nfor `deepgram_stream`, `cartesia` and `sarvam`, and only\nwhen `provider` is in the same request.\n",
                             "example": "nova-3"
                         },
                         "language": {
-                            "type": "string",
-                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). Applies regardless of which\n`provider` is selected.\n",
+                            "type": [
+                                "string",
+                                "array"
+                            ],
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). `soniox` takes a list of codes, such as\n`[\"en\", \"hi\"]`, and an empty list detects the language. Saved only when `provider` is in the\nsame request and is `deepgram_stream`, `cartesia`, `sarvam`,\n`azure` or `soniox`.\n",
                             "example": "en-US"
                         },
                         "silence_timeout_ms": {
@@ -749,22 +1010,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "azure-gpt-4.1-mini",
-                                "azure-gpt-4.1-nano",
-                                "azure-gpt-4o",
-                                "azure-gpt-4o-mini",
-                                "gemini-2.5-flash",
-                                "gemini-2.5-flash-lite",
-                                "gpt-3.5-turbo",
-                                "gpt-4.1-mini",
-                                "gpt-4.1-nano",
-                                "gpt-4o",
-                                "gpt-4o-mini",
-                                "gpt-5.1",
-                                "llama-3.3-70b-versatile"
-                            ],
-                            "description": "The language model to use. The current catalog is returned by the LLM providers list.",
+                            "description": "The language model to use: a `name` from the LLM providers list, which returns exactly the models your organization can use. Leave it out to use your organization's default model.",
                             "example": "gpt-4.1-mini"
                         },
                         "temperature": {
@@ -778,7 +1024,7 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently. Leave out `provider` and `voice_id` to use your organization's default voice.",
                     "dependentRequired": {
                         "provider": [
                             "voice_id"
@@ -787,25 +1033,19 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "cartesia",
-                                "sarvam",
-                                "eleven_labs",
-                                "google"
-                            ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
                             "type": "string",
                             "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
-                            "example": "JBFqnCBsd6RMkjVDRZzb"
+                            "example": "faf0731e-dfb9-4cfc-8119-259a79b27e12"
                         },
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -831,872 +1071,8 @@ _TOOLS_JSON = r"""[
                 },
                 "post_call_actions": {
                     "type": "object",
-                    "description": "Side effects that fire once the call ends: email, webhook, Omni CRM,\nCloud WhatsApp, a workflow, Google Sheets, Slack, Salesforce, HubSpot\nor Zoho Bigin.\n",
-                    "properties": {
-                        "email": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                },
-                                "recipients": {
-                                    "type": "array",
-                                    "description": "Email addresses that should receive the notification.",
-                                    "items": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "example": [
-                                        "support@example.com"
-                                    ]
-                                },
-                                "include": {
-                                    "type": "array",
-                                    "description": "Which sections to include in the email body.",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "summary",
-                                            "extracted_variables",
-                                            "fullConversation",
-                                            "sentiment"
-                                        ]
-                                    }
-                                },
-                                "extracted_variables": {
-                                    "type": "array",
-                                    "description": "Variables the model should pull out of the conversation for the email.",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "key",
-                                            "prompt"
-                                        ],
-                                        "properties": {
-                                            "key": {
-                                                "type": "string",
-                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                "example": "customer_issue"
-                                            },
-                                            "prompt": {
-                                                "type": "string",
-                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                "example": "Identify the main issue the customer is experiencing."
-                                            }
-                                        }
-                                    }
-                                },
-                                "trigger_call_statuses": {
-                                    "type": "array",
-                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "completed",
-                                            "voicemail_detected",
-                                            "failed",
-                                            "no-answer",
-                                            "busy",
-                                            "canceled"
-                                        ]
-                                    },
-                                    "example": [
-                                        "completed",
-                                        "voicemail_detected"
-                                    ]
-                                }
-                            }
-                        },
-                        "webhook": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                },
-                                "url": {
-                                    "type": "string",
-                                    "format": "uri",
-                                    "description": "Endpoint that receives a POST with the call payload.",
-                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
-                                },
-                                "include": {
-                                    "type": "array",
-                                    "description": "Which sections to include in the webhook body.",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "summary",
-                                            "extracted_variables",
-                                            "fullConversation",
-                                            "sentiment"
-                                        ]
-                                    }
-                                },
-                                "extracted_variables": {
-                                    "type": "array",
-                                    "description": "Variables the model should pull out of the conversation for the webhook.",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "key",
-                                            "prompt"
-                                        ],
-                                        "properties": {
-                                            "key": {
-                                                "type": "string",
-                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                "example": "customer_issue"
-                                            },
-                                            "prompt": {
-                                                "type": "string",
-                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                "example": "Identify the main issue the customer is experiencing."
-                                            }
-                                        }
-                                    }
-                                },
-                                "trigger_call_statuses": {
-                                    "type": "array",
-                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "completed",
-                                            "voicemail_detected",
-                                            "failed",
-                                            "no-answer",
-                                            "busy",
-                                            "canceled"
-                                        ]
-                                    },
-                                    "example": [
-                                        "completed",
-                                        "failed"
-                                    ]
-                                }
-                            }
-                        },
-                        "omni_crm": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Save the call to Omni CRM."
-                                }
-                            ]
-                        },
-                        "cloud_whatsapp": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Send a Cloud WhatsApp template message after the call.",
-                                    "properties": {
-                                        "phone_number_id": {
-                                            "type": "integer",
-                                            "description": "The id of your organization's Cloud WhatsApp number the\nmessage is sent from.\n"
-                                        },
-                                        "template_id": {
-                                            "type": "integer",
-                                            "description": "An approved template on that number. A template that is not\napproved, or that belongs to another number, is refused.\n"
-                                        },
-                                        "template_variables": {
-                                            "type": "array",
-                                            "description": "Which extracted variable fills each template placeholder.",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "index": {
-                                                        "type": "string",
-                                                        "description": "The placeholder number, as a string.",
-                                                        "example": "1"
-                                                    },
-                                                    "extracted_var": {
-                                                        "type": "string",
-                                                        "description": "The key of the extracted variable whose value fills this placeholder.",
-                                                        "example": "customer_name"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "templates": {
-                                            "type": "array",
-                                            "description": "One or more templates to send, each with its variable mapping.",
-                                            "items": {
-                                                "type": "object",
-                                                "description": "One Cloud WhatsApp template to send after the call.",
-                                                "properties": {
-                                                    "template_id": {
-                                                        "type": "integer",
-                                                        "description": "An approved template on the chosen number."
-                                                    },
-                                                    "usage_description": {
-                                                        "type": "string",
-                                                        "description": "When this template should be sent. After the call, the model reads\nthese descriptions to choose which templates fit the conversation.\n",
-                                                        "example": "Send when the caller books an appointment."
-                                                    },
-                                                    "always_send": {
-                                                        "type": "boolean",
-                                                        "description": "Send this template after every call, whichever templates the model chooses."
-                                                    },
-                                                    "variable_mappings": {
-                                                        "type": "array",
-                                                        "description": "How to fill each template placeholder.",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "index": {
-                                                                    "type": "string",
-                                                                    "description": "The placeholder number, as a string.",
-                                                                    "example": "1"
-                                                                },
-                                                                "extracted_var": {
-                                                                    "type": "string",
-                                                                    "description": "The extracted variable whose value fills this placeholder."
-                                                                },
-                                                                "static_value": {
-                                                                    "type": "string",
-                                                                    "description": "A fixed value for this placeholder. When set, it is used\ninstead of the extracted variable.\n"
-                                                                },
-                                                                "mode": {
-                                                                    "type": "string",
-                                                                    "enum": [
-                                                                        "variable",
-                                                                        "static"
-                                                                    ],
-                                                                    "description": "Which input the dashboard shows for this placeholder. It\ndoes not change the value sent: a `static_value` is used\nfirst, then the extracted variable, then `fallback_value`.\n"
-                                                                },
-                                                                "fallback_value": {
-                                                                    "type": "string",
-                                                                    "description": "The value to use when the variable is not extracted."
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "workflow": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Trigger a workflow after the call.",
-                                    "properties": {
-                                        "workflow_id": {
-                                            "type": "integer",
-                                            "description": "The id of the workflow to run."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "google_sheets": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Append the call to a Google Sheet. Sending this key replaces the\nagent's Google Sheets actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Google Sheets integration."
-                                        },
-                                        "spreadsheet_id": {
-                                            "type": "string",
-                                            "description": "Required. The id in the sheet's URL, the part after `/d/`."
-                                        },
-                                        "spreadsheet_name": {
-                                            "type": "string"
-                                        },
-                                        "worksheet_name": {
-                                            "type": "string",
-                                            "description": "The tab to append to. Defaults to `Sheet1`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "slack": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Post the call to a Slack channel. Sending this key replaces the\nagent's Slack actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Slack integration."
-                                        },
-                                        "channel_id": {
-                                            "type": "string",
-                                            "description": "The channel id. Send this or `channel_name`."
-                                        },
-                                        "channel_name": {
-                                            "type": "string",
-                                            "description": "The channel name. Send this or `channel_id`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "salesforce": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Create a Salesforce record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's Salesforce actions;\nleaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Salesforce integration."
-                                        },
-                                        "object_name": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Lead",
-                                                "Contact",
-                                                "Account",
-                                                "Opportunity",
-                                                "Case",
-                                                "Task",
-                                                "Product"
-                                            ],
-                                            "description": "Defaults to `Lead`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "hubspot": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Create a HubSpot record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's HubSpot actions; leaving\nit out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your HubSpot integration."
-                                        },
-                                        "object_name": {
-                                            "type": "string",
-                                            "enum": [
-                                                "contact",
-                                                "company",
-                                                "deal",
-                                                "ticket"
-                                            ],
-                                            "description": "Required."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "zoho_bigin": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Log the call in Zoho Bigin. Sending this key replaces the\nagent's Zoho Bigin actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Zoho Bigin integration."
-                                        },
-                                        "create_call_log": {
-                                            "type": "boolean",
-                                            "description": "Log the call. Defaults to true."
-                                        },
-                                        "update_contact": {
-                                            "type": "boolean",
-                                            "description": "Update a matching contact with what the call captured. Defaults to true."
-                                        },
-                                        "create_contact": {
-                                            "type": "boolean",
-                                            "description": "Create a contact when no contact matches. Defaults to true."
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
+                    "additionalProperties": true,
+                    "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                 },
                 "transfer": {
                     "type": "object",
@@ -1757,7 +1133,8 @@ _TOOLS_JSON = r"""[
                     "description": "Hang up automatically when a condition is met.",
                     "properties": {
                         "enabled": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Turn ending the call on or off. Leave it out to keep the current setting. `false` also clears `condition` and `message`."
                         },
                         "condition": {
                             "type": "string",
@@ -1838,7 +1215,7 @@ _TOOLS_JSON = r"""[
                 },
                 "languages": {
                     "type": "array",
-                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped.",
+                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped, and the request is refused when none is recognized. The order is not kept.",
                     "items": {
                         "type": "string"
                     },
@@ -1857,7 +1234,16 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/agents/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ],
+        "annotations": {
+            "title": "Create agent",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createAgentVersion",
@@ -1891,11 +1277,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Save agent version",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createBulkCall",
-        "description": "Create bulk call. Create a new bulk-call campaign. Only name, phone_number_id and a\ncontact_list are needed to dial a list now; every other field adds\none behavior on top (drafts, rotation, filtering, scheduling,\nretries, dynamic feeding).\n\nThe guide below the field reference walks the whole journey: the\nfirst campaign and its response, each behavior with a working\nrequest, every refusal message with its fix, and the endpoints that\noperate a campaign once it runs.",
+        "description": "Create bulk call. Create a bulk-call campaign.\n\nOnly `name`, `phone_number_id` and a `contact_list` are needed to dial a\nlist now. Every other field adds one behavior: drafts, rotation, filtering,\nscheduling, retries or dynamic feeding.\n\nThe guide below the field reference shows each behavior with a working\nrequest, every refusal message with its fix, and the endpoints that operate\na running campaign.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2004,7 +1397,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2015,8 +1408,18 @@ _TOOLS_JSON = r"""[
                                 "continue_best"
                             ],
                             "description": "When every number is unhealthy: `pause` the campaign,\nor `continue_best` with the healthiest one.\n"
+                        },
+                        "call_back_from_different_number": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "When on, a repeat call to the same person goes out from\na different number than the one that called them last.\nNeeds two or more numbers in the pool.\n"
                         }
                     }
+                },
+                "skip_known_invalid_numbers": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When on, a contact is not dialed if the carrier said its\nnumber does not exist, in any campaign of your organization\nin the last 14 days. That contact shows as a failed call\nwith the reason `Invalid number` and is never retried.\n"
                 },
                 "is_dynamic": {
                     "type": "boolean",
@@ -2115,7 +1518,78 @@ _TOOLS_JSON = r"""[
                             "default": 1,
                             "minimum": 1,
                             "maximum": 10,
-                            "description": "Retry attempts, 1 to 10. To disable retries omit it and\nleave `auto_retry` false; never send `0`.\n"
+                            "description": "Retry attempts, 1 to 10. To disable retries omit it and\nleave `auto_retry` false; never send `0`. Ignored when\n`retry_steps` is set.\n"
+                        },
+                        "retry_steps": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 10,
+                            "description": "A different delay for each retry, in order: retry 1\nwaits for the first step, retry 2 for the second, and\nso on. When set, it replaces `auto_retry_schedule`,\n`retry_schedule_days`, `retry_schedule_hours` and\n`retry_limit`: a contact gets one retry per step. Each\ndelay is at most 30 days. A retry that falls outside\nthe campaign's daily calling hours waits until they\nopen again.\n\nA `days` step can also name a time of day with `at`:\n`{\"delay\": 1, \"unit\": \"days\", \"at\": \"10:00\"}` is 10:00\nthe next day, and `{\"delay\": 0, \"unit\": \"days\", \"at\":\n\"16:00\"}` the same day at 16:00. The date and time are\nread in the calling window's timezone,\n`daily_stop_timezone`; a campaign without a window\n(`enable_daily_hard_stop` off) uses its `timezone`.\nEach retry counts from the try before it; a time that\nhas already passed moves to the next day.\n",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "delay",
+                                    "unit"
+                                ],
+                                "properties": {
+                                    "delay": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "How long to wait, in `unit`. `0` retries right away."
+                                    },
+                                    "unit": {
+                                        "type": "string",
+                                        "enum": [
+                                            "minutes",
+                                            "hours",
+                                            "days"
+                                        ]
+                                    },
+                                    "at": {
+                                        "type": "string",
+                                        "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                                        "description": "Time of day, `HH:MM` (24-hour) in\n`daily_stop_timezone`, or in `timezone` when\n`enable_daily_hard_stop` is off. Only on a\n`days` step; `delay: 0` means the same day.\n"
+                                    }
+                                }
+                            },
+                            "example": [
+                                {
+                                    "delay": 1,
+                                    "unit": "hours"
+                                },
+                                {
+                                    "delay": 3,
+                                    "unit": "hours"
+                                },
+                                {
+                                    "delay": 1,
+                                    "unit": "days",
+                                    "at": "10:00"
+                                },
+                                {
+                                    "delay": 0,
+                                    "unit": "days",
+                                    "at": "16:00"
+                                }
+                            ]
+                        },
+                        "retry_unanswered": {
+                            "type": "string",
+                            "enum": [
+                                "off",
+                                "no_reply",
+                                "no_reply_or_short",
+                                "model"
+                            ],
+                            "default": "off",
+                            "description": "Also retry calls that connected but got no conversation.\n`no_reply`: the contact never spoke. `no_reply_or_short`:\nthe contact never spoke, or the call lasted at most\n`retry_unanswered_max_seconds`. `model`: the contact\nnever spoke, or post-call analysis read the transcript\nand found no real conversation. Retries follow the same\nschedule or steps as failed calls.\n"
+                        },
+                        "retry_unanswered_max_seconds": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 1,
+                            "maximum": 120,
+                            "description": "Under `no_reply_or_short`, a call this long or shorter\n(in seconds) counts as unanswered.\n"
                         }
                     }
                 }
@@ -2129,11 +1603,186 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/calls/bulk_call/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create bulk campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
+    },
+    {
+        "name": "createCustomApiIntegration",
+        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration.\n\nAttach it to an agent with `attachAgentIntegration`. The agent calls the\nendpoint during a call when the conversation needs it, then uses the\nresponse in its reply. The agent fills parameters marked `isLLMGenerated`\nfrom the conversation.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "A name for the integration."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "What the endpoint does. The agent reads this to decide\nwhen to call it, so say what it returns and when it is useful.\n"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE"
+                    ]
+                },
+                "headers": {
+                    "type": "array",
+                    "description": "Fixed headers sent on every request.",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "key",
+                            "value"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "query_params": {
+                    "type": "array",
+                    "description": "Query string parameters.",
+                    "items": {
+                        "type": "object",
+                        "description": "One query or body parameter of a custom API. With `isLLMGenerated`\ntrue the agent fills the value from the conversation, guided by\n`description`. With it false, the text in `description` is sent as a\nfixed value.\n",
+                        "required": [
+                            "key"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "The parameter name your endpoint expects."
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "What the agent should put here, or the fixed value when `isLLMGenerated` is false."
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "object",
+                                    "array"
+                                ],
+                                "default": "string"
+                            },
+                            "required": {
+                                "type": "boolean",
+                                "description": "Whether the agent must supply this parameter."
+                            },
+                            "isLLMGenerated": {
+                                "type": "boolean",
+                                "default": true,
+                                "description": "Let the agent fill this value from the conversation."
+                            },
+                            "children": {
+                                "type": "array",
+                                "description": "Nested fields of an `object` or `array` body parameter. Query parameters have no children.",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "body_params": {
+                    "type": "array",
+                    "description": "Request body fields, sent as JSON. A GET request sends no\nbody. Every request with a body also carries the call's\n`from_number`, `to_number` and `call_sid`.\n",
+                    "items": {
+                        "type": "object",
+                        "description": "One query or body parameter of a custom API. With `isLLMGenerated`\ntrue the agent fills the value from the conversation, guided by\n`description`. With it false, the text in `description` is sent as a\nfixed value.\n",
+                        "required": [
+                            "key"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "The parameter name your endpoint expects."
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "What the agent should put here, or the fixed value when `isLLMGenerated` is false."
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "object",
+                                    "array"
+                                ],
+                                "default": "string"
+                            },
+                            "required": {
+                                "type": "boolean",
+                                "description": "Whether the agent must supply this parameter."
+                            },
+                            "isLLMGenerated": {
+                                "type": "boolean",
+                                "default": true,
+                                "description": "Let the agent fill this value from the conversation."
+                            },
+                            "children": {
+                                "type": "array",
+                                "description": "Nested fields of an `object` or `array` body parameter. Query parameters have no children.",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "request_timeout": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Seconds to wait for your endpoint before the agent moves on."
+                }
+            },
+            "required": [
+                "method",
+                "name",
+                "url"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/integrations/custom-api",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create custom API integration",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createSession",
-        "description": "Create session. Create a voice Session: a short-lived, single-conversation\nreservation that lets a client hold a live voice chat with your\nagent. This is step 1 of 2. Creating the Session does not start any\naudio on its own; it returns a `ws_url` that a client then connects\nto over WebSocket to actually talk.\n\nCall this endpoint from your server with your API key, and return\nonly the `ws_url` to your client. The API key must never reach the\nbrowser. The `ws_url` is the only thing the client needs, and it is\nsafe to hand out because it is single-use and expires. For how to\nconnect and talk, see \"Connect the client and talk\" below the\nrequest details.",
+        "description": "Create session. Create a short-lived voice session and get a `ws_url` for one conversation.\n\nThis is step 1 of 2. Creating the session starts no audio. The client then\nconnects to `ws_url` over WebSocket to talk.\n\nCall this endpoint from your server with your API key. Return only `ws_url`\nto your client, and never the API key. The `ws_url` is single-use and\nexpires, so it is safe to hand to your client. For how to connect and talk,\nsee \"Connect the client and talk\" below the request details.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2169,881 +1818,16 @@ _TOOLS_JSON = r"""[
                                 }
                             ],
                             "description": "Languages this session runs in, replacing the agent's\nconfigured list. The first entry is the language the\nvisitor is greeted in. Send an array, or a pipe-separated\nstring such as `Hindi|English`.\n",
-                            "example": "Hindi|Gujarati|English"
+                            "example": "Hindi|Gujarati|English",
+                            "type": [
+                                "array",
+                                "string"
+                            ]
                         },
                         "__post_call_actions": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Side effects that fire once the call ends: email, webhook, Omni CRM,\nCloud WhatsApp, a workflow, Google Sheets, Slack, Salesforce, HubSpot\nor Zoho Bigin.\n",
-                                    "properties": {
-                                        "email": {
-                                            "type": "object",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "recipients": {
-                                                    "type": "array",
-                                                    "description": "Email addresses that should receive the notification.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "format": "email"
-                                                    },
-                                                    "example": [
-                                                        "support@example.com"
-                                                    ]
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in the email body.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for the email.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    },
-                                                    "example": [
-                                                        "completed",
-                                                        "voicemail_detected"
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                        "webhook": {
-                                            "type": "object",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "url": {
-                                                    "type": "string",
-                                                    "format": "uri",
-                                                    "description": "Endpoint that receives a POST with the call payload.",
-                                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in the webhook body.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for the webhook.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    },
-                                                    "example": [
-                                                        "completed",
-                                                        "failed"
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                        "omni_crm": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Save the call to Omni CRM."
-                                                }
-                                            ]
-                                        },
-                                        "cloud_whatsapp": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Send a Cloud WhatsApp template message after the call.",
-                                                    "properties": {
-                                                        "phone_number_id": {
-                                                            "type": "integer",
-                                                            "description": "The id of your organization's Cloud WhatsApp number the\nmessage is sent from.\n"
-                                                        },
-                                                        "template_id": {
-                                                            "type": "integer",
-                                                            "description": "An approved template on that number. A template that is not\napproved, or that belongs to another number, is refused.\n"
-                                                        },
-                                                        "template_variables": {
-                                                            "type": "array",
-                                                            "description": "Which extracted variable fills each template placeholder.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "properties": {
-                                                                    "index": {
-                                                                        "type": "string",
-                                                                        "description": "The placeholder number, as a string.",
-                                                                        "example": "1"
-                                                                    },
-                                                                    "extracted_var": {
-                                                                        "type": "string",
-                                                                        "description": "The key of the extracted variable whose value fills this placeholder.",
-                                                                        "example": "customer_name"
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "templates": {
-                                                            "type": "array",
-                                                            "description": "One or more templates to send, each with its variable mapping.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "description": "One Cloud WhatsApp template to send after the call.",
-                                                                "properties": {
-                                                                    "template_id": {
-                                                                        "type": "integer",
-                                                                        "description": "An approved template on the chosen number."
-                                                                    },
-                                                                    "usage_description": {
-                                                                        "type": "string",
-                                                                        "description": "When this template should be sent. After the call, the model reads\nthese descriptions to choose which templates fit the conversation.\n",
-                                                                        "example": "Send when the caller books an appointment."
-                                                                    },
-                                                                    "always_send": {
-                                                                        "type": "boolean",
-                                                                        "description": "Send this template after every call, whichever templates the model chooses."
-                                                                    },
-                                                                    "variable_mappings": {
-                                                                        "type": "array",
-                                                                        "description": "How to fill each template placeholder.",
-                                                                        "items": {
-                                                                            "type": "object",
-                                                                            "properties": {
-                                                                                "index": {
-                                                                                    "type": "string",
-                                                                                    "description": "The placeholder number, as a string.",
-                                                                                    "example": "1"
-                                                                                },
-                                                                                "extracted_var": {
-                                                                                    "type": "string",
-                                                                                    "description": "The extracted variable whose value fills this placeholder."
-                                                                                },
-                                                                                "static_value": {
-                                                                                    "type": "string",
-                                                                                    "description": "A fixed value for this placeholder. When set, it is used\ninstead of the extracted variable.\n"
-                                                                                },
-                                                                                "mode": {
-                                                                                    "type": "string",
-                                                                                    "enum": [
-                                                                                        "variable",
-                                                                                        "static"
-                                                                                    ],
-                                                                                    "description": "Which input the dashboard shows for this placeholder. It\ndoes not change the value sent: a `static_value` is used\nfirst, then the extracted variable, then `fallback_value`.\n"
-                                                                                },
-                                                                                "fallback_value": {
-                                                                                    "type": "string",
-                                                                                    "description": "The value to use when the variable is not extracted."
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "workflow": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Trigger a workflow after the call.",
-                                                    "properties": {
-                                                        "workflow_id": {
-                                                            "type": "integer",
-                                                            "description": "The id of the workflow to run."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "google_sheets": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Append the call to a Google Sheet. Sending this key replaces the\nagent's Google Sheets actions; leaving it out keeps them.\n",
-                                                    "properties": {
-                                                        "integration_id": {
-                                                            "type": "integer",
-                                                            "description": "Required. The id of your Google Sheets integration."
-                                                        },
-                                                        "spreadsheet_id": {
-                                                            "type": "string",
-                                                            "description": "Required. The id in the sheet's URL, the part after `/d/`."
-                                                        },
-                                                        "spreadsheet_name": {
-                                                            "type": "string"
-                                                        },
-                                                        "worksheet_name": {
-                                                            "type": "string",
-                                                            "description": "The tab to append to. Defaults to `Sheet1`."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "slack": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Post the call to a Slack channel. Sending this key replaces the\nagent's Slack actions; leaving it out keeps them.\n",
-                                                    "properties": {
-                                                        "integration_id": {
-                                                            "type": "integer",
-                                                            "description": "Required. The id of your Slack integration."
-                                                        },
-                                                        "channel_id": {
-                                                            "type": "string",
-                                                            "description": "The channel id. Send this or `channel_name`."
-                                                        },
-                                                        "channel_name": {
-                                                            "type": "string",
-                                                            "description": "The channel name. Send this or `channel_id`."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "salesforce": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Create a Salesforce record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's Salesforce actions;\nleaving it out keeps them.\n",
-                                                    "properties": {
-                                                        "integration_id": {
-                                                            "type": "integer",
-                                                            "description": "Required. The id of your Salesforce integration."
-                                                        },
-                                                        "object_name": {
-                                                            "type": "string",
-                                                            "enum": [
-                                                                "Lead",
-                                                                "Contact",
-                                                                "Account",
-                                                                "Opportunity",
-                                                                "Case",
-                                                                "Task",
-                                                                "Product"
-                                                            ],
-                                                            "description": "Defaults to `Lead`."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "hubspot": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Create a HubSpot record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's HubSpot actions; leaving\nit out keeps them.\n",
-                                                    "properties": {
-                                                        "integration_id": {
-                                                            "type": "integer",
-                                                            "description": "Required. The id of your HubSpot integration."
-                                                        },
-                                                        "object_name": {
-                                                            "type": "string",
-                                                            "enum": [
-                                                                "contact",
-                                                                "company",
-                                                                "deal",
-                                                                "ticket"
-                                                            ],
-                                                            "description": "Required."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        "zoho_bigin": {
-                                            "allOf": [
-                                                {
-                                                    "type": "object",
-                                                    "description": "Settings every post-call channel shares.",
-                                                    "properties": {
-                                                        "enabled": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "include": {
-                                                            "type": "array",
-                                                            "description": "Which sections to include in this action.",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "summary",
-                                                                    "extracted_variables",
-                                                                    "fullConversation",
-                                                                    "sentiment"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "extracted_variables": {
-                                                            "type": "array",
-                                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "required": [
-                                                                    "key",
-                                                                    "prompt"
-                                                                ],
-                                                                "properties": {
-                                                                    "key": {
-                                                                        "type": "string",
-                                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                                        "example": "customer_issue"
-                                                                    },
-                                                                    "prompt": {
-                                                                        "type": "string",
-                                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                        "example": "Identify the main issue the customer is experiencing."
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "trigger_call_statuses": {
-                                                            "type": "array",
-                                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                            "items": {
-                                                                "type": "string",
-                                                                "enum": [
-                                                                    "completed",
-                                                                    "voicemail_detected",
-                                                                    "failed",
-                                                                    "no-answer",
-                                                                    "busy",
-                                                                    "canceled"
-                                                                ]
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "description": "Log the call in Zoho Bigin. Sending this key replaces the\nagent's Zoho Bigin actions; leaving it out keeps them.\n",
-                                                    "properties": {
-                                                        "integration_id": {
-                                                            "type": "integer",
-                                                            "description": "Required. The id of your Zoho Bigin integration."
-                                                        },
-                                                        "create_call_log": {
-                                                            "type": "boolean",
-                                                            "description": "Log the call. Defaults to true."
-                                                        },
-                                                        "update_contact": {
-                                                            "type": "boolean",
-                                                            "description": "Update a matching contact with what the call captured. Defaults to true."
-                                                        },
-                                                        "create_contact": {
-                                                            "type": "boolean",
-                                                            "description": "Create a contact when no contact matches. Defaults to true."
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            ],
-                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\n"
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "Post-call actions for this session only, in the same shape\nas `post_call_actions` on agent create. Email and webhook\nonly. They replace the agent's own post-call actions for\nthis session. Items that cannot be used are skipped and\nlisted in `post_call_actions_ignored`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                         }
                     },
                     "example": {
@@ -3069,11 +1853,85 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/sessions/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create voice session",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "createWhatsappCampaign",
+        "description": "Create a campaign. Create a draft campaign from an approved template. It sends nothing until\nyou launch it.\n\nAdd contacts and launch it with the next calls. Scheduling is not offered.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "phone_number_id": {
+                    "type": "integer"
+                },
+                "template_id": {
+                    "type": "integer",
+                    "description": "An approved template on that number."
+                },
+                "campaign_mode": {
+                    "type": "string",
+                    "enum": [
+                        "broadcast",
+                        "broadcast_reply"
+                    ],
+                    "default": "broadcast",
+                    "description": "`broadcast_reply` lets the agent answer replies. It needs an agent."
+                },
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The agent that answers replies."
+                },
+                "data_source": {
+                    "type": "string",
+                    "enum": [
+                        "csv",
+                        "webhook"
+                    ],
+                    "default": "csv"
+                },
+                "is_dynamic": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "variable_mapping": {
+                    "type": "object",
+                    "description": "Template field to contact field or static text.",
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "name",
+                "phone_number_id",
+                "template_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "createWorkflow",
-        "description": "Create a workflow. Create a workflow with a draft. Without `graph`, the draft holds one `trigger` node, ready for `editWorkflow` ops. Pass `graph` only to start from a complete graph. The response carries the `revision` you need to edit.",
+        "description": "Create a workflow. Create a workflow with a draft.\n\nWithout `graph`, the draft holds one `trigger` node, ready for\n`editWorkflow` ops. Pass `graph` only to start from a complete graph. The\nresponse carries the `revision` you need to edit.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3163,11 +2021,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/workflows",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create workflow",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deactivateWorkflow",
-        "description": "Deactivate a workflow. Turn the published workflow off, so real events stop running it. The workflow and its draft stay. Use `activateWorkflow` to turn it back on.",
+        "description": "Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3186,7 +2051,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Turn workflow off",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteAgent",
@@ -3209,7 +2081,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteAgentVersion",
@@ -3238,7 +2117,14 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteClonedVoice",
@@ -3261,7 +2147,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete cloned voice",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteKnowledgeBaseFile",
@@ -3283,7 +2176,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/delete",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete knowledge base file",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deletePostCallAction",
@@ -3312,11 +2212,18 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "action_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "deleteWorkflow",
-        "description": "Delete a workflow. Delete a workflow. Its published version stops running. This cannot be undone, so confirm with the user first. To stop it without deleting, use `deactivateWorkflow`.",
+        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `deactivateWorkflow`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3335,7 +2242,50 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete workflow",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "detachAgentIntegration",
+        "description": "Detach an integration from an agent. Remove the integration from the agent. The integration itself is kept and stays available to attach again.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                },
+                "integration_id": {
+                    "type": "integer",
+                    "description": "The ID of the integration to detach."
+                }
+            },
+            "required": [
+                "agent_id",
+                "integration_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/agents/{agent_id}/integrations/{integration_id}",
+        "path_params": [
+            "agent_id",
+            "integration_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Detach integration from agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "detachKnowledgeBaseFiles",
@@ -3369,11 +2319,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/detach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Detach knowledge base files",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "detachPhoneNumber",
-        "description": "Detach phone number. Detach a phone number from its agent. Without `user_id`, use any number\nyour key can manage. With `user_id`, the number must belong to that\nclient.",
+        "description": "Detach phone number. Detach a phone number from its agent.\n\nWithout `user_id`, use any number your key can manage. With `user_id`, the\nnumber must belong to that client.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3391,11 +2348,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/detach",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Detach phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "diffAgentVersion",
-        "description": "Diff an agent version. Get a record-level diff for this version. By default it shows what changed in this version compared with the version before it. Use `against=current` to compare with the agent's live config (what restoring this version would change), or `against=<number>` to compare with another version.",
+        "description": "Diff an agent version. Get a record-level diff for one agent version.\n\nBy default it compares this version with the one before it. Use\n`against=current` to compare with the live config, which shows what\nrestoring this version would change. Use `against=<number>` to compare with\nanother version.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3426,11 +2390,18 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "against"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Diff agent version",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "dispatchCall",
-        "description": "Dispatch call. Initiate a call to a phone number using a specified agent. The\nphone number must include a country code with a leading plus.",
+        "description": "Dispatch call. Start a call to a phone number with an agent.\n\nThe phone number must include a country code with a leading plus.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3484,881 +2455,16 @@ _TOOLS_JSON = r"""[
                     "example": [
                         "Tamil",
                         "English"
+                    ],
+                    "type": [
+                        "array",
+                        "string"
                     ]
                 },
                 "__post_call_actions": {
-                    "allOf": [
-                        {
-                            "type": "object",
-                            "description": "Side effects that fire once the call ends: email, webhook, Omni CRM,\nCloud WhatsApp, a workflow, Google Sheets, Slack, Salesforce, HubSpot\nor Zoho Bigin.\n",
-                            "properties": {
-                                "email": {
-                                    "type": "object",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "recipients": {
-                                            "type": "array",
-                                            "description": "Email addresses that should receive the notification.",
-                                            "items": {
-                                                "type": "string",
-                                                "format": "email"
-                                            },
-                                            "example": [
-                                                "support@example.com"
-                                            ]
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in the email body.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for the email.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            },
-                                            "example": [
-                                                "completed",
-                                                "voicemail_detected"
-                                            ]
-                                        }
-                                    }
-                                },
-                                "webhook": {
-                                    "type": "object",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "url": {
-                                            "type": "string",
-                                            "format": "uri",
-                                            "description": "Endpoint that receives a POST with the call payload.",
-                                            "example": "https://your-webhook-endpoint.com/omnidim-callback"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in the webhook body.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for the webhook.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            },
-                                            "example": [
-                                                "completed",
-                                                "failed"
-                                            ]
-                                        }
-                                    }
-                                },
-                                "omni_crm": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Save the call to Omni CRM."
-                                        }
-                                    ]
-                                },
-                                "cloud_whatsapp": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Send a Cloud WhatsApp template message after the call.",
-                                            "properties": {
-                                                "phone_number_id": {
-                                                    "type": "integer",
-                                                    "description": "The id of your organization's Cloud WhatsApp number the\nmessage is sent from.\n"
-                                                },
-                                                "template_id": {
-                                                    "type": "integer",
-                                                    "description": "An approved template on that number. A template that is not\napproved, or that belongs to another number, is refused.\n"
-                                                },
-                                                "template_variables": {
-                                                    "type": "array",
-                                                    "description": "Which extracted variable fills each template placeholder.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "index": {
-                                                                "type": "string",
-                                                                "description": "The placeholder number, as a string.",
-                                                                "example": "1"
-                                                            },
-                                                            "extracted_var": {
-                                                                "type": "string",
-                                                                "description": "The key of the extracted variable whose value fills this placeholder.",
-                                                                "example": "customer_name"
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "templates": {
-                                                    "type": "array",
-                                                    "description": "One or more templates to send, each with its variable mapping.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "description": "One Cloud WhatsApp template to send after the call.",
-                                                        "properties": {
-                                                            "template_id": {
-                                                                "type": "integer",
-                                                                "description": "An approved template on the chosen number."
-                                                            },
-                                                            "usage_description": {
-                                                                "type": "string",
-                                                                "description": "When this template should be sent. After the call, the model reads\nthese descriptions to choose which templates fit the conversation.\n",
-                                                                "example": "Send when the caller books an appointment."
-                                                            },
-                                                            "always_send": {
-                                                                "type": "boolean",
-                                                                "description": "Send this template after every call, whichever templates the model chooses."
-                                                            },
-                                                            "variable_mappings": {
-                                                                "type": "array",
-                                                                "description": "How to fill each template placeholder.",
-                                                                "items": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "index": {
-                                                                            "type": "string",
-                                                                            "description": "The placeholder number, as a string.",
-                                                                            "example": "1"
-                                                                        },
-                                                                        "extracted_var": {
-                                                                            "type": "string",
-                                                                            "description": "The extracted variable whose value fills this placeholder."
-                                                                        },
-                                                                        "static_value": {
-                                                                            "type": "string",
-                                                                            "description": "A fixed value for this placeholder. When set, it is used\ninstead of the extracted variable.\n"
-                                                                        },
-                                                                        "mode": {
-                                                                            "type": "string",
-                                                                            "enum": [
-                                                                                "variable",
-                                                                                "static"
-                                                                            ],
-                                                                            "description": "Which input the dashboard shows for this placeholder. It\ndoes not change the value sent: a `static_value` is used\nfirst, then the extracted variable, then `fallback_value`.\n"
-                                                                        },
-                                                                        "fallback_value": {
-                                                                            "type": "string",
-                                                                            "description": "The value to use when the variable is not extracted."
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "workflow": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Trigger a workflow after the call.",
-                                            "properties": {
-                                                "workflow_id": {
-                                                    "type": "integer",
-                                                    "description": "The id of the workflow to run."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "google_sheets": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Append the call to a Google Sheet. Sending this key replaces the\nagent's Google Sheets actions; leaving it out keeps them.\n",
-                                            "properties": {
-                                                "integration_id": {
-                                                    "type": "integer",
-                                                    "description": "Required. The id of your Google Sheets integration."
-                                                },
-                                                "spreadsheet_id": {
-                                                    "type": "string",
-                                                    "description": "Required. The id in the sheet's URL, the part after `/d/`."
-                                                },
-                                                "spreadsheet_name": {
-                                                    "type": "string"
-                                                },
-                                                "worksheet_name": {
-                                                    "type": "string",
-                                                    "description": "The tab to append to. Defaults to `Sheet1`."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "slack": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Post the call to a Slack channel. Sending this key replaces the\nagent's Slack actions; leaving it out keeps them.\n",
-                                            "properties": {
-                                                "integration_id": {
-                                                    "type": "integer",
-                                                    "description": "Required. The id of your Slack integration."
-                                                },
-                                                "channel_id": {
-                                                    "type": "string",
-                                                    "description": "The channel id. Send this or `channel_name`."
-                                                },
-                                                "channel_name": {
-                                                    "type": "string",
-                                                    "description": "The channel name. Send this or `channel_id`."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "salesforce": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Create a Salesforce record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's Salesforce actions;\nleaving it out keeps them.\n",
-                                            "properties": {
-                                                "integration_id": {
-                                                    "type": "integer",
-                                                    "description": "Required. The id of your Salesforce integration."
-                                                },
-                                                "object_name": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "Lead",
-                                                        "Contact",
-                                                        "Account",
-                                                        "Opportunity",
-                                                        "Case",
-                                                        "Task",
-                                                        "Product"
-                                                    ],
-                                                    "description": "Defaults to `Lead`."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "hubspot": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Create a HubSpot record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's HubSpot actions; leaving\nit out keeps them.\n",
-                                            "properties": {
-                                                "integration_id": {
-                                                    "type": "integer",
-                                                    "description": "Required. The id of your HubSpot integration."
-                                                },
-                                                "object_name": {
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "contact",
-                                                        "company",
-                                                        "deal",
-                                                        "ticket"
-                                                    ],
-                                                    "description": "Required."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "zoho_bigin": {
-                                    "allOf": [
-                                        {
-                                            "type": "object",
-                                            "description": "Settings every post-call channel shares.",
-                                            "properties": {
-                                                "enabled": {
-                                                    "type": "boolean"
-                                                },
-                                                "include": {
-                                                    "type": "array",
-                                                    "description": "Which sections to include in this action.",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "summary",
-                                                            "extracted_variables",
-                                                            "fullConversation",
-                                                            "sentiment"
-                                                        ]
-                                                    }
-                                                },
-                                                "extracted_variables": {
-                                                    "type": "array",
-                                                    "description": "Variables the model should pull out of the conversation for this action.",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "key",
-                                                            "prompt"
-                                                        ],
-                                                        "properties": {
-                                                            "key": {
-                                                                "type": "string",
-                                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                                "example": "customer_issue"
-                                                            },
-                                                            "prompt": {
-                                                                "type": "string",
-                                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                                "example": "Identify the main issue the customer is experiencing."
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "trigger_call_statuses": {
-                                                    "type": "array",
-                                                    "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                                    "items": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "completed",
-                                                            "voicemail_detected",
-                                                            "failed",
-                                                            "no-answer",
-                                                            "busy",
-                                                            "canceled"
-                                                        ]
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "type": "object",
-                                            "description": "Log the call in Zoho Bigin. Sending this key replaces the\nagent's Zoho Bigin actions; leaving it out keeps them.\n",
-                                            "properties": {
-                                                "integration_id": {
-                                                    "type": "integer",
-                                                    "description": "Required. The id of your Zoho Bigin integration."
-                                                },
-                                                "create_call_log": {
-                                                    "type": "boolean",
-                                                    "description": "Log the call. Defaults to true."
-                                                },
-                                                "update_contact": {
-                                                    "type": "boolean",
-                                                    "description": "Update a matching contact with what the call captured. Defaults to true."
-                                                },
-                                                "create_contact": {
-                                                    "type": "boolean",
-                                                    "description": "Create a contact when no contact matches. Defaults to true."
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\n"
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Post-call actions for this call only, in the same shape as\n`post_call_actions` on agent create. Email and webhook only.\nThey replace the agent's own post-call actions for this call;\nthe agent is not changed. Items that cannot be used are\nskipped and listed in `post_call_actions_ignored`, and the\ncall still goes out. Can also be sent inside `call_context`.\nPost-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                 }
             },
             "required": [
@@ -4370,11 +2476,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/calls/dispatch",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Dispatch call",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "editWorkflow",
-        "description": "Edit a workflow draft. Change the draft with a list of `ops`: add, update, move or delete nodes, and connect or disconnect them. The ops apply all together or not at all. You must send the `revision` from your last read. If you get `409 revision_conflict`, read the workflow again and retry. Secrets read back as `********`. Send them back unchanged to keep the stored value. This edits the draft only. Use `publishWorkflow` to make it live.",
+        "description": "Edit a workflow draft. Change the draft with a list of `ops`.\n\nOps add, update, move or delete nodes, and connect or disconnect them. They\napply all together or not at all. Send the `revision` from your last read.\nOn `409 revision_conflict`, read the workflow again and retry.\n\nSecrets read back as `********`. Send them back unchanged to keep the stored\nvalue. This edits the draft only. Use `publishWorkflow` to make it live.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4471,7 +2584,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Edit workflow draft",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "fetchBulkCalls",
@@ -4504,11 +2624,18 @@ _TOOLS_JSON = r"""[
             "pageno",
             "pagesize",
             "status"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List bulk campaigns",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getAccountBalance",
-        "description": "Get account balance. Read your organization's wallet: the remaining balance, the minutes\nit buys at your rates, your plan, your concurrency headroom, and\nwhether auto-recharge will refill it.\n\nUse it before a campaign, or on a schedule, so you find out you are\nlow on credit from this endpoint rather than from a call failing\nwith `402 payment_required`.\n\nThe response always describes the organization the API key belongs\nto. There is no parameter for reading another account; resellers\nread a client's figures through the Reseller endpoints.\n\nA balance at or below zero does not always mean calls will stop. An\norganization on usage-based billing (`plan.is_usage_based`) keeps\nplacing calls and is metered to its payment method instead, so check\nthat flag before treating a zero balance as a stop condition.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization; when it is not, contact support.",
+        "description": "Get account balance. Read your organization's wallet balance, plan and auto-recharge state.\n\nThe response also has the minutes the balance buys at your rates and your\nconcurrency headroom.\n\nCall it before a campaign, or on a schedule, so you learn about low credit\nhere and not from a call failing with `402 payment_required`.\n\nThe response always describes the organization the API key belongs to. There\nis no parameter for another account. Resellers read a client's figures\nthrough the Reseller endpoints.\n\nA balance at or below zero does not always stop calls. An organization on\nusage-based billing (`plan.is_usage_based`) keeps placing calls and is\nmetered to its payment method. Check that flag before treating zero as a\nstop condition.\n\nThe API key's user needs Billing access in your organization. If you get a\n`403`, an administrator can grant it when Billing is enabled for your\norganization. When it is not, contact support.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -4517,11 +2644,18 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/account/balance",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get account balance",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getAgent",
-        "description": "Get agent. Get details of a specific agent by ID. The response also includes a `can_publish` boolean showing whether [version history](/docs/api-reference/agents/listAgentVersions) is turned on for the agent's organization.",
+        "description": "Get agent. Get one agent by ID.\n\nThe response includes `can_publish`: whether [version\nhistory](/docs/api-reference/agents/listAgentVersions) is on for the agent's\norganization.\n\nThe response uses stored field names, such as `context_title` and\n`voice_external_id`. `updateAgent` takes the names in its own request\nbody instead, such as `context_breakdown[].title` and `voice.voice_id`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4540,7 +2674,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get agent",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getBulkCall",
@@ -4563,7 +2704,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get bulk campaign",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getBulkCallLiveStatus",
@@ -4586,7 +2734,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get campaign live status",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getCallLog",
@@ -4609,7 +2764,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "call_log_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get call log",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getClonedVoice",
@@ -4632,11 +2794,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get cloned voice",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getClonedVoiceSample",
-        "description": "Play a cloned voice sample. Stream the generated mp3 sample of a cloned voice. Only the owner can\nfetch it. `404` (`sample_not_ready`) when no sample exists yet. The\nrequest needs your API key in the `Authorization` header.",
+        "description": "Play a cloned voice sample. Stream the generated mp3 sample of a cloned voice.\n\nOnly the owner can fetch it. Send your API key in the `Authorization`\nheader. If no sample exists yet, the call returns `404`\n(`sample_not_ready`).",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4655,7 +2824,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get cloned voice sample",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getVoice",
@@ -4678,11 +2854,168 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get voice",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getWhatsappCalling",
+        "description": "Get calling settings. Get whether calling is on for this number and whether it can be turned on.\n\nThe response lists the checks. A failing check does not fail the request: it\nstays `200` and names the check that blocks. Meta Cloud numbers only. Your\nplan must include calling.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/calling",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp calling setting",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getWhatsappCampaign",
+        "description": "Get a campaign. Get one campaign with its counts and analytics.\n\nAnalytics include per-source figures and failed contacts grouped by reason.\n`delivery_rate` and `read_rate` are null on a number that does not report\nreceipts.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns/{campaign_id}",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp campaign",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getWhatsappConversation",
+        "description": "Get a conversation. Get one conversation: owner, 24-hour window, opt-out state and unread count.\n\nPoll it while a person is answering.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/conversations/{conversation_id}",
+        "path_params": [
+            "conversation_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp conversation",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getWhatsappMessage",
+        "description": "Get a message. Get one message with its `timeline` of delivery and read steps, oldest\nfirst.\n\nPoll it after a send to learn whether the message was delivered and read. It\nalso shows what the send cost once charged.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "message_id": {
+                    "type": "integer",
+                    "description": "Id of a message, from `listWhatsappMessages` or a send response."
+                }
+            },
+            "required": [
+                "message_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/messages/{message_id}",
+        "path_params": [
+            "message_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp message",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getWhatsappNumber",
+        "description": "Get a WhatsApp number. Get one number with its status, quality, messaging limit and what it can\nsend.\n\nA number in another workspace answers `404`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get WhatsApp number",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflow",
-        "description": "Get a workflow. One workflow with its draft, status and `revision`. Call it before every edit to get the current `revision`. Use `view=structure` to see nodes and edges without config on a large workflow. Secrets read back as `********`.",
+        "description": "Get a workflow. Get one workflow with its draft, status and `revision`.\n\nCall it before every edit to get the current `revision`. Use\n`view=structure` to see nodes and edges without config on a large workflow.\nSecrets read back as `********`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4712,11 +3045,18 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "view"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflowExecution",
-        "description": "Get a workflow run. One run of a workflow, with the result of each step. Use it to read the outcome of `testWorkflow`. A run is finished when `state` is `completed`, `failed` or `cancelled`.",
+        "description": "Get a workflow run. Get one workflow run with the result of each step.\n\nUse it to read the outcome of `testWorkflow`. The run is finished when\n`state` is `completed`, `failed` or `cancelled`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4741,11 +3081,18 @@ _TOOLS_JSON = r"""[
             "workflow_id",
             "execution_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow run",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getWorkflowNodeType",
-        "description": "Get a workflow node type. The settings one node type reads, with their types, required flags and outputs. Call it before you add or edit a node, because its `fields` are the keys of the node's `config`. Use `detail=full` only when you need help text and examples.",
+        "description": "Get a workflow node type. Get the settings one node type reads.\n\nCall it before you add or edit a node. Its `fields` are the keys of the\nnode's `config`. Use `detail=full` only when you need help text and\nexamples.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4775,7 +3122,44 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "detail"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Get workflow node type",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "handBackWhatsappConversation",
+        "description": "Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/conversations/{conversation_id}/hand_back",
+        "path_params": [
+            "conversation_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Hand WhatsApp conversation back to agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importExotelNumber",
@@ -4826,7 +3210,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/exotel",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Import Exotel number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importSipTrunk",
@@ -4889,7 +3280,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/sip",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Import SIP trunk",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "importTwilioNumber",
@@ -4925,11 +3323,168 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/import/twilio",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Import Twilio number",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "importWhatsappNumbers",
+        "description": "Connect WhatsApp numbers. Connect numbers from your WhatsApp Business Account with your Meta access\ntoken.\n\nList the numbers first with [Preview\nnumbers](/docs/api-reference/whatsapp/previewWhatsappNumbers), then pass the\nids you want.\n\nThe token must never expire and must carry both\n`whatsapp_business_management` and `whatsapp_business_messaging`. A system\nuser token does. Add `app_secret` to receive replies. Without it the number\ncan send but not receive.\n\nConnecting a number again updates it. Send a new `access_token` or\n`app_secret` to change either. One number failing does not stop the others.\nIt is listed in `failed` with the reason.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "waba_id": {
+                    "type": "string",
+                    "description": "Your WhatsApp Business Account id, from WhatsApp Manager."
+                },
+                "access_token": {
+                    "type": "string",
+                    "description": "A Meta access token that never expires, with both WhatsApp permissions. Stored, never returned."
+                },
+                "phone_number_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Meta's ids for the numbers to connect, as Preview numbers lists them."
+                },
+                "app_secret": {
+                    "type": "string",
+                    "description": "Your Meta app's secret. Turns on replies. Stored, never returned."
+                }
+            },
+            "required": [
+                "access_token",
+                "phone_number_ids",
+                "waba_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Import WhatsApp numbers",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
+    },
+    {
+        "name": "launchWhatsappCampaign",
+        "description": "Launch a campaign. Start a draft campaign and queue every pending contact once.\n\nIt needs at least one contact, unless `data_source` is `webhook`. Launch\nchecks the plan's monthly broadcast allowance and the wallet balance.\n`Idempotency-Key` is required, so a retry does not start it twice.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`.\n"
+                }
+            },
+            "required": [
+                "Idempotency-Key",
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/launch",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ],
+        "annotations": {
+            "title": "Launch WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
+    },
+    {
+        "name": "liftWhatsappOptOut",
+        "description": "Lift a block. Lift a block you added, or a marketing block made in WhatsApp.\n\nThe entry stays in the list with `active: false`. You cannot lift a\ncustomer's own STOP over the API. The customer must lift it in WhatsApp or\nmessage you again.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "opt_out_id": {
+                    "type": "integer",
+                    "description": "Id of an active opt-out entry, from `listWhatsappOptOuts`."
+                }
+            },
+            "required": [
+                "number_id",
+                "opt_out_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs/{opt_out_id}",
+        "path_params": [
+            "number_id",
+            "opt_out_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Lift WhatsApp opt-out",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listAgentIntegrations",
+        "description": "List an agent's integrations. List the integrations attached to the agent. Stored credentials read `********`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "integer",
+                    "description": "The ID of the agent."
+                }
+            },
+            "required": [
+                "agent_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/agents/{agent_id}/integrations",
+        "path_params": [
+            "agent_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List agent integrations",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAgentVersions",
-        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions, automatic versions, and system backups taken before a restore.",
+        "description": "List agent versions. List an agent's saved versions, newest first. Includes manual (named) versions and system backups taken before a restore. Nothing is saved automatically.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4976,7 +3531,14 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "search",
             "kind"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List agent versions",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAgents",
@@ -5009,7 +3571,14 @@ _TOOLS_JSON = r"""[
             "pageno",
             "pagesize",
             "name"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List agents",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listAllProviders",
@@ -5022,11 +3591,18 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/all",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List all providers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listBulkCallLines",
-        "description": "Bulk call results. Per-contact results for a campaign: what happened on each call, the\nvariables you sent with that contact, and a pointer to the recording.\n\n## Paging\n\nThere is one rule. Call it with no `cursor`, then keep passing back the\n`next_cursor` you were handed until it comes back `null`.\n\n```\ncursor = None\nwhile True:\n    page = GET /lines?pagesize=150&cursor={cursor}\n    handle(page[\"records\"])\n    cursor = page[\"next_cursor\"]\n    if not cursor: break\n```\n\nEach call returns a page of rows, oldest first: `pagesize` goes up to\n150 and defaults to 30. Cursors are opaque, so pass back the string you\nwere given and never build one. No contact is skipped or returned\ntwice, even while the campaign is still dialing.\n\n## Transcripts are not in the row\n\nEach row carries `call.recording_id`, not the conversation. Transcripts\nreach 212 KB, so carrying them here would make one page tens of\nmegabytes. Fetch the one you want from\n`GET /calls/logs/{recording_id}`.",
+        "description": "Bulk call results. List per-contact results for a campaign.\n\nEach row has what happened on the call, the variables you sent, and\n`call.recording_id`.\n\n## Paging\n\nCall with no `cursor`. Then pass back the `next_cursor` you were given until\nit is `null`. Rows come oldest first. `pagesize` defaults to 30 and goes up\nto 150. Cursors are opaque, so never build one. No contact is skipped or\nreturned twice, even while the campaign dials.\n\n```\ncursor = None\nwhile True:\n    page = GET /lines?pagesize=150&cursor={cursor}\n    handle(page[\"records\"])\n    cursor = page[\"next_cursor\"]\n    if not cursor: break\n```\n\n## Transcripts are not in the row\n\nTranscripts reach 212 KB, so rows carry only `call.recording_id`. Fetch the\ntranscript from `GET /calls/logs/{recording_id}`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5091,7 +3667,14 @@ _TOOLS_JSON = r"""[
             "interaction_status",
             "search",
             "include_total"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List campaign call results",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listBulkCallNumbers",
@@ -5114,7 +3697,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List campaign rotation pool",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listCallLogs",
@@ -5149,7 +3739,12 @@ _TOOLS_JSON = r"""[
                 },
                 "bulk_call_id": {
                     "type": "integer",
-                    "description": "Filter by bulk-call campaign ID."
+                    "description": "Filter by bulk-call campaign ID. Takes one ID."
+                },
+                "include_details": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Set to `false` for a lighter list. Each row then leaves out\n`call_conversation`, `sentiment_analysis_details`, `llm_prompt`,\n`voice_insides`, `custom_variables` and `metadata`. Fetch those for\none call with Get call log.\n"
                 }
             },
             "additionalProperties": true
@@ -5162,12 +3757,20 @@ _TOOLS_JSON = r"""[
             "pagesize",
             "agentid",
             "call_status",
-            "bulk_call_id"
-        ]
+            "bulk_call_id",
+            "include_details"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List call logs",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listClonedVoices",
-        "description": "List cloned voices. Your cloned voices, oldest first, one cursor page at a time. Call it with\nno `cursor`, then pass back the `next_cursor` you were handed until it is\n`null`.\n\nOnce a voice is `ready`, its `voice_id` is the provider voice id to put\nin an agent's `voice.voice_id` with `voice.provider: cartesia`.",
+        "description": "List cloned voices. List your cloned voices, oldest first, one cursor page at a time.\n\nCall it with no `cursor`. Then pass back each `next_cursor` until it is\n`null`.\n\nWhen a voice is `ready`, put its `voice_id` in an agent's `voice.voice_id`\nwith `voice.provider: cartesia`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5190,11 +3793,18 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List cloned voices",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listIntegrations",
-        "description": "List integrations. List the integrations connected to your workspace, with each one's `id` and `integration_type`. Stored credentials (tokens, secrets, passwords, API keys, and the values of a custom API's headers and parameters) are never returned: they read `********`. When you create an integration, send the real values: `********` is refused. Accounts that sign in with OAuth (Google Sheets, Slack, HubSpot, Salesforce, Zoho Bigin) are connected in the dashboard.",
+        "description": "List integrations. List your workspace integrations, with each one's `id` and\n`integration_type`.\n\nStored credentials (tokens, secrets, passwords, API keys, and the values of\na custom API's headers and parameters) are never returned. They read\n`********`. When you create an integration, send the real values: `********`\nis refused. Accounts that sign in with OAuth (Google Sheets, Slack, HubSpot,\nSalesforce, Zoho Bigin) are connected in the dashboard.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -5203,7 +3813,14 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/integrations",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List integrations",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listKnowledgeBaseFiles",
@@ -5216,7 +3833,14 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/knowledge_base/list",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List knowledge base files",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listLLMProviders",
@@ -5229,7 +3853,14 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/llms",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List LLM providers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listPhoneNumbers",
@@ -5257,7 +3888,14 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "pageno",
             "pagesize"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List phone numbers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listPostCallActions",
@@ -5280,7 +3918,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List post-call actions",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listSTTProviders",
@@ -5293,7 +3938,14 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/stt",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List speech-to-text providers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listTTSProviders",
@@ -5306,41 +3958,37 @@ _TOOLS_JSON = r"""[
         "method": "GET",
         "path": "/providers/tts",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "List text-to-speech providers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listVoices",
-        "description": "List voices. Retrieve voices with filtering and pagination support. ElevenLabs\nand Cartesia support advanced filtering by name, language, accent,\nand gender.\nOther providers support basic pagination only.",
+        "description": "List voices. List the voices your organization can use, with filters and pagination.\n\nUse `provider=featured` for OmniDimension voices in the order the dashboard\nshows them. They are the recommended start. Cartesia voices are next.\n\nEach voice keeps its own `service`: save it as the agent's voice provider. A\nprovider your organization cannot use returns a 400. Cartesia and ElevenLabs\nsupport filtering by name, language, accent and gender. Other providers\nsupport pagination only.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "provider": {
                     "type": "string",
-                    "enum": [
-                        "eleven_labs",
-                        "google",
-                        "deepgram",
-                        "cartesia",
-                        "sarvam",
-                        "rime",
-                        "playht",
-                        "hume",
-                        "inworld",
-                        "smallest"
-                    ],
-                    "description": "TTS provider to list voices from. Omit to list across all providers."
+                    "example": "featured",
+                    "description": "Provider to list voices from. Omit to list every voice your organization can use.\n`featured` lists OmniDimension voices and is the recommended choice, followed by\n`cartesia`. A provider your organization cannot use returns a 400.\n"
                 },
                 "search": {
                     "type": "string",
-                    "description": "Substring match against voice name or description. ElevenLabs and Cartesia."
+                    "description": "Substring match against voice name or description. Cartesia and ElevenLabs."
                 },
                 "language": {
                     "type": "string",
-                    "description": "ISO language code (e.g. `en`, `hi`, `es`). ElevenLabs and Cartesia."
+                    "description": "ISO language code (e.g. `en`, `hi`, `es`). Cartesia and ElevenLabs."
                 },
                 "accent": {
                     "type": "string",
-                    "description": "Accent label (e.g. `american`, `british`). ElevenLabs and Cartesia."
+                    "description": "Accent label (e.g. `american`, `british`). Cartesia and ElevenLabs."
                 },
                 "gender": {
                     "type": "string",
@@ -5348,7 +3996,7 @@ _TOOLS_JSON = r"""[
                         "male",
                         "female"
                     ],
-                    "description": "Filter voices by gender. ElevenLabs and Cartesia."
+                    "description": "Filter voices by gender. Cartesia and ElevenLabs."
                 },
                 "page": {
                     "type": "integer",
@@ -5375,11 +4023,393 @@ _TOOLS_JSON = r"""[
             "gender",
             "page",
             "page_size"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List voices",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappCampaignContacts",
+        "description": "List campaign contacts. List per-contact status for a campaign, oldest first.\n\nA contact that read the message and then replied STOP counts as read and\nopted out.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "sent",
+                        "delivered",
+                        "read",
+                        "replied",
+                        "failed",
+                        "skipped",
+                        "opted_out"
+                    ],
+                    "description": "Show only contacts in this state."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns/{campaign_id}/contacts",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [
+            "status",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp campaign contacts",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappCampaigns",
+        "description": "List campaigns. Your WhatsApp campaigns, oldest first. Filter by status or by number.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "in_progress",
+                        "paused",
+                        "completed",
+                        "failed",
+                        "cancelled"
+                    ],
+                    "description": "Show only campaigns in this state."
+                },
+                "phone_number_id": {
+                    "type": "integer",
+                    "description": "Show only campaigns on this number."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/campaigns",
+        "path_params": [],
+        "query_params": [
+            "status",
+            "phone_number_id",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp campaigns",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappConversations",
+        "description": "List conversations. List a number's inbox, newest activity first.\n\nThere are no event webhooks, so poll with `updated_since` to learn about new\nmessages. Page with `cursor`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "filter": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "unread",
+                        "needs_person",
+                        "agent",
+                        "failed",
+                        "window_closed",
+                        "campaign_replies"
+                    ],
+                    "default": "all",
+                    "description": "`needs_person` is a person-owned or paused conversation. `window_closed` is one you can only reach with a template."
+                },
+                "q": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Search the customer's name, phone number and message text."
+                },
+                "updated_since": {
+                    "type": "string",
+                    "description": "An ISO 8601 date and time, such as `2026-10-01T09:00:00+00:00`. Returns\nconversations with a change at or after it. No offset means UTC.\n"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/conversations",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "filter",
+            "q",
+            "updated_since",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp conversations",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappMessages",
+        "description": "List messages. List one conversation's messages, newest first.\n\nPoll forward with `after`, the id of the newest message you have, to get\nonly new ones. Page back through history with `cursor`. Do not pass both.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "The conversation to read."
+                },
+                "after": {
+                    "type": "integer",
+                    "description": "Return messages newer than this message id. `next_cursor` is null in this mode."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page. Do not combine it with `after`."
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/messages",
+        "path_params": [],
+        "query_params": [
+            "conversation_id",
+            "after",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp messages",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappNumbers",
+        "description": "List WhatsApp numbers. List the WhatsApp numbers your API key can see.\n\nNumbers come oldest first, and archived ones are left out. Use it to find a\nnumber id for the other routes. Each number carries `capabilities`, which\nsays what it can send.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page. Omit it on the first request and pass it back unchanged."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers",
+        "path_params": [],
+        "query_params": [
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp numbers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappOptOuts",
+        "description": "List opt-outs. Who opted out of messages from this number, oldest first. By default it\nlists active opt-outs only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "active": {
+                    "type": "string",
+                    "enum": [
+                        true,
+                        false,
+                        "all"
+                    ],
+                    "default": "true",
+                    "description": "`true` for active only, `false` for lifted only, `all` for both."
+                },
+                "customer": {
+                    "type": "string",
+                    "description": "Find one customer by any spelling of their number."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/opt_outs",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "active",
+            "customer",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp opt-outs",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listWhatsappTemplates",
+        "description": "List templates. List the number's message templates, as last synced, oldest first.\n\nPass `status=approved` to see exactly the templates a send accepts. If a\ntemplate you expect is missing, run `syncWhatsappTemplates` first.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Show only templates with this review status, such as `approved`,\n`pending` or `rejected`. Lower-case; omit it for all.\n"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "The `next_cursor` from the previous page."
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/whatsapp/numbers/{number_id}/templates",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [
+            "status",
+            "limit",
+            "cursor"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List WhatsApp templates",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflowFieldOptions",
-        "description": "List choices for a node field. The choices for one `ref` field of a node type, such as the phone numbers, agents or integrations in your account. Call it for every `ref` field and never guess an id. If it returns `400 no_options`, the field is not chosen from a list, so ask the user for the value.",
+        "description": "List choices for a node field. List the choices for one `ref` field of a node type.\n\nExamples are the phone numbers, agents or integrations in your account. Call\nit for every `ref` field and never guess an id. If it returns `400\nno_options`, the field is not a list choice, so ask the user for the value.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5410,11 +4440,18 @@ _TOOLS_JSON = r"""[
         ],
         "query_params": [
             "depends"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List choices for a workflow field",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflowNodeTypes",
-        "description": "List workflow node types. Search the node types a workflow can use, such as `whatsapp`, `voice_ai` or `conditional`. Call it first when you do not know which node to add. Then call `getWorkflowNodeType` for the settings of one type.",
+        "description": "List workflow node types. Search the node types a workflow can use.\n\nExamples are `whatsapp`, `voice_ai` and `conditional`. Call it first when\nyou do not know which node to add. Then call `getWorkflowNodeType` for one\ntype's settings.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5444,11 +4481,18 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "q",
             "category"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List workflow node types",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "listWorkflows",
-        "description": "List workflows. Your workflows, oldest first, one cursor page at a time. Use it to find a workflow id. Pass back `next_cursor` until it is `null`.",
+        "description": "List workflows. List your workflows, oldest first, one cursor page at a time.\n\nUse it to find a workflow id. Pass back `next_cursor` until it is `null`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5472,11 +4516,81 @@ _TOOLS_JSON = r"""[
         "query_params": [
             "limit",
             "cursor"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List workflows",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "pauseWhatsappCampaign",
+        "description": "Pause a campaign. Stop sending until you resume.\n\nOnly a running campaign can be paused. A pause you make by hand is never\nresumed automatically.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/pause",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Pause WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "previewWhatsappNumbers",
+        "description": "Preview numbers to connect. List the numbers on your WhatsApp Business Account with their health.\nConnects nothing.\n\nThe access token is checked first, against the same rules as connecting, so\na preview that passes can connect.\n\nFix a number with `needs_migration` or `needs_registration` in WhatsApp\nManager before you connect it, or its sends fail.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "waba_id": {
+                    "type": "string",
+                    "description": "Your WhatsApp Business Account id, from WhatsApp Manager."
+                },
+                "access_token": {
+                    "type": "string",
+                    "description": "A Meta access token that never expires, with both WhatsApp permissions."
+                }
+            },
+            "required": [
+                "access_token",
+                "waba_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/preview",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Preview WhatsApp numbers to import",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "publishWorkflow",
-        "description": "Publish a workflow. Make the draft the live version. Real events then run it, unless the workflow is paused. Run `validateWorkflow` first: publish is refused while the draft has errors. Ask the user before you publish.",
+        "description": "Publish a workflow. Make the draft the live version.\n\nReal events then run it, unless the workflow is paused. Publish is refused\nwhile the draft has errors, so run `validateWorkflow` first. Ask the user\nbefore you publish.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5495,11 +4609,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Publish workflow",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "purchasePhoneNumber",
-        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop. The monthly\nrental comes out of your wallet and the number is added to your\naccount, ready to attach to an agent.",
+        "description": "Purchase a phone number. Buy a phone number from the OmniDimension number shop.\n\nThe monthly rental comes out of your wallet. The number is added to your\naccount, ready to attach to an agent.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5536,7 +4657,16 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/purchase",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ],
+        "annotations": {
+            "title": "Buy phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "regenerateClonedVoiceSample",
@@ -5559,11 +4689,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Regenerate cloned voice sample",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "releasePhoneNumber",
-        "description": "Release a phone number. Give up a phone number and stop its rental, so it is not charged at the\nnext renewal. Only a number currently allocated to the account can be\nreleased.",
+        "description": "Release a phone number. Release a phone number and stop its rental.\n\nIt is not charged at the next renewal. Only a number currently allocated to\nthe account can be released.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5581,7 +4718,14 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/phone_number/release",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Release phone number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "renameAgentVersion",
@@ -5620,11 +4764,18 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Rename agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "restoreAgentVersion",
-        "description": "Restore an agent version. Restore a version onto the live agent. Your current setup is saved first as a backup version, so restoring is undoable. Configuration is brought back; any knowledge files or integrations that were deleted since this version was saved can't be re-linked, and are reported in `skipped`.",
+        "description": "Restore an agent version. Restore a version onto the live agent.\n\nYour current setup is saved first as a backup version, so restoring is\nundoable. Configuration comes back. Knowledge files or integrations deleted\nsince this version was saved can't be re-linked. They are reported in\n`skipped`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5649,11 +4800,48 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "version_number"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Restore agent version",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "resumeWhatsappCampaign",
+        "description": "Resume a campaign. Resume a paused campaign.\n\nPending contacts are sent. A contact already sent is never sent again.\nResume checks the wallet and allowance again, so it can answer `402`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp campaign, from `listWhatsappCampaigns`."
+                }
+            },
+            "required": [
+                "campaign_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/campaigns/{campaign_id}/resume",
+        "path_params": [
+            "campaign_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Resume WhatsApp campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "retryBulkCall",
-        "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without creating a new campaign.\n\nUse it after a campaign finishes with more no-answers than you expected,\nor when the reason was on your side (a bad window, a number that was\nhaving a bad day). Retried contacts keep their original variables.",
+        "description": "Retry contacts that did not connect. Re-queue contacts that did not connect, without a new campaign.\n\nUse it after a campaign finishes with more no-answers than expected, or when\nthe cause was on your side. Retried contacts keep their original variables.\n\nThe retry is refused in these cases:\n\n- The status is not `completed`. The error is `Cannot retry calls. Current status: <status>`.\n- Auto retry is on and some contacts are still `Pending` or `In Progress`. The error is `Cannot retry while calls are still in progress and auto retry is enabled`.\n- A value in `failure_reasons` is not an allowed status. The error is `Invalid failure reason(s)` and lists the allowed values.\n- No contact matches. The error is `No failed calls found to retry matching criteria`.\n\nEach contact is retried from its latest call only. With\n`skip_known_invalid_numbers` on, contacts whose last call ended with the\ncarrier saying the number does not exist are skipped. Connected calls with\nno conversation are not retried.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5670,7 +4858,18 @@ _TOOLS_JSON = r"""[
                     "type": "array",
                     "description": "Statuses to re-queue. Read only when `retry_strategy` is\n`specific`; for example `no-answer` and `busy`. Ignored when\n`retry_strategy` is `all`.\n",
                     "items": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "failed",
+                            "Failed",
+                            "no-answer",
+                            "No Answer",
+                            "busy",
+                            "Busy",
+                            "cancelled",
+                            "canceled",
+                            "voicemail_detected"
+                        ]
                     }
                 }
             },
@@ -5684,11 +4883,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Retry unconnected contacts",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "searchPhoneNumbers",
-        "description": "Search available phone numbers. Search the OmniDimension number shop for phone numbers available to buy\nin a region. Price and validity are flat per region, so every result\nshows the same `monthly_rental_usd` and `validity_days`, and that is the\nexact amount a purchase will charge.\n\nA region can have more than one carrier, each stocking different\nnumber series. Pass the `carrier` you want; the response names the\ncarrier its results came from, and that is the carrier a purchase has\nto pass.",
+        "description": "Search available phone numbers. Search the OmniDimension number shop for numbers you can buy in a region.\n\nPrice and validity are flat per region. Every result shows the same\n`monthly_rental_usd` and `validity_days`, and a purchase charges exactly\nthat.\n\nA region can have several carriers, each with different number series. Pass\nthe `carrier` you want. The response names the carrier its results came\nfrom, and a purchase must pass that carrier.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5736,11 +4942,118 @@ _TOOLS_JSON = r"""[
             "pattern",
             "page",
             "limit"
-        ]
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Search available phone numbers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "sendWhatsappMessage",
+        "description": "Send a message. Send a text, template, image or document message to a customer.\n\nIt goes out from `phone_number_id`. Set `type` and the field that matches\nit.\n\nOutside the 24-hour window, only a template goes through. Text, image and\ndocument sends are refused with `409 window_closed`. A template send works\nany time and can start a new conversation.\n\nA send does not take the conversation over, so the agent keeps answering.\nSet `take_over: true` to stop the agent and answer yourself.\n\n`Idempotency-Key` is required. The same key with the same body replays the first answer instead of sending again.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "Idempotency-Key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "description": "A unique string you choose, up to 255 characters. Required on this\nroute. The same key with the same body replays the first answer for\n24 hours instead of acting twice. A different body with the same key\nanswers `409`.\n"
+                },
+                "phone_number_id": {
+                    "type": "integer",
+                    "description": "The number to send from."
+                },
+                "to": {
+                    "type": "string",
+                    "description": "The customer's number in international format, such as `+15551234567`."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "text",
+                        "template",
+                        "image",
+                        "document"
+                    ]
+                },
+                "text": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Required when `type` is `text`."
+                },
+                "template": {
+                    "type": "object",
+                    "description": "Required when `type` is `template`.",
+                    "required": [
+                        "id"
+                    ],
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "description": "An approved template on this number, from `listWhatsappTemplates`."
+                        },
+                        "params": {
+                            "type": "object",
+                            "description": "One value per field in the template's `fields`. Keys are\nthose field keys. String, number or null values.\n",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "media": {
+                    "type": "object",
+                    "description": "Required when `type` is `image` or `document`.",
+                    "required": [
+                        "media_id"
+                    ],
+                    "properties": {
+                        "media_id": {
+                            "type": "string",
+                            "description": "The `media_id` from `uploadWhatsappMedia`, uploaded within the last 24 hours."
+                        },
+                        "caption": {
+                            "type": "string",
+                            "maxLength": 1024
+                        }
+                    }
+                },
+                "reply_to": {
+                    "type": "integer",
+                    "description": "A message id in the same conversation to quote. Not allowed with a template."
+                },
+                "take_over": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Stop the agent answering this conversation and let a person run it."
+                }
+            },
+            "required": [
+                "Idempotency-Key",
+                "phone_number_id",
+                "to",
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/messages",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [
+            "Idempotency-Key"
+        ],
+        "annotations": {
+            "title": "Send WhatsApp message",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "setBulkCallConcurrency",
-        "description": "Change concurrency. Change how many calls the campaign places at once, including while it is\nrunning. Raise it to finish sooner, lower it if your team cannot keep up\nwith transfers or your numbers are being answered less.\n\nThe ceiling is your account's concurrency limit.",
+        "description": "Change concurrency. Change how many calls the campaign places at once, even while it runs.\n\nRaise it to finish sooner. Lower it if your team cannot keep up with\ntransfers or fewer calls are answered. The ceiling is your account's\nconcurrency limit.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5766,11 +5079,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign concurrency",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setBulkCallDailyTimeControl",
-        "description": "Set calling hours. Restrict a campaign to a daily calling window, in the campaign's\ntimezone. Outside the window the campaign holds rather than finishing,\nand resumes the next day.",
+        "description": "Set calling hours. Limit a campaign to a daily calling window in its timezone.\n\nOutside the window the campaign holds, then resumes the next day.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5821,11 +5141,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign calling hours",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "setBulkCallNumberActive",
-        "description": "Pause or resume a pool number. Stop or resume dialing from one number in the pool.\n\nPausing is what you want when a number starts going bad mid-campaign:\ndialing moves to the next number in sequence and the paused number keeps\nits history and counters. The last active number of a running campaign\ncannot be paused, since the campaign would have nothing to dial from.\n\nSend the state you want rather than a toggle, so retrying the same\nrequest is harmless.\n\n`assignment_id` is the number's id **within this campaign's pool**, from\nList rotation pool. It is not the `phone_number_id`.",
+        "description": "Pause or resume a pool number. Stop or resume dialing from one number in the pool.\n\nPause a number that goes bad mid-campaign. Dialing moves to the next number,\nand the paused number keeps its history and counters. You cannot pause the\nlast active number of a running campaign.\n\nSend the state you want, not a toggle, so a retry is harmless.\n\n`assignment_id` is the number's id **within this campaign's pool**, from List rotation pool. It is not the `phone_number_id`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5856,7 +5183,148 @@ _TOOLS_JSON = r"""[
             "bulk_call_id",
             "assignment_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Pause or resume pool number",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "setBulkCallRotation",
+        "description": "Change rotation settings. Change how a campaign uses its number pool.\n\nSend only the fields you want to change. At least one field is required.\n\nIt works while the status is `draft`, `scheduled`, `in_progress`, `waiting`,\n`paused`, `auto_paused` or `retry_scheduled`. Any other status is refused\nwith `Cannot edit rotation for status: <status>`. To change which numbers\nare in the pool, use the numbers endpoints.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "bulk_call_id": {
+                    "type": "integer",
+                    "description": "Id of the bulk call campaign."
+                },
+                "strategy": {
+                    "type": "string",
+                    "enum": [
+                        "fixed_count",
+                        "cpr_threshold",
+                        "both",
+                        "none"
+                    ],
+                    "description": "When to move to the next number: every `calls_per_number`\ncalls, on low health score, both, or never.\n"
+                },
+                "calls_per_number": {
+                    "type": "integer",
+                    "description": "Calls before moving on. Used by `fixed_count` and `both`."
+                },
+                "health_threshold": {
+                    "type": "number",
+                    "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
+                },
+                "fallback": {
+                    "type": "string",
+                    "enum": [
+                        "pause",
+                        "continue_best"
+                    ],
+                    "description": "When every number is unhealthy: `pause` the campaign, or\n`continue_best` with the healthiest one.\n"
+                },
+                "call_back_from_different_number": {
+                    "type": "boolean",
+                    "description": "When on, a repeat call to the same person goes out from a\ndifferent number than the one that called them last. Needs\ntwo or more numbers in the pool. Must be `true` or `false`.\n"
+                },
+                "skip_known_invalid_numbers": {
+                    "type": "boolean",
+                    "description": "When on, a contact is not dialed if the carrier said its\nnumber does not exist, in any campaign of your organization\nin the last 14 days. Must be `true` or `false`.\n"
+                }
+            },
+            "required": [
+                "bulk_call_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PUT",
+        "path": "/calls/bulk_call/{bulk_call_id}/rotation",
+        "path_params": [
+            "bulk_call_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Set campaign number rotation",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "setPhoneNumberAutoRenew",
+        "description": "Switch auto-renew on a phone number. Turn auto-renew on or off for a number bought from the number shop.\n\nWith auto-renew off, the number is not charged again. It works until the end\nof the period already paid for, then it is released. Turn auto-renew on\nbefore that date and the number renews as normal. Sending the value the\nnumber already has changes nothing and still succeeds.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "phone_number": {
+                    "type": "string",
+                    "description": "The number to switch.",
+                    "example": "+15551234567"
+                },
+                "auto_renew": {
+                    "type": "boolean",
+                    "description": "`false` stops renewal, `true` turns it back on. Must be a JSON boolean: a string such as `\"false\"`, a number, or a missing value is refused.",
+                    "example": false
+                }
+            },
+            "required": [
+                "auto_renew",
+                "phone_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/phone_number/auto_renew",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Set phone number auto-renew",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "setWhatsappCalling",
+        "description": "Turn calling on or off. Turn calling on or off for a Meta Cloud number.\n\nA customer calls this number. It does not place calls. Turning calling on\nneeds every blocking check to pass, or the request answers `409`. Turning it\noff is always allowed.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "`true` to turn calling on, `false` to turn it off."
+                }
+            },
+            "required": [
+                "enabled",
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "PATCH",
+        "path": "/whatsapp/numbers/{number_id}/calling",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Turn WhatsApp calling on or off",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "startBulkCall",
@@ -5879,11 +5347,78 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "bulk_call_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Start draft campaign",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
+    },
+    {
+        "name": "syncWhatsappTemplates",
+        "description": "Sync templates. Pull the number's templates and review statuses from WhatsApp into your\nlist.\n\nRun it after you create or edit a template in Meta. It runs at most once a\nminute per number. A second call inside that minute answers `429`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                }
+            },
+            "required": [
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/{number_id}/templates/sync",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Sync WhatsApp templates",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "takeOverWhatsappConversation",
+        "description": "Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {
+                    "type": "string",
+                    "description": "A conversation id: the number id, a dash, then the customer's phone\ndigits, such as `412-919876543210`. From\n[listWhatsappConversations](/docs/api-reference/whatsapp/listWhatsappConversations).\n"
+                }
+            },
+            "required": [
+                "conversation_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/conversations/{conversation_id}/take_over",
+        "path_params": [
+            "conversation_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Take over WhatsApp conversation",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "testWorkflow",
-        "description": "Test a workflow. Runs the draft once with payload as the trigger data. Every node runs for real: WhatsApp messages, SMS, emails and calls go out and CRM records change. Ask the user before calling it, and use their own phone number or email in the payload.\n\nIt returns an `execution_id` at once. Poll `getWorkflowExecution` for the result.",
+        "description": "Test a workflow. Run the draft once with `payload` as the trigger data.\n\nEvery node runs for real: WhatsApp messages, SMS, emails and calls go out,\nand CRM records change. Ask the user first, and use their own phone number\nor email in the payload.\n\nIt returns an `execution_id` at once. Poll `getWorkflowExecution` for the\nresult.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5907,11 +5442,18 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Test workflow (runs for real)",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        }
     },
     {
         "name": "updateAgent",
-        "description": "Update agent. Update an existing agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only when you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when their key is sent, and kept otherwise. If a sent action gives a variable key a new prompt, kept actions that use the same key take the new prompt too. To add, change or remove one action without touching the others, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is an access-gated feature** that we turn on per account. If it isn't enabled for yours yet, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before configuring the `voicemail` object below.",
+        "description": "Update agent. Update an agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only if you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when you send their key. Other actions are kept. If a sent action gives a variable key a new prompt, kept actions with the same key take that prompt too. To change one action alone, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5954,7 +5496,7 @@ _TOOLS_JSON = r"""[
                 },
                 "context_breakdown": {
                     "type": "array",
-                    "description": "List of context breakdowns, each containing `title`, `body`, and optional `is_enabled`.",
+                    "description": "The agent's prompt sections, each with `title`, `body` and optional `is_enabled`. Sending them replaces the whole list and rebuilds the prompt from the enabled sections in order: each `title` becomes a `# title` heading on its own line, with its `body` below it, the same layout the dashboard uses. A save without `context_breakdown` leaves the prompt unchanged.",
                     "items": {
                         "type": "object",
                         "required": [
@@ -5986,7 +5528,7 @@ _TOOLS_JSON = r"""[
                         "Incoming",
                         "Outgoing"
                     ],
-                    "description": "Call type of the assistant."
+                    "description": "`Incoming` for an agent that answers calls, `Outgoing` for one that places them, spelled exactly so. Any other value, `incoming` included, saves as `Outgoing` and the response lists it in `warnings`."
                 },
                 "timezone": {
                     "type": "string",
@@ -5999,24 +5541,23 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "deepgram_stream",
-                                "cartesia",
-                                "sarvam",
-                                "azure_stream",
-                                "soniox"
-                            ],
-                            "description": "The speech-to-text provider to use.",
+                            "description": "The speech-to-text provider to use: a `name` from the STT providers list, which returns the ones your organization can use. Leave it out to use your organization's default transcriber.",
                             "example": "deepgram_stream"
                         },
                         "model": {
                             "type": "string",
-                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`; other\nproviders take their own model identifiers.\n",
+                            "description": "Transcription model for the selected provider. For\n`deepgram_stream` this is `nova-3` or `nova-2`. Saved only\nfor `deepgram_stream`, `cartesia` and `sarvam`, and only\nwhen `provider` is in the same request.\n",
                             "example": "nova-3"
                         },
                         "language": {
-                            "type": "string",
-                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). Applies regardless of which\n`provider` is selected.\n",
+                            "type": [
+                                "string",
+                                "array"
+                            ],
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Language code for the transcriber. Format and supported\nvalues depend on the provider (e.g. `en-US` for Deepgram,\n`hi-IN` for Sarvam). `soniox` takes a list of codes, such as\n`[\"en\", \"hi\"]`, and an empty list detects the language. Saved only when `provider` is in the\nsame request and is `deepgram_stream`, `cartesia`, `sarvam`,\n`azure` or `soniox`.\n",
                             "example": "en-US"
                         },
                         "silence_timeout_ms": {
@@ -6080,22 +5621,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "model": {
                             "type": "string",
-                            "enum": [
-                                "azure-gpt-4.1-mini",
-                                "azure-gpt-4.1-nano",
-                                "azure-gpt-4o",
-                                "azure-gpt-4o-mini",
-                                "gemini-2.5-flash",
-                                "gemini-2.5-flash-lite",
-                                "gpt-3.5-turbo",
-                                "gpt-4.1-mini",
-                                "gpt-4.1-nano",
-                                "gpt-4o",
-                                "gpt-4o-mini",
-                                "gpt-5.1",
-                                "llama-3.3-70b-versatile"
-                            ],
-                            "description": "The language model to use. The current catalog is returned by the LLM providers list.",
+                            "description": "The language model to use: a `name` from the LLM providers list, which returns exactly the models your organization can use. Leave it out to use your organization's default model.",
                             "example": "gpt-4.1-mini"
                         },
                         "temperature": {
@@ -6109,7 +5635,7 @@ _TOOLS_JSON = r"""[
                 },
                 "voice": {
                     "type": "object",
-                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently.",
+                    "description": "Configuration for the text-to-speech voice. `provider` and `voice_id` identify the voice together, so send both to change it. `provider` on its own is not accepted, and a `voice_id` on its own leaves the voice as it was. The other fields here apply independently. Leave out `provider` and `voice_id` to use your organization's default voice.",
                     "dependentRequired": {
                         "provider": [
                             "voice_id"
@@ -6118,25 +5644,19 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": [
-                                "cartesia",
-                                "sarvam",
-                                "eleven_labs",
-                                "google"
-                            ],
-                            "description": "The voice provider to use. The current catalog is returned by the TTS providers list. Send `voice_id` alongside it. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
                             "type": "string",
                             "description": "The provider's voice identifier, returned in the `name` field of the voices list (not the numeric `id`). Takes effect when `provider` is sent alongside it.",
-                            "example": "JBFqnCBsd6RMkjVDRZzb"
+                            "example": "faf0731e-dfb9-4cfc-8119-259a79b27e12"
                         },
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -6162,872 +5682,8 @@ _TOOLS_JSON = r"""[
                 },
                 "post_call_actions": {
                     "type": "object",
-                    "description": "Side effects that fire once the call ends: email, webhook, Omni CRM,\nCloud WhatsApp, a workflow, Google Sheets, Slack, Salesforce, HubSpot\nor Zoho Bigin.\n",
-                    "properties": {
-                        "email": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                },
-                                "recipients": {
-                                    "type": "array",
-                                    "description": "Email addresses that should receive the notification.",
-                                    "items": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "example": [
-                                        "support@example.com"
-                                    ]
-                                },
-                                "include": {
-                                    "type": "array",
-                                    "description": "Which sections to include in the email body.",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "summary",
-                                            "extracted_variables",
-                                            "fullConversation",
-                                            "sentiment"
-                                        ]
-                                    }
-                                },
-                                "extracted_variables": {
-                                    "type": "array",
-                                    "description": "Variables the model should pull out of the conversation for the email.",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "key",
-                                            "prompt"
-                                        ],
-                                        "properties": {
-                                            "key": {
-                                                "type": "string",
-                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                "example": "customer_issue"
-                                            },
-                                            "prompt": {
-                                                "type": "string",
-                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                "example": "Identify the main issue the customer is experiencing."
-                                            }
-                                        }
-                                    }
-                                },
-                                "trigger_call_statuses": {
-                                    "type": "array",
-                                    "description": "Call outcomes that should fire this action. Omit to\nuse the default (`completed`, `voicemail_detected`).\nPass an explicit list to also include failed calls,\nno-answers, busy signals, etc.\n",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "completed",
-                                            "voicemail_detected",
-                                            "failed",
-                                            "no-answer",
-                                            "busy",
-                                            "canceled"
-                                        ]
-                                    },
-                                    "example": [
-                                        "completed",
-                                        "voicemail_detected"
-                                    ]
-                                }
-                            }
-                        },
-                        "webhook": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                },
-                                "url": {
-                                    "type": "string",
-                                    "format": "uri",
-                                    "description": "Endpoint that receives a POST with the call payload.",
-                                    "example": "https://your-webhook-endpoint.com/omnidim-callback"
-                                },
-                                "include": {
-                                    "type": "array",
-                                    "description": "Which sections to include in the webhook body.",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "summary",
-                                            "extracted_variables",
-                                            "fullConversation",
-                                            "sentiment"
-                                        ]
-                                    }
-                                },
-                                "extracted_variables": {
-                                    "type": "array",
-                                    "description": "Variables the model should pull out of the conversation for the webhook.",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "key",
-                                            "prompt"
-                                        ],
-                                        "properties": {
-                                            "key": {
-                                                "type": "string",
-                                                "description": "Unique identifier for the variable in the post-call payload.",
-                                                "example": "customer_issue"
-                                            },
-                                            "prompt": {
-                                                "type": "string",
-                                                "description": "Instruction for the model on what to pull out of the conversation.",
-                                                "example": "Identify the main issue the customer is experiencing."
-                                            }
-                                        }
-                                    }
-                                },
-                                "trigger_call_statuses": {
-                                    "type": "array",
-                                    "description": "Call outcomes that should fire this webhook. Omit to\nuse the default (`completed`, `voicemail_detected`).\n",
-                                    "items": {
-                                        "type": "string",
-                                        "enum": [
-                                            "completed",
-                                            "voicemail_detected",
-                                            "failed",
-                                            "no-answer",
-                                            "busy",
-                                            "canceled"
-                                        ]
-                                    },
-                                    "example": [
-                                        "completed",
-                                        "failed"
-                                    ]
-                                }
-                            }
-                        },
-                        "omni_crm": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Save the call to Omni CRM."
-                                }
-                            ]
-                        },
-                        "cloud_whatsapp": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Send a Cloud WhatsApp template message after the call.",
-                                    "properties": {
-                                        "phone_number_id": {
-                                            "type": "integer",
-                                            "description": "The id of your organization's Cloud WhatsApp number the\nmessage is sent from.\n"
-                                        },
-                                        "template_id": {
-                                            "type": "integer",
-                                            "description": "An approved template on that number. A template that is not\napproved, or that belongs to another number, is refused.\n"
-                                        },
-                                        "template_variables": {
-                                            "type": "array",
-                                            "description": "Which extracted variable fills each template placeholder.",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "index": {
-                                                        "type": "string",
-                                                        "description": "The placeholder number, as a string.",
-                                                        "example": "1"
-                                                    },
-                                                    "extracted_var": {
-                                                        "type": "string",
-                                                        "description": "The key of the extracted variable whose value fills this placeholder.",
-                                                        "example": "customer_name"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "templates": {
-                                            "type": "array",
-                                            "description": "One or more templates to send, each with its variable mapping.",
-                                            "items": {
-                                                "type": "object",
-                                                "description": "One Cloud WhatsApp template to send after the call.",
-                                                "properties": {
-                                                    "template_id": {
-                                                        "type": "integer",
-                                                        "description": "An approved template on the chosen number."
-                                                    },
-                                                    "usage_description": {
-                                                        "type": "string",
-                                                        "description": "When this template should be sent. After the call, the model reads\nthese descriptions to choose which templates fit the conversation.\n",
-                                                        "example": "Send when the caller books an appointment."
-                                                    },
-                                                    "always_send": {
-                                                        "type": "boolean",
-                                                        "description": "Send this template after every call, whichever templates the model chooses."
-                                                    },
-                                                    "variable_mappings": {
-                                                        "type": "array",
-                                                        "description": "How to fill each template placeholder.",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "index": {
-                                                                    "type": "string",
-                                                                    "description": "The placeholder number, as a string.",
-                                                                    "example": "1"
-                                                                },
-                                                                "extracted_var": {
-                                                                    "type": "string",
-                                                                    "description": "The extracted variable whose value fills this placeholder."
-                                                                },
-                                                                "static_value": {
-                                                                    "type": "string",
-                                                                    "description": "A fixed value for this placeholder. When set, it is used\ninstead of the extracted variable.\n"
-                                                                },
-                                                                "mode": {
-                                                                    "type": "string",
-                                                                    "enum": [
-                                                                        "variable",
-                                                                        "static"
-                                                                    ],
-                                                                    "description": "Which input the dashboard shows for this placeholder. It\ndoes not change the value sent: a `static_value` is used\nfirst, then the extracted variable, then `fallback_value`.\n"
-                                                                },
-                                                                "fallback_value": {
-                                                                    "type": "string",
-                                                                    "description": "The value to use when the variable is not extracted."
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "workflow": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Trigger a workflow after the call.",
-                                    "properties": {
-                                        "workflow_id": {
-                                            "type": "integer",
-                                            "description": "The id of the workflow to run."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "google_sheets": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Append the call to a Google Sheet. Sending this key replaces the\nagent's Google Sheets actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Google Sheets integration."
-                                        },
-                                        "spreadsheet_id": {
-                                            "type": "string",
-                                            "description": "Required. The id in the sheet's URL, the part after `/d/`."
-                                        },
-                                        "spreadsheet_name": {
-                                            "type": "string"
-                                        },
-                                        "worksheet_name": {
-                                            "type": "string",
-                                            "description": "The tab to append to. Defaults to `Sheet1`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "slack": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Post the call to a Slack channel. Sending this key replaces the\nagent's Slack actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Slack integration."
-                                        },
-                                        "channel_id": {
-                                            "type": "string",
-                                            "description": "The channel id. Send this or `channel_name`."
-                                        },
-                                        "channel_name": {
-                                            "type": "string",
-                                            "description": "The channel name. Send this or `channel_id`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "salesforce": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Create a Salesforce record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's Salesforce actions;\nleaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Salesforce integration."
-                                        },
-                                        "object_name": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Lead",
-                                                "Contact",
-                                                "Account",
-                                                "Opportunity",
-                                                "Case",
-                                                "Task",
-                                                "Product"
-                                            ],
-                                            "description": "Defaults to `Lead`."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "hubspot": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Create a HubSpot record from the call. Sends a fixed set of\nfields for the object, so it takes no `extracted_variables`.\nSending this key replaces the agent's HubSpot actions; leaving\nit out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your HubSpot integration."
-                                        },
-                                        "object_name": {
-                                            "type": "string",
-                                            "enum": [
-                                                "contact",
-                                                "company",
-                                                "deal",
-                                                "ticket"
-                                            ],
-                                            "description": "Required."
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "zoho_bigin": {
-                            "allOf": [
-                                {
-                                    "type": "object",
-                                    "description": "Settings every post-call channel shares.",
-                                    "properties": {
-                                        "enabled": {
-                                            "type": "boolean"
-                                        },
-                                        "include": {
-                                            "type": "array",
-                                            "description": "Which sections to include in this action.",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "summary",
-                                                    "extracted_variables",
-                                                    "fullConversation",
-                                                    "sentiment"
-                                                ]
-                                            }
-                                        },
-                                        "extracted_variables": {
-                                            "type": "array",
-                                            "description": "Variables the model should pull out of the conversation for this action.",
-                                            "items": {
-                                                "type": "object",
-                                                "required": [
-                                                    "key",
-                                                    "prompt"
-                                                ],
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string",
-                                                        "description": "Unique identifier for the variable in the post-call payload.",
-                                                        "example": "customer_issue"
-                                                    },
-                                                    "prompt": {
-                                                        "type": "string",
-                                                        "description": "Instruction for the model on what to pull out of the conversation.",
-                                                        "example": "Identify the main issue the customer is experiencing."
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "trigger_call_statuses": {
-                                            "type": "array",
-                                            "description": "Call outcomes that fire this action. Omit to use the default\n(`completed`, `voicemail_detected`).\n",
-                                            "items": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "completed",
-                                                    "voicemail_detected",
-                                                    "failed",
-                                                    "no-answer",
-                                                    "busy",
-                                                    "canceled"
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "type": "object",
-                                    "description": "Log the call in Zoho Bigin. Sending this key replaces the\nagent's Zoho Bigin actions; leaving it out keeps them.\n",
-                                    "properties": {
-                                        "integration_id": {
-                                            "type": "integer",
-                                            "description": "Required. The id of your Zoho Bigin integration."
-                                        },
-                                        "create_call_log": {
-                                            "type": "boolean",
-                                            "description": "Log the call. Defaults to true."
-                                        },
-                                        "update_contact": {
-                                            "type": "boolean",
-                                            "description": "Update a matching contact with what the call captured. Defaults to true."
-                                        },
-                                        "create_contact": {
-                                            "type": "boolean",
-                                            "description": "Create a contact when no contact matches. Defaults to true."
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
+                    "additionalProperties": true,
+                    "description": "Post-call actions: email, webhook, Omni CRM, WhatsApp, workflow, Google Sheets, Slack, Salesforce, HubSpot or Zoho Bigin. On an agent, add them one at a time with addPostCallAction instead. Full shape: https://docs.omnidim.io/docs/per-call-post-call-actions"
                 },
                 "transfer": {
                     "type": "object",
@@ -7088,7 +5744,8 @@ _TOOLS_JSON = r"""[
                     "description": "Hang up automatically when a condition is met.",
                     "properties": {
                         "enabled": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Turn ending the call on or off. Leave it out to keep the current setting. `false` also clears `condition` and `message`."
                         },
                         "condition": {
                             "type": "string",
@@ -7169,7 +5826,7 @@ _TOOLS_JSON = r"""[
                 },
                 "languages": {
                     "type": "array",
-                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped.",
+                    "description": "Languages the agent should support. Pass each language as a display-name string exactly as it appears in the dashboard's language picker. Unrecognized names are skipped, and the request is refused when none is recognized. The order is not kept.",
                     "items": {
                         "type": "string"
                     },
@@ -7189,7 +5846,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "agent_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Update agent",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "updateClonedVoice",
@@ -7226,7 +5890,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "voice_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Update cloned voice",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "updatePostCallAction",
@@ -7301,6 +5972,27 @@ _TOOLS_JSON = r"""[
                 "create_contact": {
                     "type": "boolean",
                     "description": "`zoho_bigin` only: create a contact when no contact matches. Defaults to true."
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "create",
+                        "upsert"
+                    ],
+                    "description": "`salesforce` only: `upsert` finds the record by the caller's number\nand updates it or creates it. `create` creates a new record every\ncall. Defaults to `create`.\n"
+                },
+                "match_field": {
+                    "type": "string",
+                    "description": "`salesforce` only, with `upsert`: the phone field the caller's number is looked up in. Defaults to `Phone`.",
+                    "example": "Phone"
+                },
+                "log_call": {
+                    "type": "boolean",
+                    "description": "`salesforce` only: log the call on the record, with the summary and recording link. Defaults to false."
+                },
+                "add_note": {
+                    "type": "boolean",
+                    "description": "`salesforce` only: add the call summary as a note on the record. Defaults to false."
                 },
                 "recipients": {
                     "type": "array",
@@ -7471,7 +6163,14 @@ _TOOLS_JSON = r"""[
             "agent_id",
             "action_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Update a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
     },
     {
         "name": "uploadKnowledgeBaseFile",
@@ -7498,11 +6197,18 @@ _TOOLS_JSON = r"""[
         "method": "POST",
         "path": "/knowledge_base/create",
         "path_params": [],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Upload knowledge base file",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "validateWorkflow",
-        "description": "Validate a workflow draft. Check the draft and list what blocks publish. It changes nothing. Call it after your edits and fix every error before `publishWorkflow`.",
+        "description": "Validate a workflow draft. Check the draft and list what blocks publish.\n\nIt changes nothing. Call it after your edits and fix every error before\n`publishWorkflow`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -7521,7 +6227,14 @@ _TOOLS_JSON = r"""[
         "path_params": [
             "workflow_id"
         ],
-        "query_params": []
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Validate workflow",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     }
 ]"""
 

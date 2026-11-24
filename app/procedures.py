@@ -5,14 +5,19 @@ order, with which payload shape, and which gotchas to avoid. Mirrors the npm
 server's procedure layer. Every step was proven against the live API before
 being written down.
 """
+
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from app._generated.tools import TOOLS
+from app.docs_tools import DOCS_TOOLS
 
 # MCP Apps view; the HTML is the npm server's build output, copied unchanged.
 _WORKFLOW_CANVAS_HTML = (Path(__file__).parent / "views" / "workflow_canvas.html").read_text()
@@ -44,874 +49,335 @@ def _show_workflow_tool() -> dict[str, Any]:
             "required": ["workflow_id"],
         },
         "query_params": [],
+        "header_params": [],
+        "annotations": {**get["annotations"], "title": "Show workflow canvas"},
     }
 
 
-EXTRA_TOOLS: list[dict[str, Any]] = [_show_workflow_tool()]
-
-ROUTING_GUIDE = """# OmniDimension routing guide
-
-OmniDimension is a voice AI platform. You create an **agent** (a.k.a. "bot"),
-give it a **phone number** and optionally a **knowledge base**, then place
-**calls** (one-off or as a bulk **campaign**) and read **call logs**.
-
-## How to pick the right tool
-
-- "Create / set up an agent that does X" -> the `provision_agent` prompt.
-- "Why did calls fail / what happened on a call / summarize calls" -> the
-  `audit_calls` prompt, then `listCallLogs` + `getCallLog`.
-- "List / inspect what exists" -> `listAgents`, `listPhoneNumbers`,
-  `listVoices`, `listKnowledgeBaseFiles`.
-- "Get me a number / buy a number" -> `searchPhoneNumbers` { region, carrier }
-  then `purchasePhoneNumber`. This spends the account's balance, so confirm the
-  exact number and price with the user before buying. `releasePhoneNumber`
-  gives one up and cannot be undone.
-  `carrier` is required on both calls, in every region. Carriers do not stock
-  the same numbers, so ask the user which one they want rather than picking:
-  see the `omnidim://reference/carriers` resource for what each one stocks.
-  `searchPhoneNumbers`'s response echoes the `carrier` a purchase must pass.
-- "Place one call now" -> `dispatchCall`. "Call many contacts" -> the bulk
-  call tools.
-
-## Rules that are easy to get wrong (proven against the live API)
-
-1. **Write tools take flat top-level arguments.** `createAgent`,
-   `updateAgent`, `attachPhoneNumber`, `dispatchCall`, etc. take their fields
-   directly (e.g. `{ "agent_id": 1, "to_number": "+1..." }`). Do NOT wrap them
-   in a `requestBody` object.
-2. **Voices: use the `name` string as `voice_id`.** `listVoices` returns
-   `id: null` for most voices; the usable identifier is the `name` field.
-   Not every listed voice is synthesizable: an arbitrary one can produce a
-   silent call. Prefer a known premade voice and confirm audio on a test call.
-3. **The agent's numeric `voice` field is not used for speech.** It can read
-   back as `false` on an API-created agent; that is normal. The call handler
-   uses `voice_external_id` + `voice_provider`.
-4. **Use the platform defaults:** transcriber `soniox`, a `cartesia` voice,
-   model `gpt-4.1-mini`. Pick another provider only when
-   the user names one.
-5. **`dispatchCall` returning `success: true` does NOT mean a call
-   connected.** It means the request was accepted. Proof of a real call is a
-   resulting entry in `listCallLogs` whose `getCallLog` shows a non-empty
-   `call_conversation`. Never treat the dispatch response as the outcome.
-6. **Reading agents:** `getAgent` reports `voice: false`; read
-   `voice_external_id` for the configured voice. `listAgents` puts the voice
-   in the `voice` field. Do not report "no voice" from `getAgent.voice`.
-7. **`listCallLogs` rows are large** and the response is trimmed if it grows
-   past the size cap. Use a small `pagesize` (1-3) and fetch detail per row
-   with `getCallLog`.
-8. **Outbound `from_number_id`:** omit it to use the platform default number.
-   A number that cannot reach the destination country yields an accepted
-   dispatch but no connected call.
-9. **IDs flow between calls:** `createAgent` -> `id` (the agent_id used
-   everywhere downstream); `listPhoneNumbers` -> `id` (used as
-   `phone_number_id` to attach and as `from_number_id` to dispatch).
-10. **Phone numbers are E.164 with a leading `+`** everywhere.
-11. **`voice.speech_speed` has a playable range per provider.** Default is
-    `1.0`; only set it when the user wants faster/slower speech. For
-    `eleven_labs` keep it within 0.7-1.2 (a value outside that produces a
-    silent call, no error). `cartesia` accepts 0.6-1.5, `smallest-tts` 0.5-2.0.
-12. **Cloning a voice: the user uploads the clip at
-    https://omnidim.io/clone-voice.** A tool call cannot carry a real audio
-    file: a 30 s clip is about 840,000 characters of Base64, too long to
-    write out and corrupted by one wrong character. Send the user that link,
-    then call `listClonedVoices` and wait for `status: ready`. Use its
-    `voice_id` with `voice.provider: cartesia`. A `403` with
-    `feature_not_enabled` or `permission_denied` on a voice tool means the
-    user's plan or role has no voice cloning: tell them to upgrade or ask
-    their administrator.
-13. **Knowledge-base files over a few KB: the user uploads them at
-    https://omnidim.io/files.** `uploadKnowledgeBaseFile` takes the PDF as
-    Base64 in the call, so use it only for a small file. Then find the file
-    with `listKnowledgeBaseFiles` and attach it with `attachKnowledgeBaseFiles`.
-"""
-
-_CREATE_AGENT_BLOCK = """2. Create the agent with `createAgent` (flat top-level fields):
-   {
-     "name": "<short name>",
-     "welcome_message": "<first line the agent speaks>",
-     "context_breakdown": [ { "title": "Purpose", "body": "<the agent's instructions, derived from the purpose above>" } ],
-     "call_type": "Outgoing",
-     "model": { "model": "gpt-4.1-mini", "temperature": 0.5 },
-     "voice": { "provider": "cartesia", "voice_id": "<voice id>" },
-     "transcriber": { "provider": "soniox" }
-   }
-   Capture the returned `id` as agent_id. (`status` is always "Completed"; it is not a build signal.)
-3. Give it a number: `listPhoneNumbers` -> pick a number `id`. Attach it with
-   `attachPhoneNumber` { phone_number_id, agent_id }. If no number exists,
-   either buy one (`searchPhoneNumbers` { region, carrier } then
-   `purchasePhoneNumber`, which charges the account, so confirm with the user
-   first and never pick for them; `carrier` is required on both calls in every
-   region, and carriers do not stock the same numbers) or import one you
-   already own (importTwilioNumber / importExotelNumber / importSipTrunk).
-4. Optional knowledge base: `uploadKnowledgeBaseFile` then `attachKnowledgeBaseFiles` { file_ids, agent_id }."""
-
-
-def _provision_agent(args: dict[str, Any]) -> str:
-    purpose = args.get("purpose") or "(describe the agent's job)"
-    voice_id = args.get("voice_id")
-    test_number = args.get("test_number")
-    voice_line = (
-        f'Use voice_id "{voice_id}" (the `name` from listVoices).'
-        if voice_id
-        else (
-            "Call `listVoices` and pick a premade voice; use its `name` as voice_id. "
-            "Remember not every listed voice synthesizes, so verify audio on the test call."
-        )
-    )
-    if test_number:
-        test_line = (
-            f'5. Place a verification call with `dispatchCall` {{ agent_id, to_number: "{test_number}" }} '
-            "(omit from_number_id to use the default outbound number). Capture the returned requestId.\n"
-            f"6. Poll `listCallLogs` {{ pagesize: 1 }} until a new row appears for {test_number}, then `getCallLog` on "
-            "its id. The call is verified ONLY if `call_conversation` is non-empty (the agent actually spoke). A "
-            "successful dispatch response alone is not proof."
-        )
-    else:
-        test_line = (
-            "5. (No test_number given.) Tell the user the agent is configured and offer to place a verification call "
-            "to a number they control. Until a call log shows a non-empty `call_conversation`, do not claim the agent "
-            "works end to end."
-        )
-    return (
-        f'Provision a working OmniDimension voice agent for this purpose:\n\n"{purpose}"\n\n'
-        "Follow these steps in order. Write tools take flat top-level arguments (no `requestBody` wrapper).\n\n"
-        f"1. Voice + models: {voice_line} A good default model is gpt-4.1-mini.\n"
-        f"{_CREATE_AGENT_BLOCK}\n"
-        f"{test_line}\n\n"
-        "Throughout: phone numbers are E.164 with a leading `+`. See the `omnidim://guide/routing` resource for the "
-        "full gotcha list."
-    )
-
-
-def _audit_calls(args: dict[str, Any]) -> str:
-    focus = args.get("focus") or "(describe what to look into)"
-    agent_id = args.get("agent_id")
-    call_status = args.get("call_status")
-    filters = ['"pagesize": 3']
-    if agent_id:
-        filters.append(f'"agentid": {agent_id}')
-    if call_status:
-        filters.append(f'"call_status": "{call_status}"')
-    filter_str = ", ".join(filters)
-    return (
-        f'Audit OmniDimension call logs for this question:\n\n"{focus}"\n\n'
-        f"1. List recent calls with `listCallLogs` {{ {filter_str} }}.\n"
-        "   - Keep `pagesize` small (1-3). Each row is large and the response is trimmed past a size cap, so a big "
-        "page comes back truncated and unparseable.\n"
-        "   - Filters: `agentid` (note: no underscore) for one agent, `bulk_call_id` for one campaign, `call_status` "
-        "for triage. The status enum uses a hyphen: completed | busy | failed | no-answer.\n"
-        "   - Each row carries `id`, `call_status`, `sentiment_score`, cost, and a summary. There is no date-range "
-        "filter; filter by `time_of_call` (MM/DD/YYYY HH:MM:SS) yourself if needed.\n"
-        "2. For each call of interest, call `getCallLog` { call_log_id: <row id> } for the full transcript "
-        "(`call_conversation`), `interactions`, `extracted_variables`, `recording_url`, and per-turn latency/cost. "
-        "Note: an empty `call_conversation` means the agent never spoke (a silent call), not that the call is missing.\n"
-        f'3. Summarize the answer to "{focus}": group by status or agent, surface failure reasons and low-sentiment '
-        "calls, and cite specific `call_log_id`s.\n\n"
-        "See the `omnidim://guide/routing` resource for the full gotcha list."
-    )
-
-
-def _restore_agent_version(args: dict[str, Any]) -> str:
-    agent_id = args.get("agent_id") or "<agent_id>"
-    goal = args.get("goal") or "(describe which earlier state you want back)"
-    return (
-        f'Roll agent {agent_id} back to an earlier version.\n\nGoal: "{goal}"\n\n'
-        "Follow these steps in order. Do NOT restore blindly, preview first.\n"
-        f"1. `listAgentVersions` {{ agent_id: {agent_id} }}. Versions come newest first; each has a "
-        "`version_number`, `kind` (manual / auto / system), who saved it, when, and a `change_summary` "
-        "(what changed in that version). Use the names, timestamps, and change summaries to find the one that "
-        "matches the goal above. If version history is off for this org these calls return 403 "
-        "(feature_disabled); report that and stop.\n"
-        f"2. Preview the effect: `diffAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen>, "
-        'against: "current" }. This shows exactly what restoring that version WOULD change vs the agent\'s live '
-        "config, grouped by area (Settings, Prompt, Transfer rules, etc.). If it reports no meaningful change, tell "
-        "the user there is nothing to restore and stop. Show the user this preview and confirm before the next step.\n"
-        f"3. Restore: `restoreAgentVersion` {{ agent_id: {agent_id}, version_number: <chosen> }}. This automatically "
-        'saves the current state as a "Backup before restore" version first (so the restore is itself undoable), '
-        "then writes the chosen config back. Check the response's `skipped` list: knowledge files or integrations "
-        "that no longer exist are dropped and reported, not restored.\n"
-        "4. Confirm: `listAgentVersions` again (a new system \"Backup before restore\" entry should be at the top) "
-        "and tell the user they can undo by restoring it.\n\n"
-        "See the `omnidim://guide/agent-versioning` resource for the full tool list and the diff `against` modes."
-    )
-
-
-def _build_outbound_campaign(args: dict[str, Any]) -> str:
-    goal = args.get("goal") or "(describe who to call and why)"
-    agent_id = args.get("agent_id")
-    phone_number_id = args.get("phone_number_id")
-    number_line = (
-        f'Use phone_number_id "{phone_number_id}".'
-        if phone_number_id
-        else "Call `listPhoneNumbers` and pick the dialing number WITH the user; never pick silently."
-    )
-    agent_line = (
-        f"Pass bot_id {agent_id} so this agent runs the calls even if the number has a different or no agent attached."
-        if agent_id
-        else "If the number has an agent attached it runs the calls; otherwise pass a `bot_id`."
-    )
-    return (
-        f'Set up and launch an OmniDimension bulk-call campaign for this goal:\n\n"{goal}"\n\n'
-        "Follow these steps in order. Write tools take flat top-level arguments (no `requestBody` wrapper).\n"
-        "A campaign dials real people and spends real money: confirm the plan with the user before\n"
-        "`startBulkCall`, and never start one they have not approved.\n\n"
-        "1. Decide the shape: a one-time list is a normal campaign; continuously arriving leads mean a\n"
-        "   dynamic campaign (`is_dynamic: true`) fed by `addBulkCallContact` instead of steps 3 and 5.\n"
-        f"2. Number and agent: {number_line} {agent_line}\n"
-        "3. Create it as a draft with `createBulkCall`\n"
-        "   { name, phone_number_id, save_as_draft: true, concurrent_call_limit: <sized below> }.\n"
-        "   Add `rotation` when dialing from several numbers (see the bulk-campaigns resource for the\n"
-        "   shape). Keep the returned `id`.\n"
-        "4. Size concurrency from the goal's numbers, not a guess: per channel, 3600 / average call seconds\n"
-        "   gives calls per hour (~40 at 90s); divide the target hourly rate by that. Show the arithmetic\n"
-        "   to the user.\n"
-        "5. Add contacts with `addBulkCallContacts` in batches of up to 1000:\n"
-        '   { bulk_call_id, contacts: [{ to_number: "+1...", custom_variables: {...} }] }.\n'
-        "   This shape differs from create's contact_list on purpose; do not mix them. Report anything\n"
-        "   that comes back in `rejected` with its row index.\n"
-        "6. Calling hours: if the goal names a time window, set it with `setBulkCallDailyTimeControl`\n"
-        "   (both the stop and start blocks are required) and pass `daily_stop_timezone`/\n"
-        "   `daily_start_timezone` for the customers' region; left out they fall back to the campaign's\n"
-        "   timezone, and a mismatch dials people at night. Also set the agent's own `timezone` field\n"
-        "   (`updateAgent`) so it works with the customers' local time on calls.\n"
-        "7. Show the user the plan (campaign id, contact count, concurrency, window, rotation) and get\n"
-        "   their explicit go-ahead. Then `startBulkCall`.\n"
-        "8. Watch it: `getBulkCallLiveStatus` for progress. When it finishes, read per-contact outcomes\n"
-        "   with `listBulkCallLines` (follow `next_cursor` until null) and offer `retryBulkCall` for\n"
-        "   contacts that did not connect.\n\n"
-        "See the `omnidim://guide/bulk-campaigns` resource for the full rules and failure modes."
-    )
-
-
-def _build_workflow(args: dict[str, Any]) -> str:
-    goal = args.get("goal") or "(describe what should happen, and when)"
-    return (
-        f'Build an OmniDimension workflow for this goal:\n\n"{goal}"\n\n'
-        "Read the `omnidim://guide/workflows` resource first. It explains triggers, outputs, ops and errors.\n\n"
-        "1. Pick the trigger, then find each node type with `listWorkflowNodeTypes` and read its fields with\n"
-        "   `getWorkflowNodeType`.\n"
-        "2. For every field that takes an id (a number, template, integration or agent), list real choices with\n"
-        "   `listWorkflowFieldOptions` and confirm them with the user. Never guess an id.\n"
-        "3. `createWorkflow`, then build it with `editWorkflow` batches. Use readable node ids, wire branches with\n"
-        "   `after` and `handle`, and add a notes node that says what the workflow is for.\n"
-        "4. `validateWorkflow` and fix every error.\n"
-        "5. A test run happens for real: messages, calls and CRM writes go out. Only call `testWorkflow` after the\n"
-        "   user says yes, with their own phone number or email in the payload. It returns at once, so poll\n"
-        "   `getWorkflowExecution` until `state` is `completed`, `failed` or `cancelled`.\n"
-        "6. Show the user the finished flow, then `publishWorkflow` when they approve. Publishing makes it live.\n"
-        "7. Prefer creating a new workflow. Never publish, activate, deactivate, delete or test an existing\n"
-        "   workflow without the user's explicit yes, and read it with `getWorkflow` first.\n"
-    )
-
-
-_PROMPTS: list[dict[str, Any]] = [
-    {
-        "name": "build_workflow",
-        "description": (
-            "Build an automation workflow from a plain-language goal: pick the trigger and nodes, wire them, "
-            "validate, test with the user's consent, then publish."
-        ),
-        "arguments": [
-            {"name": "goal", "description": "What should happen and when, in plain language (e.g. 'after a call, WhatsApp interested leads our follow-up template').", "required": True},
-        ],
-        "build": _build_workflow,
+_DEMO_ANSWERS_SCHEMA: dict[str, Any] = {
+    "name": {"type": "string", "description": "The person's full name."},
+    "email": {
+        "type": "string",
+        "description": "Their work email. Personal addresses such as Gmail are refused.",
     },
-    {
-        "name": "provision_agent",
+    "timezone": {
+        "type": "string",
         "description": (
-            "Create a working voice agent end to end: configure it, give it a number, and verify it can place a "
-            "call and speak."
+            "The person's IANA timezone, e.g. Asia/Kolkata or America/New_York. Ask for it, and "
+            "confirm any you work out from a city."
         ),
-        "arguments": [
-            {"name": "purpose", "description": "What the agent should do, in plain language (e.g. 'book dental appointments and answer FAQs').", "required": True},
-            {"name": "voice_id", "description": "Optional voice name from listVoices. If omitted, use a known premade voice and confirm audio on the test call.", "required": False},
-            {"name": "test_number", "description": "Optional E.164 number to place a verification call to after setup (e.g. +15551234567).", "required": False},
-        ],
-        "build": _provision_agent,
     },
-    {
-        "name": "audit_calls",
+    "guests": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Optional. More emails to invite.",
+    },
+    "answers": {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
         "description": (
-            "Review and summarize call logs: find failures, inspect transcripts and sentiment, or audit a specific "
-            "agent or campaign."
+            "The answers to the `getDemoQuestions` questions with `source: calendly`, keyed by "
+            "each one's `label`. Name, email and guests go in their own fields. For a choice "
+            "question, use one of its `choices`, copied exactly. A phone number has its country "
+            "code, like +14155550123. Only answers the user gave: never guess one."
         ),
-        "arguments": [
-            {"name": "focus", "description": "What to look into, in plain language (e.g. 'why are calls failing', 'summarize today's calls for agent 123').", "required": True},
-            {"name": "agent_id", "description": "Optional agent id to filter to (the listAgents / createAgent id).", "required": False},
-            {"name": "call_status", "description": "Optional status filter. Note the enum uses a hyphen for no-answer: completed | busy | failed | no-answer.", "required": False},
-        ],
-        "build": _audit_calls,
     },
-    {
-        "name": "build_outbound_campaign",
-        "description": (
-            "Set up and launch a bulk-call campaign safely: draft it, batch the contacts in, size concurrency "
-            "from the numbers, check calling hours, then start and watch it."
-        ),
-        "arguments": [
-            {"name": "goal", "description": "Who to call and why, in plain language (e.g. 'call 8,000 renewal leads today between 9 and 6 Eastern').", "required": True},
-            {"name": "agent_id", "description": "Optional agent to run the calls (the listAgents id). If omitted, the agent attached to the chosen number runs them.", "required": False},
-            {"name": "phone_number_id", "description": "Optional number id to dial from (from listPhoneNumbers). If omitted, pick with the user from their numbers.", "required": False},
-        ],
-        "build": _build_outbound_campaign,
-    },
-    {
-        "name": "restore_agent_version",
-        "description": (
-            "Safely roll an agent back to an earlier saved version: find the right snapshot, preview exactly what "
-            "restoring changes, then restore."
-        ),
-        "arguments": [
-            {"name": "agent_id", "description": "The agent to roll back (the listAgents / createAgent id).", "required": True},
-            {"name": "goal", "description": "What you want to get back to, in plain language (e.g. 'the version before I broke the transfer flow').", "required": False},
-        ],
-        "build": _restore_agent_version,
-    },
-]
-
-RECOMMENDED_STACK = """# Recommended provider stacks
-
-Each agent uses a transcriber (speech-to-text), a voice (text-to-speech), and a
-language model, all set on `createAgent`. The pairings below work well in
-production, grouped by the language your callers speak. Use `listSTTProviders`,
-`listTTSProviders`, `listLLMProviders`, and `listVoices` for the live catalog.
-
-## Language model
-
-- Default: `gpt-4.1-mini` -- fast and accurate across languages, a good first
-  choice for almost any agent.
-- Alternatives: `gemini-2.5-flash`, `gpt-4o` (premium), `gpt-4.1-nano` (lighter).
-
-## By caller language
-
-- **Indian English (en-IN):** transcriber `soniox`; voice `cartesia`
-  (default) or `google`.
-- **Hindi / Hinglish (mixed Hindi and English):** transcriber `soniox`
-  (handles code-mixed speech in one stream); voice `cartesia`.
-- **Other Indian languages (Telugu, Bengali, etc.):** transcriber `soniox` or
-  `sarvam` (tuned for Indian languages); voice `cartesia` or `sarvam`.
-- **US / UK English:** transcriber `soniox` or `deepgram_stream`; voice
-  `cartesia`.
-
-## Field notes
-
-- `transcriber.provider` is one of `deepgram_stream`, `azure_stream`, `soniox`,
-  `sarvam`, `cartesia`. `deepgram_stream` also needs a `model` (`nova-3` or
-  `nova-2`); the others do not.
-- `voice.provider` is one of `cartesia`, `eleven_labs`, `google`, `sarvam`.
-  Send only `provider` and `voice_id`: the platform picks the voice model.
-
-## Responsiveness
-
-- Keep the system prompt focused. Long prompts add latency to every turn.
-- Verify your chosen voice on a short test call before launch (see
-  `omnidim://reference/voices`).
-"""
-
-VOICES_GUIDE = """# Choosing a voice
-
-`listVoices` returns the catalog. Use a voice's `name` field as the `voice_id`
-you pass to `createAgent`. Quality varies by language and not every voice
-synthesizes cleanly, so always place a short test call and listen before launch.
-
-Filter `listVoices` by `provider` (`cartesia`, `eleven_labs`, `google`,
-`sarvam`). ElevenLabs also supports `language`, `accent`, and `gender`.
-
-By provider:
-
-- **`cartesia`** -- low-latency multilingual voices; the platform default.
-  Example voice_id
-  `bf0a246a-8642-498a-9950-80c35e9276b5` ("Sophie", English female).
-- **`eleven_labs`** -- premium, expressive voices; the model is implied by the
-  voice. Example voice_id `JBFqnCBsd6RMkjVDRZzb` ("George").
-- **`sarvam`** -- natural prosody for Indian languages.
-- **`google`** -- broad language coverage.
-"""
-
-AGENT_CONFIG_GUIDE = """# Building an agent with createAgent
-
-On this server `createAgent` takes flat top-level arguments (no `requestBody`
-wrapper; see the routing guide). The fields:
-
-- `name` -- agent name.
-- `welcome_message` -- the first line the agent speaks.
-- `context_breakdown` -- a list of `{ title, body }` sections that form the
-  agent's instructions.
-- `call_type` -- "Incoming" or "Outgoing".
-- `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
-- `voice` -- `{ provider, voice_id, speech_speed? }`. `speech_speed` is a playback
-  multiplier (default `1.0`); leave it out unless the user asks for faster or
-  slower speech. If you do set it, stay in the provider's playable range or the
-  call goes silent: for `eleven_labs` keep it within **0.7-1.2** (sweet spot
-  0.9-1.1) -- a value outside 0.7-1.2 produces no audio at all. `cartesia`
-  accepts 0.6-1.5 and `smallest-tts` 0.5-2.0.
-- `transcriber` -- `{ provider, model?, language? }`. `model` (`nova-3` /
-  `nova-2`) is only needed for `deepgram_stream`.
-
-## Example: Indian-English support agent (inbound)
-
-{
-  "name": "Support agent",
-  "welcome_message": "Hi, thanks for calling. How can I help you today?",
-  "context_breakdown": [
-    { "title": "Role", "body": "You are a friendly customer-support agent. Answer questions, and if you cannot help, offer to connect the caller to a human." }
-  ],
-  "call_type": "Incoming",
-  "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "voice_id": "bf0a246a-8642-498a-9950-80c35e9276b5" },
-  "transcriber": { "provider": "soniox" }
 }
 
-## Example: Hindi / Hinglish appointment reminder (outbound)
 
-{
-  "name": "Appointment reminder",
-  "welcome_message": "Namaste, main aapke appointment ke baare mein baat karne ke liye call kar rahi hoon.",
-  "context_breakdown": [
-    { "title": "Role", "body": "You remind customers about an upcoming appointment and confirm whether they can attend. Speak naturally in the caller's language, Hindi or English." }
-  ],
-  "call_type": "Outgoing",
-  "model": { "model": "gpt-4.1-mini" },
-  "voice": { "provider": "cartesia", "voice_id": "<pick one from listVoices>" },
-  "transcriber": { "provider": "soniox" }
+_DEMO_ANSWERS_REQUIRED = ["name", "email", "timezone", "answers"]
+
+
+def _demo_tool(
+    name: str,
+    method: str,
+    path: str,
+    description: str,
+    properties: dict[str, Any] | None = None,
+    required: list[str] | None = None,
+    *,
+    title: str,
+) -> dict[str, Any]:
+    # A request or booking reaches the OmniDimension team, outside the user's account.
+    annotations: dict[str, Any] = (
+        {"title": title, "readOnlyHint": True, "destructiveHint": False, "openWorldHint": False}
+        if method == "GET"
+        else {
+            "title": title,
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "openWorldHint": True,
+        }
+    )
+    return {
+        "name": name,
+        "description": description + "\n\n(Tags: Demo)",
+        "input_schema": {
+            "type": "object",
+            "properties": properties or {},
+            "required": required or [],
+        },
+        "method": method,
+        "path": path,
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": annotations,
+        # 502 booking_unconfirmed says not to retry; the generic 5xx hint says retry once.
+        "relay_server_errors": True,
+    }
+
+
+# One text, used verbatim by the server instructions, the getDemoQuestions description and
+# the routing guide. Clients defer tool descriptions, so only the instructions reach every
+# session, and the three must never disagree.
+DEMO_OFFER_RULE = (
+    "Offer a demo call with the OmniDimension team once, in one sentence after you help "
+    "with the task, when the user mentions thousands of calls a month, an enterprise or "
+    "compliance need, white-label or reselling, a partnership, or pricing at their volume. "
+    "Call getDemoQuestions only after they agree. If they decline or ignore the offer, "
+    "do not offer again. Without one of these signals, do not offer it."
+)
+
+_DEMO_TOOLS: list[dict[str, Any]] = [
+    _demo_tool(
+        "getDemoQuestions",
+        "GET",
+        "/demo/questions",
+        "Start booking a demo call with the OmniDimension team. Use it when the user asks for a "
+        "demo or a call with the team, or agrees to one you offered. "
+        + DEMO_OFFER_RULE
+        + " Returns every question the booking asks, in "
+        "order, with the allowed choices. Ask the user each one, plus their timezone, then call "
+        "`requestDemo`. Never guess an answer. The `book_demo` playbook has the same steps.",
+        title="Get demo booking questions",
+    ),
+    _demo_tool(
+        "requestDemo",
+        "POST",
+        "/demo/request",
+        "Send the user's answers. Confirm their phone number first: on the `ai_call` route a "
+        "call goes to it. The server picks the route from their monthly call volume. "
+        "`route: ai_call`: the request is filed. Tell the user the `message` and stop, without "
+        "promising a meeting or a time. `route: calendar`: `slots` are free start times in UTC. "
+        "Show some in the user's timezone with the day and date, and ask them to pick one. If "
+        "none suit them or `slots` is empty, call again with `after` set to `next_after`. After "
+        "three empty replies in a row, tell the user and stop. A 422 lists every answer to fix: ask only "
+        "for those.",
+        {
+            **_DEMO_ANSWERS_SCHEMA,
+            "after": {
+                "type": "string",
+                "description": "Optional. The `next_after` value from the last `requestDemo` reply, for later times.",
+            },
+        },
+        _DEMO_ANSWERS_REQUIRED,
+        title="Request a demo",
+    ),
+    _demo_tool(
+        "bookDemo",
+        "POST",
+        "/demo/book",
+        "Book the start time the user picked from `requestDemo`, with the same answers. Only after "
+        "the user chose that time and confirmed the answers. Returns the meeting: start and end, "
+        "join link, hosts, guests, when it was booked, the answers, and the reschedule and cancel "
+        "links. Show the times in the user's timezone. Calendly emails the invite. 409 "
+        "`slot_taken`: call `requestDemo` again with the same answers and no `after`, and offer "
+        "other times. 429: too many demo requests from this account, wait a few minutes. Any "
+        "other failure may still have booked it: do not call `bookDemo` again yourself. Ask the "
+        "user to check their email for an invite, and book again only if they say none arrived.",
+        {
+            **_DEMO_ANSWERS_SCHEMA,
+            "start_time": {
+                "type": "string",
+                "description": "The picked start time, exactly as `requestDemo` returned it.",
+            },
+        },
+        [*_DEMO_ANSWERS_REQUIRED, "start_time"],
+        title="Book a demo",
+    ),
+]
+
+
+_BOOK_DEMO_STEPS = (
+    "Book a demo call between the user and the OmniDimension team. Follow these steps in order.\n\n"
+    "1. Call `getDemoQuestions`. Ask the user every question it returns, in that order. For a "
+    "choice question, show the choices and use the exact text of the one they pick. If you "
+    "already know their name or email, offer it and let them confirm. Ask for their timezone if "
+    "you do not know it, and confirm it.\n"
+    "2. Confirm their phone number, then call `requestDemo` with all the answers (`answers` "
+    "keyed by each question's `label`). "
+    "Never fill in an answer the user did not give.\n"
+    "3. If it returns 422, ask again only for the fields it lists, then call `requestDemo` again.\n"
+    "4. If `route` is `ai_call`: tell the user the `message` and stop. Do not promise a "
+    "meeting or a time.\n"
+    "5. If `route` is `calendar`: show 5 to 8 of the `slots`, converted to the user's timezone "
+    "with the day and date. Ask them to pick one. If `slots` is empty or none suit them, call "
+    "`requestDemo` again with the same answers and `after` set to `next_after`. After three empty "
+    "replies in a row, tell the user and stop.\n"
+    "6. Repeat the picked time and the answers back, get a yes, then call `bookDemo` with the "
+    "same answers and `start_time` exactly as `requestDemo` returned it.\n"
+    "7. Show everything `bookDemo` returns: the date and time in the user's timezone, how long "
+    "it is, the join link (if it is empty, say the join link is in the calendar invite email), "
+    "who is in the meeting (hosts and guests), when it was booked, and the reschedule and "
+    "cancel links. Calendly sends the invite by email.\n"
+    "8. If `bookDemo` returns 409 `slot_taken`, say that time was just taken, call `requestDemo` "
+    "again with the same answers and no `after`, and go on from step 5 with the new slots. If it returns 429, this account sent too many demo requests: ask them to wait a "
+    "few minutes, and point them to their invite email if they already booked. If it fails any "
+    "other way, do not call it again yourself: the booking may have gone through. Ask them to "
+    "check their email for an invite, and book again only if they say none arrived."
+)
+
+
+@dataclass(frozen=True)
+class Playbook:
+    name: str
+    description: str
+    arguments: list[dict[str, Any]]
+    steps: str
+
+
+@dataclass(frozen=True)
+class Guide:
+    uri: str
+    name: str
+    description: str
+    text: str
+
+
+_SKILLS = Path(__file__).parent / "vendor" / "omnidim-skills"
+_FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n+", re.S)
+
+
+def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
+    text = path.read_text(encoding="utf-8-sig")
+    match = _FRONTMATTER.match(text)
+    if not match:
+        raise ValueError(f"{path}: the header must sit between two --- lines")
+    meta = yaml.safe_load(match.group(1))
+    if not isinstance(meta, dict):
+        raise ValueError(f"{path}: the header must be YAML keys")
+    return meta, text[match.end() :]
+
+
+def _playbook_file(path: Path) -> Playbook | None:
+    if path.read_text(encoding="utf-8-sig").split("\n", 1)[0] != "---":
+        return None
+    meta, body = _split_frontmatter(path)
+    if "name" not in meta:
+        raise ValueError(f"{path}: the header must give the playbook a name")
+    title, steps = body.split("\n", 1)
+    return Playbook(
+        meta["name"], title.removeprefix("# "), meta.get("arguments", []), steps.strip()
+    )
+
+
+def load_playbooks(root: Path, reserved: frozenset[str] = frozenset()) -> dict[str, Playbook]:
+    found: dict[str, Playbook] = {}
+    for path in sorted(root.glob("skills/*/*.md")):
+        playbook = None if path.name == "SKILL.md" else _playbook_file(path)
+        if playbook is None:
+            continue
+        if playbook.name in found or playbook.name in reserved:
+            raise ValueError(f"{path}: the playbook name {playbook.name} is already taken")
+        found[playbook.name] = playbook
+    return found
+
+
+_BOOK_DEMO = Playbook(
+    "book_demo",
+    "Book a demo call with the OmniDimension team: ask every booking question, route by "
+    "call volume, offer free times, book the picked one, and show the meeting details.",
+    [],
+    _BOOK_DEMO_STEPS,
+)
+_PLAYBOOKS: dict[str, Playbook] = {
+    _BOOK_DEMO.name: _BOOK_DEMO,
+    **load_playbooks(_SKILLS, reserved=frozenset({_BOOK_DEMO.name})),
 }
 
-Then give the agent a phone number and verify with a test call (the
-`provision_agent` prompt walks through this end to end).
-"""
-
-VERSIONING_GUIDE = """# Agent version history
-
-A **version** is a frozen snapshot of an agent's configuration at a point in
-time. Use it to save a known-good setup before a risky change, and to roll back
-if a change makes the agent worse.
-
-## The tools
-
-- `listAgentVersions` { agent_id } - the timeline, newest first. Each entry has a
-  `version_number`, a `kind`, who saved it, and a `change_summary` (a one-line
-  "what changed in this version vs the one before it").
-- `createAgentVersion` { agent_id, name, note? } - save the agent's CURRENT
-  config as a named version.
-- `diffAgentVersion` { agent_id, version_number, against? } - what changed (below).
-- `restoreAgentVersion` { agent_id, version_number } - write a version back onto
-  the live agent.
-- `renameAgentVersion` / `deleteAgentVersion` - tidy the timeline.
-
-`kind` is `manual` (a person saved it), `auto` (saved automatically a few minutes
-after editing settles - you do NOT trigger these), or `system` (a safety backup
-taken automatically right before a restore).
-
-## When to snapshot
-
-Call `createAgentVersion` right BEFORE a change you might want to undo (swapping
-the model/voice, rewriting the prompt, changing transfer rules). Give it a clear
-`name`. You do not need to snapshot after routine edits - the platform auto-saves
-settled states on its own.
-
-## How to read a diff
-
-`diffAgentVersion` returns `{ changed, groups }`, each group an area (Settings,
-Prompt, Transfer rules, Post-call actions, Knowledge, Integrations, Web widget,
-Conversation flow, Other settings) with the specific old -> new changes. Pick the
-comparison with `against`:
-
-- **omit / `against=previous`** (default): what changed IN this version vs the
-  one before it. Matches the `change_summary` in the list.
-- **`against=current`**: what restoring this version WOULD change vs the agent's
-  live config right now. Read this before a restore to preview the effect.
-- **`against=<number>`**: compare with a specific other version.
-
-## How to decide and perform a restore
-
-1. `listAgentVersions` and scan `change_summary` to find the target version.
-2. `diffAgentVersion` { version_number, against: "current" } to preview exactly
-   what restoring changes. If nothing meaningful changed, there is nothing to do.
-3. `restoreAgentVersion` { agent_id, version_number }. This first saves the
-   current state as a `system` "Backup before restore" version (so the restore is
-   itself undoable), then writes the chosen config back. The response's `skipped`
-   list reports references (knowledge files, integrations) that no longer exist
-   and were dropped rather than failing the restore.
-4. Confirm with `listAgentVersions` (a new `system` backup appears at the top).
-
-## Gotchas
-
-- Version history is enabled per organization. If it is off for the caller's org,
-  these endpoints return 403 (`feature_disabled`).
-- `createAgentVersion` refuses a no-op: if nothing changed since the latest
-  version it returns 409 (`no_changes`). Make a real change first.
-- There is a per-agent cap on versions created through the API; at the cap
-  `createAgentVersion` returns 409 (`version_limit_reached`) - delete an old one.
-- `listAgentVersions` and `diffAgentVersion` are read-only and safe to call
-  freely. Restore and delete mutate the live agent - confirm intent first.
-"""
-
-BULK_CAMPAIGNS_GUIDE = """# Running outbound campaigns
-
-## Normal or dynamic
-- One-time list: a normal campaign. Create it (as a draft), add contacts, start it.
-- Continuous leads (form fills, CRM events): a dynamic campaign (`is_dynamic: true`,
-  no contact list) fed by `addBulkCallContact` as each lead arrives. The faster a
-  fresh lead is called, the higher the conversion.
-
-## The two contact shapes (do not mix them)
-- `createBulkCall`'s `contact_list` rows are FLAT:
-  `{ "phone_number": "+1...", "any_other_key": "reaches the agent as context" }`.
-- `addBulkCallContact` / `addBulkCallContacts` instead take
-  `{ to_number, custom_variables: {...}, metadata: {...} }`. `metadata` is
-  bookkeeping the agent never sees.
-- Sending `custom_variables` inside a `contact_list` row does not error; it becomes
-  one nested variable and garbles the agent's context.
-
-## Build as a draft, then start
-- `createBulkCall` { name, phone_number_id, save_as_draft: true, ... }. Keep the
-  returned `id`. Without `save_as_draft` the campaign dials the moment it is created.
-- `addBulkCallContacts` accepts up to 1000 contacts per request. Invalid rows come
-  back in `rejected` with their index and reason; valid rows are still added, so one
-  bad number never costs the batch.
-- `startBulkCall` launches a draft.
-- Adding contacts is NOT dynamic-only: any campaign that is not cancelled or failed
-  accepts them, and a completed campaign wakes up and dials again.
-
-## Size concurrency with arithmetic, not vibes
-- Calls per hour per channel = 3600 / average call seconds (~40/hour at 90s).
-- Channels needed = target calls per hour / per-channel rate.
-- Example: 100,000 calls in an 8-hour day is 12,500/hour, ~315 channels. The failure
-  mode: concurrency 5 against 10,000 leads is ~200 calls/hour, a 50-hour "today"
-  campaign.
-- `setBulkCallConcurrency` changes it mid-run; the org's ceiling caps it.
-
-## Numbers and rotation
-- One number dialing a whole campaign collects spam reports and stops being answered.
-  Rotate: `rotation: { numbers: [{ phone_number_id, sequence }], strategy:
-  "fixed_count", calls_per_number: 50 }` at create.
-- `phone_number_id` stays required and becomes the standby; list it in
-  `rotation.numbers` too if it should take a share of the calls.
-- A rotation number attached to a DIFFERENT agent is refused by name. Attach it to
-  this campaign's agent first, or leave it out.
-- `listBulkCallNumbers` shows which number is dialing now; `setBulkCallNumberActive`
-  pauses one without losing its history (the last active number of a running
-  campaign cannot be paused).
-- Check a new number's reputation before a campaign and watch pickup rates.
-
-## Calling hours and the timezone trap
-- `setBulkCallDailyTimeControl` sets a hard stop and an auto start; the API requires
-  both blocks together.
-- Each block carries its own timezone (`daily_stop_timezone`, `daily_start_timezone`);
-  left out, it falls back to the campaign's `timezone`, not the operator's. A wrong
-  timezone dials people at 11 PM, which is a compliance problem. Set both to the
-  customers' region.
-- The agent has its own `timezone` field (`createAgent`/`updateAgent`) that sets the
-  local date and time it works with during calls. Set that to the customers' region too.
-
-## Watching a campaign and reading results
-- `getBulkCallLiveStatus` for progress counts while it runs.
-- `listBulkCallLines` for per-contact outcomes: `pagesize` up to 150, follow
-  `next_cursor` until it comes back null, never build a cursor yourself.
-  `include_total` once for a header, not on every page.
-- Rows carry `recording_id`, not the transcript; `getCallLog` serves it.
-- `retryBulkCall` re-queues contacts that did not connect; it refuses a campaign
-  that is still running.
-
-## Contact rules
-- Numbers are E.164 with the country code. Run one campaign per country code.
-- Dashboard CSV uploads need the phone column named exactly `phone_number`.
-"""
-
-CARRIERS_GUIDE = """# Which carrier to buy from
-
-A region holds one or more carriers. They do not stock the same numbers and
-they are not interchangeable, so `carrier` is **required** on
-`searchPhoneNumbers` and `purchasePhoneNumber`, in every region, however few
-it holds.
-
-## What each one stocks
-
-| Region | `carrier` | Stocks |
-|---|---|---|
-| `IN` | `carrier-1` | Landline numbers, city codes 11, 12 and 80 |
-| `IN` | `carrier-2-new` | Mobile numbers, 94 and 79 series |
-| `US` | `carrier-us` | US local numbers, by area code |
-
-A snapshot, not the authority. The API is: omit `carrier` on a call that needs
-one and the `409 carrier_required` body lists that region's carriers with what
-each stocks and whether each is taking orders. Many MCP clients will not let
-you omit a required field, which is why the table is here at all. If a user
-names a carrier that is not in it, pass it through rather than refusing: this
-file can be older than the account.
-
-## Rules
-
-- **Ask, do not pick.** Landline and mobile are not substitutes, and buying
-  spends the account's balance on a rental that renews. If the user has not
-  said which they want, ask, and say what each one stocks.
-- **Buy from the carrier you searched.** `searchPhoneNumbers` echoes the
-  `carrier` its results came from. Pass that exact value to
-  `purchasePhoneNumber`, or you are buying out of inventory you never looked
-  at.
-- **Verification is per carrier.** An account verified on one carrier of a
-  region is not verified on the other, and a purchase it has not cleared fails
-  with `409 kyc_incomplete`. Verification is not on this surface: send the user
-  to the dashboard number shop.
-- **A carrier can be down.** One flagged unavailable is still named in the
-  refusal, and a purchase against it answers `422 purchase_failed`. Sell from
-  another one meanwhile.
-- **The name is stable across a rename**, so it is safe for a user to store.
-"""
-
-WORKFLOWS_GUIDE = """# Building workflows
-
-A workflow is a graph: one trigger node, then action and flow nodes joined by
-edges. It runs on OmniDimension's servers each time its trigger fires.
-
-## The tools, in the order you use them
-
-1. `listWorkflowNodeTypes` (with `q`, e.g. "whatsapp") to find node types.
-2. `getWorkflowNodeType` (`detail: minimal`) for the fields one type needs.
-   Ask for `detail: full` only when you need the examples.
-3. `listWorkflowFieldOptions` for any field of type `ref` (a number, an
-   integration, a template, an agent). Never guess an id. If it returns
-   `no_options`, ask the user for the value.
-4. `createWorkflow` with a `name`. It starts with one node, `trigger`. You may
-   pass a complete first `graph` instead, in the same shape `getWorkflow`
-   returns under `draft` (node `config`, edges with `from`, `to`, `handle`).
-5. `editWorkflow` with the `revision` from the last read and a list of `ops`.
-6. `validateWorkflow`, then fix what it reports with another `editWorkflow`.
-7. `testWorkflow` only after the user agrees (see "Test runs are real").
-8. `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
-
-`getWorkflow` with `view: structure` shows nodes and edges without config.
-Use it to orient in a large workflow. Use `view: full` before you edit config.
-
-## Lifecycle
-
-- You always edit the **draft**. A published workflow is never changed in place.
-- `publishWorkflow` copies the draft to the live version and leaves a fresh draft
-  for the next round of edits. It refuses while `validateWorkflow` has errors.
-- `deactivateWorkflow` pauses a published workflow. `activateWorkflow` resumes a paused one. Neither is
-  needed to go live.
-- Every edit needs the current `revision`. On `409 revision_conflict`, someone
-  (often the user in the dashboard) saved first. Call `getWorkflow` and retry.
-
-## Do not break a workflow that is already running
-
-Most harm comes from changing a workflow the user did not ask you to touch.
-
-- Default to creating a NEW workflow. Edit an existing one only when the user names it.
-- Call `getWorkflow` first and read what it does before any edit. Keep its `revision`.
-- Your edits land on the draft and change nothing live until you publish.
-- `publishWorkflow` overwrites the live version that real events run. `deactivateWorkflow`
-  pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
-  these on an existing workflow, tell the user exactly what will change and get a yes.
-- Never publish, activate, deactivate, delete or test a workflow as a side effect of another task.
-
-## Entry: the trigger
-
-Every workflow has exactly one trigger node. Its output is the event payload,
-which later nodes read as `{{ context.<trigger id>.<field> }}`.
-
-| Trigger type | Fires when | How it is attached |
-|---|---|---|
-| `trigger` | After a call (post-call), or on a POST to the webhook URL | Post-call: the agent's post-call actions point at this workflow. Webhook: `update_node` the trigger with `config: { webhook_enabled: true }`, then `getWorkflow` returns `webhook_url` |
-| `whatsapp_inbound` | A WhatsApp message arrives | Its `phone_number_id` |
-| `twilio_sms_inbound` | An SMS arrives | Its Twilio integration |
-| `email_event_trigger` | A sent email is opened, clicked, replied to, or bounces | The source workflow or campaign |
-| `omnidim_crm_trigger`, `leadsquared_trigger`, `shopify_trigger`, `instantly_event_trigger` | An event in that system | Its integration |
-
-`getWorkflowNodeType` shows each trigger's `output_example`. The post-call
-trigger carries `customer_number`, `call_status`, `summary`, `sentiment`,
-`extracted_variables` and the transcript.
-
-## Connecting nodes
-
-An edge runs from one node's **output** to the next node. Plain nodes have one
-output, `default`. Branching nodes have named outputs, and you must say which.
-`getWorkflowNodeType` lists each type's outputs; this table is a summary:
-
-| Node | Outputs |
-|---|---|
-| `conditional` | `True`, `False` |
-| `switch_condition` | each case `id`, plus `else` |
-| `time_condition` | `Yes`, `No` |
-| `photo_analyzer` | `pass`, `fail` |
-| `voice_ai` | `Completed`, `Not Completed` |
-| `zoho_bigin` | `Created`, `Found`, `Ambiguous`, `Failed`, `Success` |
-
-- One output can feed several nodes. They all run.
-- `add_node` with `after` and `handle` places and connects a node in one step.
-- To rewire, send `disconnect` and `connect` in the same batch.
-- Every node except notes must be reachable from the trigger.
-
-## Exit
-
-There is no end node. A branch ends at a node with no outgoing edge, and the
-run finishes when every branch has ended. `wait`, `wait_for_time`, `voice_ai`
-and `send_email` pause the run and resume it later. `sub_workflow` starts
-another workflow and continues at once. The target must be published and active, or the run
-fails with "Target workflow has no published version".
-
-## Passing data
-
-`{{ context.<node id>.<field> }}` reads an earlier node's output. The engine
-also provides `{{ context.webhook }}` (the trigger payload) and
-`{{ context.execution_link }}`. Only nodes that run earlier have output. A
-reference to a later node renders empty, and `validateWorkflow` warns about it.
-
-Node ids appear in these references, so pick readable ones: `check_interest`,
-`wa_followup`, `notify_sales`. Use lowercase letters, digits and underscores.
-These names are taken: `webhook`, `execution_id`, `execution_link`, `get`,
-`items`, `keys`, `values`.
-
-Id fields (a number, template, integration, agent) always hold a literal id.
-A `{{ }}` template there is refused, because it could resolve to a record in
-another workspace.
-
-## Moving things around
-
-- `move_node` sets `{x, y}` on the dashboard canvas.
-- `add_node` without a `position` lands to the right of its parent, below any
-  siblings, so the canvas stays readable for the user.
-
-## Notes
-
-A `notes` node holds `note_text` for people reading the canvas. It is never
-connected and never runs. Add one that says what the workflow is for, so the
-next person to open it in the dashboard understands it.
-
-## Ops
-
-| Op | Fields |
-|---|---|
-| `add_node` | `id`, `type`, `config?`, `label?`, `position?`, `after?`, `handle?` |
-| `update_node` | `id`, `config` (merged; `null` removes a key), `label?` |
-| `move_node` | `id`, `position {x, y}` |
-| `delete_node` | `id` (its edges go too) |
-| `connect` | `from`, `to`, `handle?` (default `default`) |
-| `disconnect` | `from`, `to`, `handle?` |
-
-A batch applies completely or not at all. A failing op returns
-`422 invalid_op` with its `op_index`.
-
-## Credentials
-
-Never put secrets in config when an integration exists. Pick integrations,
-numbers and templates from `listWorkflowFieldOptions`. Secret fields (a Slack
-webhook URL, API headers) read back as `********`. Send `********` back
-unchanged and the stored value is kept. If the user has no matching
-integration, tell them to connect one in the dashboard first.
-
-## Test runs are real
-
-`testWorkflow` runs the draft once with your `payload` as the trigger data.
-**Every node runs for real**: WhatsApp messages, SMS, emails and calls go out,
-and CRM records change. Before you call it, tell the user what will happen and
-get a yes. Use their own phone number or email in the payload. The call returns `202` with an
-`execution_id` at once. Poll `getWorkflowExecution` until `state` is `completed`, `failed` or
-`cancelled`, then read each node's status, output and error.
-
-## Errors you will see
-
-| Error | Meaning | What to do |
-|---|---|---|
-| `422 validation_failed` with `not_found` | An id is not in this workspace | Pick from `listWorkflowFieldOptions` |
-| `422 validation_failed` on publish | Missing fields, an unconnected node, a bad handle | Fix each one, then publish again |
-| `422 invalid_op` | An op is malformed | Fix the op at `op_index` |
-| `409 revision_conflict` | The draft changed since you read it | `getWorkflow`, then retry |
-| `409 no_draft` | There is no draft to edit, validate or publish | `getWorkflow`, then make an edit to start a new draft |
-| `400 no_options` | The field holds an id from another system | Ask the user for the value |
-| `422` with `templated_ref` | An id field holds a `{{ }}` template | Put a literal id from `listWorkflowFieldOptions` |
-
-## Worked example
-
-"After a call, if the lead is interested, send our follow-up WhatsApp template
-and tell #sales in Slack."
-
-1. `createWorkflow { name: "Interested lead follow-up" }` gives you `trigger`
-   and a `revision`.
-2. `listWorkflowFieldOptions` for `whatsapp.phone_number_id`, then for
-   `whatsapp.template_id` with `depends` set to that number. Confirm both with
-   the user.
-3. One `editWorkflow` batch:
-   - `add_node { id: "check_interest", type: "conditional", after: "trigger",
-     config: { conditions: [{ variable: "{{ context.trigger.extracted_variables.interested }}",
-     operator: "==", value: "yes" }] } }`
-   - `add_node { id: "wa_followup", type: "whatsapp", after: "check_interest",
-     handle: "True", config: { phone_number_id: <id>, message_type: "template",
-     template_id: <id>, to_number: "{{ context.trigger.customer_number }}" } }`
-   - `add_node { id: "notify_sales", type: "slack", after: "wa_followup",
-     config: { slack_webhook_url: "<from the user>",
-     message: "Follow-up sent to {{ context.trigger.customer_number }}" } }`
-   - `add_node { id: "about", type: "notes", config: { note_text: "Follows up
-     interested leads after a call." } }`
-4. `validateWorkflow`, fix anything reported, then `publishWorkflow`.
-5. Tell the user to point the agent's post-call action at this workflow.
-"""
-
-_RESOURCES: list[dict[str, str]] = [
-    {
-        "uri": "omnidim://guide/routing",
-        "name": "OmniDimension routing guide",
-        "description": "Which tool to call when, ID flow between calls, and the non-obvious rules proven against the live API.",
-        "mimeType": "text/markdown",
-        "text": ROUTING_GUIDE,
+_SERVER_ADDITIONS = {
+    "omnidim://guide/routing": f"\n\n## Offering a demo call\n\n{DEMO_OFFER_RULE}",
+}
+
+
+def _guide_file(path: Path) -> Guide:
+    meta, body = _split_frontmatter(path)
+    uri = f"omnidim://{path.parent.name}/{path.stem}"
+    return Guide(
+        uri, meta["name"], meta["description"], body.rstrip() + _SERVER_ADDITIONS.get(uri, "")
+    )
+
+
+_GUIDES: dict[str, Guide] = {
+    g.uri: g
+    for g in sorted(
+        map(_guide_file, (_SKILLS / "guides").glob("*/*.md")),
+        key=lambda g: (g.uri != "omnidim://guide/routing", g.uri),
+    )
+}
+
+_CANVAS = {
+    "uri": WORKFLOW_CANVAS_URI,
+    "name": "Workflow canvas",
+    "description": "Interactive view of a workflow draft, shown by clients that support MCP Apps.",
+    "mimeType": "text/html;profile=mcp-app",
+}
+
+PLAYBOOK_NAMES: list[str] = list(_PLAYBOOKS)
+GUIDE_NAMES: list[str] = PLAYBOOK_NAMES + list(_GUIDES)
+
+_READ_GUIDE_TOOL: dict[str, Any] = {
+    "name": "readGuide",
+    "description": (
+        "Read an OmniDimension playbook or guide. A playbook ("
+        + ", ".join(PLAYBOOK_NAMES)
+        + ") gives the steps for one task: read it before you start that task, then follow it. "
+        "A guide is an `omnidim://` link that explains one topic: read it when a playbook or "
+        "another guide points to it. It reads no account data.\n\n(Tags: Docs)"
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "enum": GUIDE_NAMES,
+                "description": "A playbook name, or a guide's omnidim:// link.",
+            }
+        },
+        "required": ["name"],
     },
-    {
-        "uri": "omnidim://reference/recommended-stack",
-        "name": "Recommended provider stacks by language",
-        "description": "Which transcriber (STT), voice (TTS), and language model to choose, grouped by the caller's language. Reflects what works in production.",
-        "mimeType": "text/markdown",
-        "text": RECOMMENDED_STACK,
+    "annotations": {
+        "title": "Read a playbook or guide",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "openWorldHint": False,
     },
-    {
-        "uri": "omnidim://reference/voices",
-        "name": "Choosing a voice",
-        "description": "How to pick a voice from listVoices (use the name as voice_id), per-provider notes, and the verify-on-a-test-call rule.",
-        "mimeType": "text/markdown",
-        "text": VOICES_GUIDE,
-    },
-    {
-        "uri": "omnidim://reference/agent-config",
-        "name": "Building an agent with createAgent",
-        "description": "The createAgent field shape with two complete, copy-ready example configurations (Indian-English support, Hindi/Hinglish reminder).",
-        "mimeType": "text/markdown",
-        "text": AGENT_CONFIG_GUIDE,
-    },
-    {
-        "uri": "omnidim://guide/bulk-campaigns",
-        "name": "Running outbound campaigns",
-        "description": "The campaign lifecycle end to end: draft, batch contacts (two contact shapes, do not mix), rotation, concurrency arithmetic, the agent-timezone trap, cursor-paged results.",
-        "mimeType": "text/markdown",
-        "text": BULK_CAMPAIGNS_GUIDE,
-    },
-    {
-        "uri": "omnidim://reference/carriers",
-        "name": "Which carrier to buy a number from",
-        "description": "The carriers each region holds and what each one stocks, why `carrier` is required on search and purchase, and the rules that decide which to use: ask rather than pick, buy from the carrier you searched, verification is per carrier.",
-        "mimeType": "text/markdown",
-        "text": CARRIERS_GUIDE,
-    },
-    {
-        "uri": "omnidim://guide/agent-versioning",
-        "name": "Agent version history",
-        "description": "How to save, diff, and restore agent config snapshots: which tool to call, what the diff `against` modes mean, how to decide on a restore, and the 403/409 gotchas.",
-        "mimeType": "text/markdown",
-        "text": VERSIONING_GUIDE,
-    },
-    {
-        "uri": "omnidim://guide/workflows",
-        "name": "Building workflows",
-        "description": "How to build a workflow end to end: the tool order, lifecycle, triggers (entry), outputs and edges, exit, passing data, moving nodes, notes, ops, credentials, real test runs, errors, and a worked example.",
-        "mimeType": "text/markdown",
-        "text": WORKFLOWS_GUIDE,
-    },
-    {
-        "uri": WORKFLOW_CANVAS_URI,
-        "name": "Workflow canvas",
-        "description": "Interactive view of a workflow draft, shown by clients that support MCP Apps.",
-        "mimeType": "text/html;profile=mcp-app",
-        "text": _WORKFLOW_CANVAS_HTML,
-    },
+}
+
+EXTRA_TOOLS: list[dict[str, Any]] = [
+    _show_workflow_tool(),
+    *_DEMO_TOOLS,
+    *DOCS_TOOLS,
+    _READ_GUIDE_TOOL,
 ]
+
+
+_LINKS_NOTE = (
+    "Where this text names a playbook or an `omnidim://` resource, read it with `readGuide`."
+)
+_PLAYBOOK_NOTE = (
+    "Fill each placeholder in quotes, parentheses or angle brackets from the user's request. "
+    + _LINKS_NOTE
+)
+
+
+def guide_text(name: str) -> str | None:
+    if playbook := _PLAYBOOKS.get(name):
+        return f"# {playbook.description}\n\n{_PLAYBOOK_NOTE}\n\n{playbook.steps}"
+    if guide := _GUIDES.get(name):
+        return f"{_LINKS_NOTE}\n\n{guide.text}"
+    return None
 
 
 def tool_meta(name: str) -> dict[str, Any] | None:
@@ -921,27 +387,44 @@ def tool_meta(name: str) -> dict[str, Any] | None:
 
 
 def prompts_for_listing() -> list[dict[str, Any]]:
-    return [{"name": p["name"], "description": p["description"], "arguments": p["arguments"]} for p in _PROMPTS]
+    return [
+        {"name": p.name, "description": p.description, "arguments": p.arguments}
+        for p in _PLAYBOOKS.values()
+    ]
 
 
 def build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
-    for p in _PROMPTS:
-        if p["name"] == name:
-            builder: Callable[[dict[str, Any]], str] = p["build"]
-            return {
-                "description": p["description"],
-                "messages": [{"role": "user", "content": {"type": "text", "text": builder(arguments)}}],
-            }
-    return None
+    playbook = _PLAYBOOKS.get(name)
+    if playbook is None:
+        return None
+    values = {
+        a["name"]: " ".join(str(arguments.get(a["name"]) or "").split()) for a in playbook.arguments
+    }
+    given = [f"- {name}: {value}" for name, value in values.items() if value]
+    text = playbook.steps
+    if given:
+        text += "\n\nThe user gave:\n" + "\n".join(given)
+    return {
+        "description": playbook.description,
+        "messages": [{"role": "user", "content": {"type": "text", "text": text}}],
+    }
 
 
 def resources_for_listing() -> list[dict[str, str]]:
-    return [{k: r[k] for k in ("uri", "name", "description", "mimeType")} for r in _RESOURCES]
+    guides = [
+        {"uri": g.uri, "name": g.name, "description": g.description, "mimeType": "text/markdown"}
+        for g in _GUIDES.values()
+    ]
+    return [*guides, _CANVAS]
 
 
 def read_resource(uri: str) -> dict[str, Any] | None:
-    current = WORKFLOW_CANVAS_URI if uri == LEGACY_CANVAS_URI else uri
-    for r in _RESOURCES:
-        if r["uri"] == current:
-            return {"contents": [{"uri": uri, "mimeType": r["mimeType"], "text": r["text"]}]}
+    if guide := _GUIDES.get(uri):
+        return {"contents": [{"uri": uri, "mimeType": "text/markdown", "text": guide.text}]}
+    if uri in (WORKFLOW_CANVAS_URI, LEGACY_CANVAS_URI):
+        return {
+            "contents": [
+                {"uri": uri, "mimeType": _CANVAS["mimeType"], "text": _WORKFLOW_CANVAS_HTML}
+            ]
+        }
     return None

@@ -27,6 +27,14 @@ Discovery endpoints and error responses are read by automated clients AND by hum
 
 When in doubt, grep the docs repo (`omnidim-docs/content`) for the canonical path. Never invent.
 
+## Merge tools in the spec, not here
+
+To serve several operations as one tool with an `action` field, add `merge: {tool, action}` to their `x-mcp` blocks and a `x-mcp-tools` entry in the omnidim-docs spec. `scripts/regen.py` (`merged_tool`) builds the tool and `app/services/dispatcher.py` (`_pick_action`) routes each action to its operation, with no code change here. omnidim-mcp-server applies the same rules, so change both together. The docs test `SPEC_TOOL_BUDGET` caps the tool count.
+
+## Playbooks and guides come from Omnidim/skills
+
+The playbooks (`readGuide`, MCP prompts) and the `omnidim://` guides are markdown files in the [Omnidim/skills](https://github.com/Omnidim/skills) repo. Edit them there, never in `app/vendor/omnidim-skills/`. `scripts/skills_sync.py <commit>` copies them in, and the `skills-sync` workflow opens that PR every morning when the skills repo has moved. `app/procedures.py` keeps only what the server owns: `book_demo`, the demo offer rule and the workflow canvas. A new playbook is one markdown file in the skills repo: its header names it and lists its prompt inputs.
+
 ## Architecture invariants
 
 These do not bend without an explicit decision:
@@ -41,21 +49,12 @@ These do not bend without an explicit decision:
 ## Release flow
 
 - `main` is the release branch. Every commit on `main` must pass CI.
-- Production deploys on a `v*` git tag. The deploy job builds the image, pushes it to `ghcr.io/omnidim/omnidim-mcp-cloud`, then asks the deploy host (via a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back to the previous image on failure. No SSH keys in CI.
-- Staging deploys on every merge to `main` once a staging host is provisioned.
-- Never deploy from a laptop. Tag → CI → server.
-- Database migrations are forward-compatible: an old app version must be able to run against the new schema for the rolling-deploy window.
-
-## Changelog discipline
-
-Every release gets an entry in `CHANGELOG.md` before its tag is pushed.
-
-- Format: Keep a Changelog. Sections are `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security` as needed.
-- The `[Unreleased]` section collects entries as work lands on `main`. When tagging `vX.Y.Z`, rename that section to `[X.Y.Z] - YYYY-MM-DD` and start a fresh `[Unreleased]` above it.
-- Entries describe user-visible behaviour, not commit-by-commit history. Group related commits into a single bullet.
-- Breaking changes go under `### Changed` with a **BREAKING** prefix and a migration note.
-- Security fixes belong in `### Security` with a CVE reference if one exists.
-- If a tag goes out without an entry, that's a release process bug — fix it retroactively in the same release.
+- Never bump a version, edit `CHANGELOG.md` or push a `v*` tag by hand. release-please does all three.
+- PRs are squash-merged, and the PR title becomes the commit and the changelog line. Write it as a conventional commit a user can read: `feat:` lands under Added, `fix:` under Fixed, `perf:` under Changed. `ci`, `test`, `build`, `docs` and `chore` stay out. The `pr-title` check rejects other formats. Mark a breaking change with `!` (`feat!:`) and say how to migrate in the PR body.
+- After each merge, release-please updates one open release PR. Merging it is the prod deploy approval: the `release` job tags `vX.Y.Z`, `publish` pushes the image to `ghcr.io/omnidim/omnidim-mcp-cloud`, and `start-deploy` runs `deploy.yml` on the new tag, which asks the host (through a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back on failure. Only the maintainers team (Ryu, Kevin) approves release PRs.
+- The `production` environment accepts only `v*` tags. To redeploy a version from v0.14.1 on, run `deploy.yml` by hand on its tag (`gh workflow run deploy.yml --ref vX.Y.Z`). Older tags have no `deploy.yml`.
+- The only version source is `pyproject.toml`. `app.__version__` reads it from the installed package for serverInfo, the API version and the upstream User-Agent.
+- Never deploy from a laptop. Database migrations are forward-compatible: an old app version must run against the new schema for the rolling-deploy window.
 
 ## Code hygiene
 

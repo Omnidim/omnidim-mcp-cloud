@@ -10,7 +10,10 @@ from urllib.parse import quote
 
 import httpx
 import structlog
+from opentelemetry import trace
+from opentelemetry.trace import StatusCode
 
+from app import __version__
 from app._generated.tools import TOOLS
 from app.procedures import EXTRA_TOOLS
 from app.services.bearer import ResolvedToken
@@ -18,7 +21,7 @@ from app.services.bearer import ResolvedToken
 log = structlog.get_logger()
 
 BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
-USER_AGENT: Final = "omnidim-mcp-cloud/0.12.7"
+USER_AGENT: Final = f"omnidim-mcp-cloud/{__version__}"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
 
@@ -122,31 +125,67 @@ def _find_list(data: Any) -> tuple[list[Any], str | None] | None:
     return None
 
 
+def _without_turn_detail(data: Any) -> tuple[Any, bool]:
+    """Call logs without their per-turn `interactions`, which are most of a call log's size."""
+    found = _find_list(data)
+    rows = found[0] if found else [data]
+    if not any(isinstance(r, dict) and "interactions" in r for r in rows):
+        return data, False
+    slim = [
+        {k: v for k, v in r.items() if k != "interactions"} if isinstance(r, dict) else r
+        for r in rows
+    ]
+    if found is None:
+        return slim[0], True
+    key = found[1]
+    return ({**data, key: slim} if key is not None else slim), True
+
+
 def _trim(data: Any) -> ToolResult:
     redacted = _redact(data)
     full = json.dumps(redacted, indent=2, ensure_ascii=False)
+    if len(full) <= MAX_LIST_CHARS:
+        return ToolResult(text=full)
+
+    # Turn detail goes before rows or a cut, so transcript, recording and cost always arrive.
+    slim, dropped = _without_turn_detail(redacted)
+    drop_note = " Left out per-turn detail (interactions)." if dropped else ""
+    if dropped:
+        slim_text = json.dumps(slim, indent=2, ensure_ascii=False)
+        if len(slim_text) <= MAX_LIST_CHARS:
+            note = (
+                "\n\n[Left out per-turn detail (interactions) to fit. call_conversation "
+                "has the transcript.]"
+            )
+            return ToolResult(text=slim_text + note)
+        redacted, full = slim, slim_text
+
     found = _find_list(redacted)
-    if found is None or len(full) <= MAX_LIST_CHARS:
+    if found is None:
         return ToolResult(text=full)
 
     arr, key = found
+    page_links = ("next_cursor", "has_more")
     kept = len(arr)
     while kept > 1:
         trimmed = arr[:kept]
         if key is not None and isinstance(redacted, dict):
-            candidate = json.dumps({**redacted, key: trimmed}, indent=2, ensure_ascii=False)
+            rest = {k: v for k, v in redacted.items() if k not in page_links}
+            candidate = json.dumps({**rest, key: trimmed}, indent=2, ensure_ascii=False)
         else:
             candidate = json.dumps(trimmed, indent=2, ensure_ascii=False)
         if len(candidate) <= MAX_LIST_CHARS:
             note = (
-                f"\n\n[Showing {kept} of {len(arr)} items. Lower pagesize, filter "
-                "by name, or fetch a specific item by ID for full detail.]"
+                f"\n\n[Showing {kept} of {len(arr)} items.{drop_note} The rest were cut to fit, "
+                f"and the next page would skip them: ask again with pagesize {kept} to read every "
+                "row, filter, or fetch a specific item by ID for full detail.]"
             )
             return ToolResult(text=candidate + note)
         kept = max(1, int(kept * 0.6))
 
     return ToolResult(
-        text=full[:MAX_LIST_CHARS] + f"\n\n[Response truncated. Full size: {len(full)} chars.]",
+        text=full[:MAX_LIST_CHARS]
+        + f"\n\n[Response truncated. Full size: {len(full)} chars.{drop_note}]",
     )
 
 
@@ -177,11 +216,28 @@ def _substitute_path(
 
 
 def _split_args(
-    args: dict[str, Any], path_params: list[str], query_params: list[str]
-) -> tuple[dict[str, Any], dict[str, Any]]:
+    args: dict[str, Any],
+    path_params: list[str],
+    query_params: list[str],
+    header_params: list[str],
+) -> tuple[dict[str, Any], dict[str, str], dict[str, Any]]:
     query = {p: args[p] for p in query_params if p in args}
-    body = {k: v for k, v in args.items() if k not in path_params and k not in query_params}
-    return query, body
+    # HTTP header names are case-insensitive, so a model's lowercase key still counts.
+    by_lower = {p.lower(): p for p in header_params}
+    headers: dict[str, str] = {}
+    header_args: set[str] = set()
+    for k, v in args.items():
+        name = by_lower.get(k.lower())
+        if name is None:
+            continue
+        value = str(v)
+        if not value.isascii():
+            raise DispatchError(-32602, f"{name} must be plain ASCII text")
+        headers[name] = value
+        header_args.add(k)
+    routed = {*path_params, *query_params, *header_args}
+    body = {k: v for k, v in args.items() if k not in routed}
+    return query, headers, body
 
 
 def _coerce_args(args: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
@@ -208,6 +264,35 @@ def _coerce_args(args: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]
     return out
 
 
+def _unknown_tool(name: str) -> DispatchError:
+    for tool in _TOOLS_BY_NAME.values():
+        for action, route in tool.get("actions", {}).items():
+            if route["operation"] == name != tool["name"]:
+                return DispatchError(
+                    -32602,
+                    f"unknown tool: {name}. Call {tool['name']} with {tool['field']} {action}.",
+                )
+    return DispatchError(-32602, f"unknown tool: {name}")
+
+
+def _pick_action(
+    tool: dict[str, Any], arguments: dict[str, Any]
+) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    field = tool["field"]
+    action = arguments.get(field)
+    route = tool["actions"].get(action) if isinstance(action, str) else None
+    if not isinstance(action, str) or route is None:
+        raise DispatchError(-32602, f"{field} must be one of: {', '.join(tool['actions'])}")
+    other_inputs = set(tool["input_schema"]["properties"]) - set(route["inputs"]) - {field}
+    if not route["sends_field"]:
+        other_inputs.add(field)
+    other_lower = {name.lower() for name in other_inputs}
+    kept = {k: v for k, v in arguments.items() if k.lower() not in other_lower}
+    if missing := [r for r in route["required"] if r not in kept]:
+        raise DispatchError(-32602, f"{field} {action} needs: {', '.join(missing)}")
+    return action, route, kept
+
+
 async def dispatch_tool(
     *,
     name: str,
@@ -216,33 +301,43 @@ async def dispatch_tool(
 ) -> ToolResult:
     tool = _TOOLS_BY_NAME.get(name)
     if tool is None:
-        raise DispatchError(-32602, f"unknown tool: {name}")
+        raise _unknown_tool(name)
 
     if not token.odoo_api_key_value:
         raise DispatchError(-32000, "missing upstream credential")
+
+    action: str | None = None
+    route = tool
+    if "actions" in tool:
+        action, route, arguments = _pick_action(tool, arguments)
 
     # Schemas allow extra keys: drop the reseller switch regen strips (acts on a client).
     if "user_id" not in tool["input_schema"].get("properties", {}):
         arguments = {k: v for k, v in arguments.items() if k != "user_id"}
     arguments = _coerce_args(arguments, tool["input_schema"])
     path = _substitute_path(
-        tool["path"], arguments, tool["path_params"], tool["input_schema"]
+        route["path"], arguments, route["path_params"], tool["input_schema"]
     )
-    query, body = _split_args(arguments, tool["path_params"], tool["query_params"])
+    query, spec_headers, body = _split_args(
+        arguments, route["path_params"], route["query_params"], route["header_params"]
+    )
 
     url = f"{BACKEND_BASE_URL}{path}"
+    # Spec headers first, so a tool argument can never replace the credential.
     headers = {
+        **spec_headers,
         "Authorization": f"Bearer {token.odoo_api_key_value}",
         "User-Agent": USER_AGENT,
     }
     if request_id := structlog.contextvars.get_contextvars().get("request_id"):
         headers["X-Request-ID"] = request_id
-    method = tool["method"]
+    method = route["method"]
     # Every PUT and PATCH tool changes fields; with none, the API gets no body at all.
     if method in ("PUT", "PATCH") and not body:
         log.info(
             "tool_result",
             tool=name,
+            action=action,
             outcome="no_fields",
             status=None,
             duration_ms=0,
@@ -254,12 +349,14 @@ async def dispatch_tool(
         return ToolResult(text=json.dumps(error), is_error=True)
 
     request_kwargs: dict[str, Any] = {"params": query} if query else {}
-    if method != "GET" and body:
-        request_kwargs["json"] = body
+    sent: Any = body.get(list_arg) if (list_arg := route.get("body_list_arg")) else body
+    if method != "GET" and sent:
+        request_kwargs["json"] = sent
 
     log.info(
         "tool_call",
         tool=name,
+        action=action,
         method=method,
         path=path,
         client_id=token.client_id,
@@ -309,7 +406,7 @@ async def dispatch_tool(
                 status=res.status_code,
                 body=json.dumps(payload)[:500],
             )
-            envelope = {
+            envelope: dict[str, Any] = {
                 "error": "The OmniDimension API could not process this request.",
                 "status": res.status_code,
                 "hint": (
@@ -317,6 +414,14 @@ async def dispatch_tool(
                     "and retry once. If the error persists, try a smaller request."
                 ),
             }
+            # A tool whose 5xx says what to do next (a booking that may have gone
+            # through must not be retried) relays the API's own message and code.
+            if tool.get("relay_server_errors") and isinstance(payload, dict):
+                envelope = {
+                    "error": str(payload.get("error_description") or envelope["error"]),
+                    "code": payload.get("code") or payload.get("error"),
+                    "status": res.status_code,
+                }
             return ToolResult(
                 text=json.dumps(envelope, indent=2, ensure_ascii=False), is_error=True
             )
@@ -329,9 +434,16 @@ async def dispatch_tool(
         outcome = "ok"
         return _trim(payload)
     finally:
+        span = trace.get_current_span()
+        span.set_attributes(
+            {"mcp.tool": name, "mcp.outcome": outcome, "omni.client_name": token.client_name or ""}
+        )
+        if outcome in ("server_error", "timeout", "network_error"):
+            span.set_status(StatusCode.ERROR)
         log.info(
             "tool_result",
             tool=name,
+            action=action,
             outcome=outcome,
             status=status,
             duration_ms=round((time.monotonic() - started) * 1000),

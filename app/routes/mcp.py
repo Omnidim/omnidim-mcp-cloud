@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app import __version__
 from app._generated.tools import TOOLS
-from app.annotations import tool_annotations
 from app.dependencies import get_session_factory
 from app.procedures import (
+    DEMO_OFFER_RULE,
     EXTRA_TOOLS,
     build_prompt,
     prompts_for_listing,
@@ -21,12 +22,14 @@ from app.procedures import (
 )
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
+from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
+from app.services.guides import read_guide
 
 router = APIRouter(tags=["mcp"])
 log = structlog.get_logger()
 
 PROTOCOL_VERSION = "2025-11-25"
-SERVER_INFO = {"name": "OmniDimension", "version": "0.12.7"}
+SERVER_INFO = {"name": "OmniDimension", "version": __version__}
 INSTRUCTIONS = (
     "OmniDimension voice AI platform. Tools cover agents, calls, bulk calls, "
     "phone numbers, knowledge base, and providers. Pagination uses `pageno` "
@@ -35,7 +38,13 @@ INSTRUCTIONS = (
     "Dispatching calls: before dispatchCall, run listPhoneNumbers. If the "
     "account has numbers, pass the chosen one as from_number_id. If it has "
     "none, omit from_number_id and the platform's default number is used. "
-    "Never guess a from_number_id."
+    "Never guess a from_number_id. "
+    "Before you design, build or change an agent, launch a call campaign, build a workflow, "
+    "review calls or roll an agent back, call `readGuide` with the matching playbook "
+    "(design_agent, provision_agent, update_agent, build_outbound_campaign, build_workflow, "
+    "audit_calls, restore_agent_version) and follow its steps. If you are unsure which tool "
+    "fits, read `omnidim://guide/routing` with `readGuide`. "
+    + DEMO_OFFER_RULE
 )
 
 
@@ -50,14 +59,21 @@ def _error(req_id: object, code: int, message: str, data: Any = None) -> dict[st
     return {"jsonrpc": "2.0", "id": req_id, "error": err}
 
 
-def _tools_for_listing() -> list[dict[str, Any]]:
+_READ_ONLY_TOOLS = frozenset(
+    t["name"] for t in (*TOOLS, *EXTRA_TOOLS) if t["annotations"].get("readOnlyHint")
+)
+
+
+def _tools_for_listing(read_only: bool) -> list[dict[str, Any]]:
     tools = []
     for t in (*TOOLS, *EXTRA_TOOLS):
+        if read_only and t["name"] not in _READ_ONLY_TOOLS:
+            continue
         tool: dict[str, Any] = {
             "name": t["name"],
             "description": t["description"],
             "inputSchema": t["input_schema"],
-            "annotations": tool_annotations(t["name"], t["method"]),
+            "annotations": t["annotations"],
         }
         meta = tool_meta(t["name"])
         if meta:
@@ -80,6 +96,25 @@ async def mcp_endpoint(
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> JSONResponse:
+    return await _serve(request, factory, authorization, read_only=False)
+
+
+@router.post("/mcp/readonly")
+async def mcp_readonly_endpoint(
+    request: Request,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+) -> JSONResponse:
+    return await _serve(request, factory, authorization, read_only=True)
+
+
+async def _serve(
+    request: Request,
+    factory: async_sessionmaker[AsyncSession],
+    authorization: str | None,
+    *,
+    read_only: bool,
+) -> JSONResponse:
     try:
         async with factory() as session:
             token: ResolvedToken = await resolve_bearer(session, authorization)
@@ -89,12 +124,14 @@ async def mcp_endpoint(
         log.info("mcp_auth_failed", reason=exc.description)
         return _bearer_challenge(exc)
 
-    response = await _answer(request, token)
-    await _log_error(request, response, token)
+    response = await _answer(request, token, read_only=read_only)
+    await _log_error(request, response, token, read_only=read_only)
     return response
 
 
-async def _log_error(request: Request, response: JSONResponse, token: ResolvedToken) -> None:
+async def _log_error(
+    request: Request, response: JSONResponse, token: ResolvedToken, *, read_only: bool
+) -> None:
     """One mcp_error line for every JSON-RPC error we send back, so failures that happen
     before a tool runs (bad arguments, unknown tool or method) show on the MCP board."""
     payload = json.loads(bytes(response.body))
@@ -116,13 +153,14 @@ async def _log_error(request: Request, response: JSONResponse, token: ResolvedTo
         tool=str(params.get("name"))[:100] if method == "tools/call" else None,
         code=error.get("code"),
         message=str(error.get("message"))[:200],
+        read_only=read_only,
         client_id=token.client_id,
         client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
     )
 
 
-async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
+async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) -> JSONResponse:
     try:
         body = await request.json()
     except Exception:
@@ -144,6 +182,7 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
     log.info(
         "mcp_request",
         method=method,
+        read_only=read_only,
         client_id=token.client_id,
         client_name=token.client_name,
         odoo_user_id=token.odoo_user_id,
@@ -170,7 +209,7 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
         return JSONResponse(status_code=202, content={})
 
     if method == "tools/list":
-        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing()}))
+        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing(read_only)}))
 
     if method == "tools/call":
         tool_name = params.get("name")
@@ -182,8 +221,21 @@ async def _answer(request: Request, token: ResolvedToken) -> JSONResponse:
                     "tools/call requires name (str) + arguments (object)",
                 ),
             )
+        if read_only and tool_name not in _READ_ONLY_TOOLS:
+            return JSONResponse(
+                content=_error(
+                    req_id,
+                    -32602,
+                    f"{tool_name} changes data, so the read-only endpoint does not run it",
+                )
+            )
         try:
-            result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
+            if tool_name == "readGuide":
+                result = read_guide(arguments, token)
+            elif tool_name in DOCS_TOOL_NAMES:
+                result = await call_docs_tool(tool_name, arguments, token)
+            else:
+                result = await dispatch_tool(name=tool_name, arguments=arguments, token=token)
         except DispatchError as exc:
             return JSONResponse(content=_error(req_id, exc.code, exc.message, exc.data))
         return JSONResponse(

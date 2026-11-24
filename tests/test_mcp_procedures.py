@@ -165,8 +165,10 @@ async def test_reference_resources_listed(client: AsyncClient) -> None:
 async def test_recommended_stack_uses_createagent_enums(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     text = await _read_resource(client, token, "omnidim://reference/recommended-stack")
-    for token_str in ("azure_stream", "soniox", "sarvam", "cartesia", "gpt-4.1-mini"):
+    for token_str in ("soniox", "cartesia", "gpt-4.1-mini"):
         assert token_str in text
+    for other in ("sarvam", "deepgram", "smallest", "eleven_labs", "azure"):
+        assert other not in text.lower()
 
 
 async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> None:
@@ -198,6 +200,30 @@ async def test_guides_steer_to_models_every_account_has(client: AsyncClient) -> 
     provision = res.json()["result"]["messages"][0]["content"]["text"]
     assert '"provider": "eleven_labs"' not in provision
     assert '"provider": "soniox"' in provision
+
+
+async def test_guides_lead_with_omnidimension_voices(client: AsyncClient) -> None:
+    # OmniDimension voices are our top picks per language. A Cartesia `search` never
+    # finds them, so the only way in is listVoices provider=featured.
+    token = await _mint_access_token(client)
+    routing = await _read_resource(client, token, "omnidim://guide/routing")
+    stack = await _read_resource(client, token, "omnidim://reference/recommended-stack")
+    voices = await _read_resource(client, token, "omnidim://reference/voices")
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "prompts/get",
+            "params": {"name": "provision_agent", "arguments": {"purpose": "support"}},
+        },
+    )
+    provision = res.json()["result"]["messages"][0]["content"]["text"]
+    for text in (routing, stack, voices, provision):
+        assert "OmniDimension voices" in text
+        assert "`provider=featured`" in text
+    assert "eleven_labs" not in voices
 
 
 async def test_agent_config_example_is_flat(client: AsyncClient) -> None:
@@ -252,7 +278,8 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     )
     text = res.json()["result"]["messages"][0]["content"]["text"]
     assert "call 8,000 renewal leads today" in text
-    assert 'phone_number_id "177"' in text
+    assert "- phone_number_id: 177" in text
+    assert "If the user named a dialing number, use its phone_number_id" in text
     assert "save_as_draft: true" in text
     assert "never start one they have not approved" in text
     assert "3600 / average call seconds" in text
@@ -325,11 +352,10 @@ def test_every_resource_a_prompt_points_at_actually_exists():
     """
     import re
 
-    from app.procedures import _PROMPTS, _RESOURCES, ROUTING_GUIDE, read_resource
+    from app.procedures import GUIDE_NAMES, guide_text, read_resource, resources_for_listing
 
-    served = {r["uri"] for r in _RESOURCES}
-    text = ROUTING_GUIDE + "".join(r["text"] for r in _RESOURCES)
-    text += "".join(p["build"]({}) for p in _PROMPTS)
+    served = {r["uri"] for r in resources_for_listing()}
+    text = "".join(guide_text(name) or "" for name in GUIDE_NAMES)
 
     for uri in set(re.findall(r"omnidim://[a-z0-9/\-]+", text)):
         assert uri in served, f"{uri} is referenced but not served"
@@ -357,7 +383,8 @@ def test_no_tool_exposes_the_reseller_user_id():
     leaked = [
         t["name"]
         for t in TOOLS
-        if "user_id" in t["input_schema"].get("properties", {}) or "user_id" in t["query_params"]
+        if "user_id" in t["input_schema"].get("properties", {})
+        or any("user_id" in r["query_params"] for r in t.get("actions", {"": t}).values())
     ]
     assert not leaked, f"reseller user_id exposed on: {leaked}"
 
@@ -389,3 +416,106 @@ async def test_cloning_sends_users_to_the_dashboard_upload(client: AsyncClient) 
     assert "feature_not_enabled" in routing
     # Knowledge-base upload stays (small PDFs work), with the dashboard for larger files.
     assert "https://omnidim.io/files" in routing
+
+
+async def test_call_tips_guide_is_served_and_linked(client: AsyncClient) -> None:
+    from app.procedures import build_prompt, read_resource
+
+    guide = read_resource("omnidim://guide/call-tips")
+    assert guide is not None
+    text = guide["contents"][0]["text"]
+    assert "welcome_message" in text
+    for prompt in ("provision_agent", "build_outbound_campaign"):
+        built = build_prompt(prompt, {"purpose": "x", "goal": "x"})
+        assert built is not None
+        assert "omnidim://guide/call-tips" in built["messages"][0]["content"]["text"]
+
+
+def test_outbound_greeting_examples_are_short_name_checks() -> None:
+    import json
+    import re
+
+    from app.procedures import read_resource
+
+    resource = read_resource("omnidim://reference/agent-config")
+    assert resource is not None
+    blocks = re.findall(r"^\{\n.*?\n\}$", resource["contents"][0]["text"], re.M | re.S)
+    examples = [json.loads(m) for m in blocks]
+    outbound = [e for e in examples if e["call_type"] == "Outgoing"]
+    assert outbound
+    for e in outbound:
+        assert len(e["welcome_message"].split()) <= 8
+        assert "[name]" in e["welcome_message"]
+
+
+def _text(name: str) -> str:
+    from app.procedures import build_prompt, guide_text
+
+    if name.startswith("omnidim://"):
+        text = guide_text(name)
+    else:
+        built = build_prompt(name, {})
+        text = built["messages"][0]["content"]["text"] if built else None
+    assert text is not None
+    return " ".join(text.split())
+
+
+def test_no_playbook_acts_without_the_users_yes() -> None:
+    assert "attach only after the user's yes" in _text("provision_agent")
+    assert "Attach only the number the user names" in _text("provision_agent")
+    campaign = _text("build_outbound_campaign")
+    assert "Change it with `updateAgent` only after the user's yes" in campaign
+    assert "use it only after step 8's go-ahead" in campaign
+    assert "restore only on their yes" in _text("restore_agent_version")
+    assert "restore only on their yes" in _text("omnidim://guide/agent-versioning")
+    assert "get a yes, then `publishWorkflow`" in _text("omnidim://guide/workflows")
+    assert "release only after the user confirms" in _text("omnidim://guide/routing")
+    assert "`build_outbound_campaign` playbook" in _text("omnidim://guide/routing")
+
+
+def test_campaign_steps_match_the_api() -> None:
+    text = _text("build_outbound_campaign")
+    assert "{ campaign_id, contacts:" in text
+    assert "bulk_call_id, contacts" not in text
+    assert "needs its first rows in `contact_list`" in text
+    assert "needs `contact_list` at create" in _text("omnidim://guide/bulk-campaigns")
+
+
+def test_published_agents_are_flagged_before_an_edit() -> None:
+    assert "published_state.is_published" in _text("update_agent")
+    assert "writes the draft only" in _text("restore_agent_version")
+    assert "published_state.is_published" in _text("omnidim://guide/routing")
+
+
+def test_every_wait_has_a_cap() -> None:
+    assert "at most 5 times" in _text("provision_agent")
+    assert "up to 10 times" in _text("build_workflow")
+    assert "up to 10 times" in _text("omnidim://guide/workflows")
+    assert "three empty replies in a row" in _text("book_demo")
+    assert "do not poll it in a loop" in _text("build_outbound_campaign")
+    assert "at most 10 pages" in _text("build_outbound_campaign")
+    assert "After 10 pages, ask the user" in _text("omnidim://guide/bulk-campaigns")
+
+
+def test_update_keeps_disabled_sections_disabled() -> None:
+    assert "Copy `is_enabled` for every section" in _text("update_agent")
+
+
+def test_restore_preview_states_the_diff_direction() -> None:
+    assert "`old` is this version's value" in _text("restore_agent_version")
+    assert "`old` is this version's value" in _text("omnidim://guide/agent-versioning")
+
+
+def test_workflow_example_keeps_secrets_out_of_config() -> None:
+    assert "slack_webhook_url: \"<from the user>\"" not in _text("omnidim://guide/workflows")
+    assert "integration_id: <from listWorkflowFieldOptions>" in _text("omnidim://guide/workflows")
+
+
+def test_call_log_scans_use_a_page_that_fits_the_size_cap() -> None:
+    assert '"pagesize": 5, "include_details": false' in _text("audit_calls")
+    assert "a page of 50 short rows comes back as 6" in _text("audit_calls")
+
+
+def test_campaign_results_use_a_page_that_fits_the_size_cap() -> None:
+    assert "`pagesize` 10" in _text("build_outbound_campaign")
+    assert "`pagesize` 10" in _text("omnidim://guide/bulk-campaigns")

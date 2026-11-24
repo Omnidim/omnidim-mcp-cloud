@@ -2,15 +2,124 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.20.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.1...v0.20.0) (2026-11-24)
+
+
+### Added
+
+* export the skills as a Claude plugin the claude.ai directory accepts ([#132](https://github.com/Omnidim/omnidim-mcp-cloud/issues/132)) ([58c5345](https://github.com/Omnidim/omnidim-mcp-cloud/commit/58c5345e8dde7dee06408b836ca84b19af2c9720))
+* serve the playbooks and guides written in Omnidim/skills ([#135](https://github.com/Omnidim/omnidim-mcp-cloud/issues/135)) ([9af321b](https://github.com/Omnidim/omnidim-mcp-cloud/commit/9af321ba1baf9f3567fc7cc9c1322dec56eefd25))
+
+## [0.19.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.19.0...v0.19.1) (2026-11-24)
+
+
+### Fixed
+
+* refresh tool descriptions from the updated API spec ([#130](https://github.com/Omnidim/omnidim-mcp-cloud/issues/130)) ([f652fc7](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f652fc79617c761fff579af6e59c3b7be0335c48))
+
+## [0.19.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.18.0...v0.19.0) (2026-11-23)
+
+
+### Added
+
+* AI clients design, build, test and update agents with the team's playbook, in every client ([#126](https://github.com/Omnidim/omnidim-mcp-cloud/issues/126)) ([3c2f3bd](https://github.com/Omnidim/omnidim-mcp-cloud/commit/3c2f3bd37c95d79857479251aeab8bad0018c5a6))
+
+## [0.18.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.2...v0.18.0) (2026-11-22)
+
+
+### Added
+
+* publish a public server card built from the live tool list ([#115](https://github.com/Omnidim/omnidim-mcp-cloud/issues/115)) ([f3421c1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f3421c14515272da61492ea0543c5f78069662c7))
+
+
+### Fixed
+
+* refresh tool descriptions from the updated API spec ([#119](https://github.com/Omnidim/omnidim-mcp-cloud/issues/119)) ([a700ef5](https://github.com/Omnidim/omnidim-mcp-cloud/commit/a700ef56b92a42d968fb65081426ec9148babff2))
+
+## [0.17.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.1...v0.17.2) (2026-11-22)
+
+
+### Fixed
+
+* label tools that change existing data as destructive ([#118](https://github.com/Omnidim/omnidim-mcp-cloud/issues/118)) ([6c2e8f5](https://github.com/Omnidim/omnidim-mcp-cloud/commit/6c2e8f5454d657ca5cbd6d555806336d0c3b87de))
+
+## [0.17.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.17.0...v0.17.1) (2026-11-22)
+
+
+### Fixed
+
+* meet Claude and ChatGPT directory tool rules ([#116](https://github.com/Omnidim/omnidim-mcp-cloud/issues/116)) ([1f95fdf](https://github.com/Omnidim/omnidim-mcp-cloud/commit/1f95fdf9e56acac36bbc39a556661f71030d7665))
+
+## [0.17.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.16.0...v0.17.0) (2026-11-22)
+
+
+### Added
+
+* recommend OmniDimension voices first ([#112](https://github.com/Omnidim/omnidim-mcp-cloud/issues/112)) ([78aad81](https://github.com/Omnidim/omnidim-mcp-cloud/commit/78aad816df38f2d4da5cd1c62842b51e4439d94d))
+
+## [0.16.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.15.0...v0.16.0) (2026-11-20)
+
+
+### Added
+
+* add a call tips guide measured on real calls, and use it when building agents and campaigns ([#109](https://github.com/Omnidim/omnidim-mcp-cloud/issues/109)) ([abed25f](https://github.com/Omnidim/omnidim-mcp-cloud/commit/abed25f920da36bd069af0e14932a81105943628))
+* add a read-only MCP endpoint at /mcp/readonly ([#105](https://github.com/Omnidim/omnidim-mcp-cloud/issues/105)) ([b727a38](https://github.com/Omnidim/omnidim-mcp-cloud/commit/b727a38258fd481f537a4cfb0e4df5e868cf7769))
+* add searchDocs and readDoc tools that answer from docs.omnidim.io ([#106](https://github.com/Omnidim/omnidim-mcp-cloud/issues/106)) ([f6aad21](https://github.com/Omnidim/omnidim-mcp-cloud/commit/f6aad21874d6d6b4ac6d952854278b3ae59b8eea))
+* export the agent prompts and guides as Agent Skills ([#108](https://github.com/Omnidim/omnidim-mcp-cloud/issues/108)) ([9315c30](https://github.com/Omnidim/omnidim-mcp-cloud/commit/9315c300ea3e70feaae4d8e19fbb133e2b7c1887))
+* optional OpenTelemetry traces, request id equals trace id ([#74](https://github.com/Omnidim/omnidim-mcp-cloud/issues/74)) ([3e5d6b1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/3e5d6b1e5129d25f8415ae27aa553b9356cfc855))
+* shrink large repeated schemas in tool inputs with the spec's x-mcp-brief mark ([#110](https://github.com/Omnidim/omnidim-mcp-cloud/issues/110)) ([65fa02e](https://github.com/Omnidim/omnidim-mcp-cloud/commit/65fa02eaead9225a5fd1914a9abf1da6b0d590d8))
+
+
+### Fixed
+
+* answer pre-consent sign-in errors with an error page, never a redirect ([#65](https://github.com/Omnidim/omnidim-mcp-cloud/issues/65)) ([c21e596](https://github.com/Omnidim/omnidim-mcp-cloud/commit/c21e596698c5f19c9d7cae6fd81977b9acf13f23))
+* keep long call logs as valid JSON with transcript, recording and cost ([#104](https://github.com/Omnidim/omnidim-mcp-cloud/issues/104)) ([89204a6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/89204a6ee5496521717bb1148d067ed249449df8))
+* refresh tool descriptions from the updated API spec ([#102](https://github.com/Omnidim/omnidim-mcp-cloud/issues/102)) ([c82d26f](https://github.com/Omnidim/omnidim-mcp-cloud/commit/c82d26fe33adaee8aed06633fa3eb3c3cf05dc2b))
+
+## [0.15.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.1...v0.15.0) (2026-11-20)
+
+
+### Added
+
+* add WhatsApp, agent integration, number rotation and auto-renew tools ([92be256](https://github.com/Omnidim/omnidim-mcp-cloud/commit/92be256c2354ced68254a9f7b9b912baa6ac32f2))
+
+
+### Fixed
+
+* **dispatcher:** send Idempotency-Key as a header, so WhatsApp sends and campaign launches are accepted ([92be256](https://github.com/Omnidim/omnidim-mcp-cloud/commit/92be256c2354ced68254a9f7b9b912baa6ac32f2))
+
+## [0.14.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.14.0...v0.14.1) (2026-11-20)
+
+
+### Fixed
+
+* **ci:** deploy from the release tag so the production environment accepts it ([#95](https://github.com/Omnidim/omnidim-mcp-cloud/issues/95)) ([ced6b1c](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ced6b1cd810070ed22c059e582951f5225583eb9))
+
+## [0.14.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.13.0...v0.14.0) (2026-11-20)
+
+
+### Added
+
+* offer a demo call once when the user shows volume, enterprise or white-label need ([ae3e3c3](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ae3e3c3996cd4cc10516e363ddc3f3460cde4fac))
+* **procedures:** DEMO_OFFER_RULE offers a demo call once on a sales signal ([fa3aa1b](https://github.com/Omnidim/omnidim-mcp-cloud/commit/fa3aa1b6382d038b3c2e185d95e74d9405c36e0f))
+
+
+### Fixed
+
+* **annotations:** ask before bulkCallActions resumes paid calls ([#92](https://github.com/Omnidim/omnidim-mcp-cloud/issues/92)) ([be3bff6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/be3bff69f528a9e24ab3337f47ba0688918acaab))
+* one demo offer rule shared by instructions, tool text and guide; book only after a yes ([d6693f1](https://github.com/Omnidim/omnidim-mcp-cloud/commit/d6693f1af62ebff19fa645782acebdb923108c60))
+
+## [0.13.0] - 2026-11-19
 
 ### Added
 
 - Tools for WhatsApp numbers, templates, conversations, opt-outs and campaigns, for agent integrations, for campaign number rotation, and for phone number auto-renew. Clients that support confirmations ask before a tool sends a WhatsApp message, launches or resumes a campaign, lifts an opt-out, or connects an agent to an outside URL.
+- Book a demo with the OmniDimension team from chat: `getDemoQuestions`, `requestDemo` and `bookDemo`, plus a `book_demo` prompt. The assistant asks every booking question, then either offers free times and books the one the user picks, returning the time, join link, attendees and reschedule and cancel links, or tells the user the team will be in touch. Accounts managed by an account administrator get a refusal that points them to that administrator.
 
 ### Security
 
 - A reseller's assistant can no longer act on a client account by adding `user_id` to a tool call. The tools never offered it, and the server now drops it before the request.
+- The assistant no longer offers to connect Cal.com, so a Cal.com API key never goes into a chat.
 
 ### Fixed
 

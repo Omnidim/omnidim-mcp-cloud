@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
+from app import __version__
 from app.config import get_settings
 from app.db import build_engine, build_session_factory
 from app.errors import install_oauth_error_handler
@@ -11,6 +12,7 @@ from app.logging import configure_logging
 from app.middleware import RequestIdMiddleware
 from app.routes import authorize, health, internal, mcp, register, telemetry, token, wellknown
 from app.services import dispatcher
+from app.tracing import setup_tracing, tracing_endpoint
 
 
 @asynccontextmanager
@@ -35,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="OmniDimension MCP",
-        version="0.12.7",
+        version=__version__,
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
@@ -51,6 +53,8 @@ def create_app() -> FastAPI:
     app.include_router(token.router)
     app.include_router(mcp.router)
     app.include_router(telemetry.router)
+    if tracing_endpoint():
+        setup_tracing(app)
     return app
 
 

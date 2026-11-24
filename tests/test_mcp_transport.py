@@ -16,6 +16,7 @@ import pytest
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
+from app.main import create_app
 from app.procedures import EXTRA_TOOLS
 from app.routes.mcp import SERVER_INFO
 from app.services import dispatcher
@@ -260,7 +261,8 @@ def test_all_of_request_body_flattened() -> None:
     assert set(cb["items"]["required"]) == {"title", "body"}
     # No body-bearing tool may publish an empty schema.
     for tool in TOOLS:
-        if tool["method"] in ("POST", "PUT"):
+        routes = tool.get("actions", {"": tool}).values()
+        if any(r["method"] in ("POST", "PUT") for r in routes):
             assert tool["input_schema"]["properties"], tool["name"]
 
 
@@ -329,7 +331,7 @@ async def test_mcp_tools_call_encodes_path_params(
 
 
 def test_registry_excludes_off_surface_operations() -> None:
-    """The exposure config in mcp-config.yaml is enforced at generation time,
+    """The spec's x-mcp hidden marks are enforced at generation time,
     so a stale committed registry is the only way an excluded operation can
     reach clients. Guard the committed file.
     """
@@ -361,8 +363,8 @@ def test_registry_matches_regen_sentinel() -> None:
 
 
 def test_reported_version_matches_the_package() -> None:
-    """serverInfo and the upstream User-Agent are hand-written literals. A
-    release that bumps only pyproject leaves clients reading a stale version.
+    """The release PR bumps only pyproject.toml, so every place that reports
+    a version must follow it.
     """
     root = Path(__file__).parent.parent
     declared = next(
@@ -372,6 +374,7 @@ def test_reported_version_matches_the_package() -> None:
     )
     assert SERVER_INFO["version"] == declared
     assert dispatcher.USER_AGENT == f"omnidim-mcp-cloud/{declared}"
+    assert create_app().version == declared
 
 
 def test_registry_order_is_deterministic() -> None:

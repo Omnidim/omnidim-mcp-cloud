@@ -1,6 +1,6 @@
 [project]
 name = "omnidim-mcp-cloud"
-version = "0.12.7"
+version = "0.20.0"
 description = "OAuth 2.1 authorization server and MCP transport for OmniDimension."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,6 +23,11 @@ dependencies = [
     "python-logging-loki>=0.3.1",
     "structlog>=24.4",
     "certifi>=2026.10.19",
+    "opentelemetry-api==1.45.2",
+    "opentelemetry-sdk==1.45.2",
+    "opentelemetry-exporter-otlp-proto-http==1.45.2",
+    "opentelemetry-instrumentation-fastapi==0.66b2",
+    "opentelemetry-instrumentation-httpx==0.66b2",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +39,7 @@ dev = [
     "respx>=0.21",
     "ruff>=0.7",
     "mypy>=1.13",
+    "types-PyYAML>=6.0",
 ]
 
 [build-system]

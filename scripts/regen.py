@@ -7,13 +7,16 @@ on an allowed host) to override.
 
 Reads:
   https://docs.omnidim.io/openapi.yaml          (spec; or $SPEC override)
-  mcp-config.yaml                               (which operations to exclude)
+
+Each operation's x-mcp block decides its tool: title, effect (read, write or
+destructive), open-world, hide-params, or hidden. An operation without one
+fails the regen, so nothing reaches agents before someone decides how.
 
 Writes:
   app/_generated/tools.py                       (Python tool registry)
-  app/_generated/.spec.yml                      (sha256 of spec + config)
+  app/_generated/.spec.yml                      (sha256 of the spec)
 
-Run after the upstream spec or mcp-config.yaml changes:
+Run after the upstream spec changes:
   ./.venv/bin/python scripts/regen.py
 
 Pass --check to compare against the committed output instead of writing it.
@@ -42,17 +45,9 @@ ALLOWED_SPEC_HOSTS = {"docs.omnidim.io"}
 MAX_SPEC_BYTES = 8 * 1024 * 1024
 
 SPEC_SOURCE = os.environ.get("SPEC", DEFAULT_SPEC_URL)
-CONFIG_PATH = Path(os.environ.get("MCP_CONFIG", ROOT / "mcp-config.yaml"))
 
 OUT_TOOLS = ROOT / "app" / "_generated" / "tools.py"
 OUT_HASH = ROOT / "app" / "_generated" / ".spec.yml"
-
-
-def load_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        sys.stderr.write(f"missing file: {path}\n")
-        sys.exit(1)
-    return yaml.safe_load(path.read_text())
 
 
 def _checked_url(raw: str) -> str:
@@ -147,6 +142,48 @@ def flatten_all_of(schema: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _with_type(prop: dict[str, Any]) -> dict[str, Any]:
+    """One property with a top-level `type`, read off its allOf or oneOf members."""
+    wrapped = prop.get("allOf")
+    if isinstance(wrapped, list) and len(wrapped) == 1 and "type" in wrapped[0]:
+        inner = wrapped[0]
+        merged = {**inner, **{k: v for k, v in prop.items() if k != "allOf"}}
+        if inner.get("description") and prop.get("description"):
+            merged["description"] = f"{prop['description'].rstrip()}\n{inner['description']}"
+        return merged
+    choices = prop.get("oneOf") or prop.get("anyOf")
+    if isinstance(choices, list) and all(isinstance(c.get("type"), str) for c in choices):
+        return {**prop, "type": sorted({c["type"] for c in choices})}
+    return prop
+
+
+def type_properties(node: Any) -> None:
+    """Give every property a top-level `type`: Claude's directory portal refuses one without."""
+    if not isinstance(node, dict):
+        return
+    props = node.get("properties")
+    if isinstance(props, dict):
+        for key, prop in props.items():
+            if isinstance(prop, dict) and "type" not in prop:
+                props[key] = prop = _with_type(prop)
+            type_properties(prop)
+    type_properties(node.get("items"))
+
+
+BODY_LIST_ARG = "items"
+
+
+def body_list_schema(request_body: dict[str, Any] | None) -> dict[str, Any] | None:
+    schema = ((request_body or {}).get("content", {}).get("application/json", {})).get("schema")
+    if not isinstance(schema, dict):
+        return None
+    lists = [b for b in schema.get("oneOf", []) if isinstance(b, dict) and b.get("type") == "array"]
+    if not lists:
+        return None
+    note = "Send a list, even for one item. It becomes the request body."
+    return {**lists[0], "description": note}
+
+
 def merge_schema(
     parameters: Iterable[dict[str, Any]],
     request_body: dict[str, Any] | None,
@@ -177,6 +214,10 @@ def merge_schema(
             body_props = body_schema.get("properties", {})
             properties.update(body_props)
             required.extend(body_schema.get("required", []))
+        if (as_list := body_list_schema(request_body)) is not None:
+            properties[BODY_LIST_ARG] = as_list
+            if request_body.get("required"):
+                required.append(BODY_LIST_ARG)
 
     return {
         "type": "object",
@@ -240,10 +281,12 @@ def build_tool(
         schema["required"] = [r for r in schema["required"] if r != "user_id"]
         if not schema["required"]:
             del schema["required"]
+    type_properties(schema)
     # Mark which inputs go in the path so the dispatcher can substitute them.
     path_param_names = [p["name"] for p in params if p.get("in") == "path"]
     query_param_names = [p["name"] for p in params if p.get("in") == "query"]
-    return {
+    header_param_names = [p["name"] for p in params if p.get("in") == "header"]
+    tool = {
         "name": op_id,
         "description": full_desc,
         "input_schema": schema,
@@ -251,16 +294,19 @@ def build_tool(
         "path": path,
         "path_params": path_param_names,
         "query_params": query_param_names,
+        "header_params": header_param_names,
     }
+    if body_list_schema(request_body) is not None:
+        tool["body_list_arg"] = BODY_LIST_ARG
+    return tool
 
 
-def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
+def strip_params(op: dict[str, Any], names: list[str]) -> int:
     """Drop named parameters from an operation that is otherwise exposed.
 
     Done on the spec object before build_tool sees it, so the field leaves the
     input schema and the execution parameters together.
     """
-    names = (exclude.get("parameters") or {}).get(op.get("operationId")) or []
     if not names:
         return 0
     dropped = 0
@@ -285,15 +331,242 @@ def strip_params(op: dict[str, Any], exclude: dict[str, Any]) -> int:
     return dropped
 
 
-def is_excluded(path: str, op_id: str, exclude: dict[str, Any]) -> bool:
-    if path in (exclude.get("paths") or []):
-        return True
-    if op_id in (exclude.get("operation_ids") or []):
-        return True
-    return False
+_MCP_KEYS = {"title", "effect", "open-world", "hide-params", "hidden", "merge"}
+_EFFECTS = {"read", "write", "destructive"}
 
 
-def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
+def mcp_marks(op_id: str, method: str, op: dict[str, Any]) -> dict[str, Any]:
+    """The operation's x-mcp block, checked. Exits on a missing or bad one."""
+    marks = op.get("x-mcp")
+    if marks is None:
+        raise SystemExit(f"{op_id} has no x-mcp block: add one to the spec")
+
+    def bad(why: str) -> SystemExit:
+        return SystemExit(f"bad x-mcp on {op_id}: {why}")
+
+    if not isinstance(marks, dict):
+        raise bad("not a mapping")
+    if unknown := set(marks) - _MCP_KEYS:
+        raise bad(f"unknown keys {sorted(unknown)}")
+    if "hidden" in marks:
+        reason = marks["hidden"]
+        if set(marks) != {"hidden"} or not isinstance(reason, str) or not reason.strip():
+            raise bad("hidden takes a reason, as text, and no other keys")
+        return marks
+    title = marks.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise bad("title is required, as text")
+    effect = marks.get("effect")
+    if not isinstance(effect, str) or effect not in _EFFECTS:
+        raise bad(f"effect must be one of {sorted(_EFFECTS)}")
+    if method == "get" and effect != "read":
+        raise bad("a GET is a read")
+    open_world = marks.get("open-world")
+    if not (open_world is None or open_world is True) or (open_world and effect == "read"):
+        raise bad("open-world is true on a write, or absent")
+    hide = marks.get("hide-params", [])
+    if not isinstance(hide, list) or not all(isinstance(n, str) for n in hide):
+        raise bad("hide-params is a list of input names")
+    if "merge" in marks and not _valid_merge(marks["merge"]):
+        raise bad("merge takes tool, as text, and action, a snake_case word or a list of them")
+    return marks
+
+
+_ACTION_RE = re.compile(r"[a-z][a-z_]*")
+_EFFECT_RANK = {"read": 0, "write": 1, "destructive": 2}
+_MERGE_GROUP_KEYS = {"title", "description", "field"}
+
+
+def _valid_merge(merge: Any) -> bool:
+    if not isinstance(merge, dict) or set(merge) != {"tool", "action"}:
+        return False
+    if not isinstance(merge["tool"], str) or not merge["tool"]:
+        return False
+    actions = merge_actions(merge)
+    return bool(actions) and all(isinstance(a, str) and _ACTION_RE.fullmatch(a) for a in actions)
+
+
+def merge_actions(merge: dict[str, Any]) -> list[Any]:
+    action = merge["action"]
+    return list(action) if isinstance(action, list) else [action]
+
+
+def _without_description(prop: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in prop.items() if k != "description"}
+
+
+def _merge_group(name: str, groups: dict[str, Any]) -> dict[str, Any]:
+    group = groups.get(name)
+    if not isinstance(group, dict):
+        raise SystemExit(f"{name} is not declared under x-mcp-tools")
+    if unknown := set(group) - _MERGE_GROUP_KEYS:
+        raise SystemExit(f"bad x-mcp-tools entry {name}: unknown keys {sorted(unknown)}")
+    for key in ("title", "description"):
+        if not isinstance(group.get(key), str) or not group[key].strip():
+            raise SystemExit(f"bad x-mcp-tools entry {name}: {key} is required, as text")
+    if not isinstance(group.get("field", "action"), str):
+        raise SystemExit(f"bad x-mcp-tools entry {name}: field is text")
+    return group
+
+
+def _action_route(tool: dict[str, Any], inputs: list[str], passes: bool) -> dict[str, Any]:
+    route = {
+        "operation": tool["name"],
+        "method": tool["method"],
+        "path": tool["path"],
+        "path_params": tool["path_params"],
+        "query_params": tool["query_params"],
+        "header_params": tool["header_params"],
+        "inputs": inputs,
+        "required": sorted(r for r in tool["input_schema"].get("required", []) if r in inputs),
+        "sends_field": passes,
+    }
+    if "body_list_arg" in tool:
+        route["body_list_arg"] = tool["body_list_arg"]
+    return route
+
+
+def _label_partial_inputs(
+    props: dict[str, Any], takers: dict[str, list[str]], every_action: list[str]
+) -> None:
+    for key, acts in takers.items():
+        if len(set(acts)) < len(every_action):
+            only = ", ".join(f"`{a}`" for a in acts)
+            said = props[key].get("description", "")
+            props[key] = {**props[key], "description": f"Only for {only}. {said}".strip()}
+
+
+def _merged_annotations(
+    group: dict[str, Any], members: list[tuple[dict[str, Any], dict[str, Any]]]
+) -> dict[str, Any]:
+    effect = max((m["effect"] for _, m in members), key=_EFFECT_RANK.__getitem__)
+    marks: dict[str, Any] = {"title": group["title"], "effect": effect}
+    if any(m.get("open-world") for _, m in members):
+        marks["open-world"] = True
+    return annotations_for(marks)
+
+
+def merged_tool(
+    name: str, group: dict[str, Any], members: list[tuple[dict[str, Any], dict[str, Any]]]
+) -> dict[str, Any]:
+    if len(members) < 2:
+        raise SystemExit(f"{name} folds one operation: merge two or more, or drop the mark")
+    field: str = group.get("field", "action")
+    routes: dict[str, dict[str, Any]] = {}
+    props: dict[str, Any] = {}
+    takers: dict[str, list[str]] = {}
+    sections: list[str] = []
+    for tool, marks in members:
+        actions = merge_actions(marks["merge"])
+        passes = isinstance(marks["merge"]["action"], list)
+        own = tool["input_schema"].get("properties", {})
+        inputs = [k for k in own if not (passes and k == field)]
+        for key in inputs:
+            if key in props and _without_description(props[key]) != _without_description(own[key]):
+                raise SystemExit(f"{name}: input {key} differs between its actions")
+            props.setdefault(key, own[key])
+            takers.setdefault(key, []).extend(actions)
+        route = _action_route(tool, inputs, passes)
+        for action in actions:
+            if action in routes:
+                raise SystemExit(f"{name}: action {action} names two operations")
+            routes[action] = route
+        sections.append(f"`{'`, `'.join(actions)}`: {tool['description']}")
+    every_action = list(routes)
+    _label_partial_inputs(props, takers, every_action)
+    required = sorted(k for k in props if all(k in r["required"] for r in routes.values()))
+    picker = {
+        "type": "string",
+        "enum": every_action,
+        "description": f"What to do: {', '.join(every_action)}.",
+    }
+    return {
+        "name": name,
+        "description": (
+            f"{group['description'].strip()}\n\nSet `{field}` to pick what to do.\n\n"
+            + "\n\n".join(sections)
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {field: picker, **props},
+            "required": [field, *required],
+            "additionalProperties": True,
+        },
+        "annotations": _merged_annotations(group, members),
+        "field": field,
+        "actions": routes,
+    }
+
+
+def annotations_for(marks: dict[str, Any]) -> dict[str, Any]:
+    """MCP annotations, set explicitly because the spec defaults are conservative."""
+    if marks["effect"] == "read":
+        return {
+            "title": marks["title"],
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        }
+    return {
+        "title": marks["title"],
+        "readOnlyHint": False,
+        "destructiveHint": marks["effect"] == "destructive",
+        "openWorldHint": bool(marks.get("open-world")),
+    }
+
+
+def apply_briefs(spec: dict[str, Any]) -> None:
+    """Swap each schema marked x-mcp-brief for a free-form object described by that line.
+
+    A large shape repeated across tools (post-call actions) then costs one line in each.
+    """
+    for name, schema in (spec.get("components", {}).get("schemas") or {}).items():
+        if not isinstance(schema, dict) or "x-mcp-brief" not in schema:
+            continue
+        brief = schema["x-mcp-brief"]
+        if not isinstance(brief, str) or not brief.strip() or "\n" in brief or len(brief) > 400:
+            raise SystemExit(f"bad x-mcp-brief on {name}: one line of text, 400 chars at most")
+        spec["components"]["schemas"][name] = {
+            "type": "object",
+            "additionalProperties": True,
+            "description": brief,
+        }
+
+
+def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Every exposed tool, sorted by name, and the operations left off."""
+    apply_briefs(spec)
+    tools: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    to_merge: dict[str, list[tuple[dict[str, Any], dict[str, Any]]]] = {}
+    for path, methods in spec.get("paths", {}).items():
+        path_item_params = methods.get("parameters", []) or []
+        for method, op in methods.items():
+            if method not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            op_id = op.get("operationId") or slug(f"{method}_{path}")
+            marks = mcp_marks(op_id, method, op)
+            if "hidden" in marks:
+                skipped.append(f"{method.upper()} {path}")
+                continue
+            strip_params(op, list(marks.get("hide-params") or []))
+            tool = build_tool(path, method, op, path_item_params, spec)
+            tool["annotations"] = annotations_for(marks)
+            if "merge" in marks:
+                to_merge.setdefault(marks["merge"]["tool"], []).append((tool, marks))
+            else:
+                tools.append(tool)
+    groups = spec.get("x-mcp-tools") or {}
+    single_names = {t["name"] for t in tools}
+    for name, members in to_merge.items():
+        if name in single_names:
+            raise SystemExit(f"{name} is both a merged tool and another tool")
+        tools.append(merged_tool(name, _merge_group(name, groups), members))
+    tools.sort(key=lambda t: t["name"])
+    return tools, skipped
+
+
+def check(spec_hash: str, tools: list[dict[str, Any]]) -> int:
     """Compare a fresh generation against the committed sentinel + registry."""
     # Imported here so a plain regen never depends on the committed output.
     from app._generated.tools import TOOLS as committed
@@ -309,8 +582,6 @@ def check(spec_hash: str, config_hash: str, tools: list[dict[str, Any]]) -> int:
             f"spec moved: committed {sentinel.get('openapi_spec_sha256', '?')[:12]}, "
             f"upstream {spec_hash[:12]}"
         )
-    if sentinel.get("mcp_config_sha256") != config_hash:
-        problems.append("mcp-config.yaml changed since the last regen")
 
     fresh_names = {t["name"] for t in tools}
     committed_names = {t["name"] for t in committed}
@@ -333,34 +604,14 @@ def main() -> int:
     spec = yaml.safe_load(spec_bytes)
     spec_name = spec_source.rsplit("/", 1)[-1]
     spec_is_url = spec_source.startswith("http")
-    config = load_yaml(CONFIG_PATH)
-    exclude = config.get("exclude", {}) or {}
+    tools, skipped = build_tools(spec)
 
-    tools: list[dict[str, Any]] = []
-    skipped: list[str] = []
-
-    stripped = 0
-    for path, methods in spec.get("paths", {}).items():
-        path_item_params = methods.get("parameters", []) or []
-        for method, op in methods.items():
-            if method not in {"get", "post", "put", "patch", "delete"}:
-                continue
-            op_id = op.get("operationId") or slug(f"{method}_{path}")
-            if is_excluded(path, op_id, exclude):
-                skipped.append(f"{method.upper()} {path}")
-                continue
-            stripped += strip_params(op, exclude)
-            tools.append(build_tool(path, method, op, path_item_params, spec))
-
-    tools.sort(key=lambda t: t["name"])
-
-    # Drift sentinel: hash the spec + config so a checkout can verify
-    # tools.py is in sync with the source of truth.
+    # Drift sentinel: hash the spec so a checkout can verify tools.py is in
+    # sync with the source of truth.
     spec_hash = hashlib.sha256(spec_bytes).hexdigest()
-    config_hash = hashlib.sha256(CONFIG_PATH.read_bytes()).hexdigest()
 
     if "--check" in sys.argv[1:]:
-        return check(spec_hash, config_hash, tools)
+        return check(spec_hash, tools)
 
     # Embed the registry as a JSON string and load it at import time so the
     # generated module stays valid Python regardless of whether descriptions
@@ -369,10 +620,9 @@ def main() -> int:
     body = f'''"""Auto-generated MCP tool registry. Do not edit by hand.
 
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
-or mcp-config.yaml changes.
+changes.
 
 Source spec:   {spec_name}   sha256={spec_hash[:12]}
-Config:        {CONFIG_PATH.name}  sha256={config_hash[:12]}
 """
 from __future__ import annotations
 
@@ -395,8 +645,6 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
         meta_lines.append(f"openapi_spec_url: {spec_source}")
     meta_lines += [
         f"openapi_spec_sha256: {spec_hash}",
-        f"mcp_config: {CONFIG_PATH.name}",
-        f"mcp_config_sha256: {config_hash}",
         f"tool_count: {len(tools)}",
     ]
     OUT_HASH.write_text("\n".join(meta_lines) + "\n")
@@ -406,7 +654,6 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
         for s in skipped:
             print(f"  skipped: {s}")
     print(f"  spec hash: {spec_hash[:12]}")
-    print(f"  config hash: {config_hash[:12]}")
     return 0
 
 

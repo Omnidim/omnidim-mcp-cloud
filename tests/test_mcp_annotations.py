@@ -1,10 +1,22 @@
 """MCP tool annotations: unit logic + tools/list wiring."""
+from typing import Any
+
 from httpx import AsyncClient
 
 from app._generated.tools import TOOLS
-from app.annotations import tool_annotations
+from app.procedures import EXTRA_TOOLS
 
 from .test_mcp_transport import _mint_access_token
+
+_BY_NAME = {t["name"]: t for t in (*TOOLS, *EXTRA_TOOLS)}
+
+
+def tool_annotations(name: str, method: str) -> dict[str, Any]:
+    """The marks a tool ships with. Regen writes them from the spec's x-mcp."""
+    tool = _BY_NAME[name]
+    # The old callers passed "POST" for any non-GET; only GET versus not matters.
+    assert (tool["method"] == "GET") == (method.upper() == "GET"), f"{name} is {tool['method']}"
+    return dict(tool["annotations"])
 
 
 def test_every_generated_tool_has_a_title() -> None:
@@ -26,7 +38,7 @@ def test_get_tools_are_read_only() -> None:
     a = tool_annotations("listAgents", "GET")
     assert a["readOnlyHint"] is True
     assert a["openWorldHint"] is False
-    assert "destructiveHint" not in a
+    assert a["destructiveHint"] is False
     assert a["title"] == "List agents"
 
 
@@ -56,23 +68,33 @@ def test_call_placing_tools_are_destructive_and_open_world() -> None:
         "addBulkCallContacts",
         "startBulkCall",
         "retryBulkCall",
+        # Its resume action restarts a paused campaign, which places paid calls.
+        "bulkCallActions",
     ):
         a = tool_annotations(name, "POST")
         assert a["destructiveHint"] is True, name
         assert a["openWorldHint"] is True, name
 
 
-def test_campaign_config_writes_are_not_destructive() -> None:
+def test_adding_to_a_campaign_is_not_destructive() -> None:
+    a = tool_annotations("addBulkCallNumber", "POST")
+    assert a["readOnlyHint"] is False
+    assert a["destructiveHint"] is False
+    assert a["openWorldHint"] is False
+
+
+def test_changing_existing_settings_is_destructive() -> None:
     for name, method in (
         ("setBulkCallConcurrency", "PUT"),
         ("setBulkCallDailyTimeControl", "PUT"),
-        ("addBulkCallNumber", "POST"),
         ("setBulkCallNumberActive", "PUT"),
+        ("updateAgent", "PUT"),
+        ("editWorkflow", "PATCH"),
+        ("pauseWhatsappCampaign", "POST"),
     ):
         a = tool_annotations(name, method)
         assert a["readOnlyHint"] is False, name
-        assert a["destructiveHint"] is False, name
-        assert a["openWorldHint"] is False, name
+        assert a["destructiveHint"] is True, name
 
 
 def test_campaign_reads_are_read_only() -> None:
