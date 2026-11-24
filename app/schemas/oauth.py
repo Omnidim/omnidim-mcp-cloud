@@ -88,6 +88,13 @@ class IssueCodeResponse(BaseModel):
     redirect_to: str
 
 
+class DisconnectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    odoo_user_id: int
+    app: str = Field(min_length=1, max_length=255)
+
+
 class DenyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

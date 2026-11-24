@@ -90,3 +90,7 @@ async def mcp_status(client: AsyncClient, grant: dict[str, str]) -> int:
 
 def new_browser_id() -> str:
     return secrets.token_urlsafe(32)
+
+
+def new_user_id() -> int:
+    return 10_000_000 + secrets.randbelow(1_000_000_000)

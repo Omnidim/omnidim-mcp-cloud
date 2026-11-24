@@ -64,12 +64,12 @@ async def _revoke_grant(session: AsyncSession, grant_id: str, now: datetime) -> 
     must survive both an upstream failure and a caller that aborts the request
     afterwards (reuse detection does exactly that).
     """
-    key_ids = (await _revoke_grants_locally(session, [grant_id], now)).get(grant_id, [])
+    key_ids = (await revoke_grants_locally(session, [grant_id], now)).get(grant_id, [])
     await session.commit()
     await revoke_api_keys(key_ids, grant_id=grant_id)
 
 
-async def _revoke_grants_locally(
+async def revoke_grants_locally(
     session: AsyncSession, grant_ids: list[str], now: datetime
 ) -> dict[str, list[int]]:
     key_ids: dict[str, list[int]] = {}
@@ -116,7 +116,7 @@ async def _replace_browser_grants(
     )
     for old_grant_id in replaced:
         log.info("grant_replaced", grant_id=old_grant_id, replaced_by=keep_grant_id)
-    return await _revoke_grants_locally(session, replaced, now) if replaced else {}
+    return await revoke_grants_locally(session, replaced, now) if replaced else {}
 
 
 async def _authenticate_client(
