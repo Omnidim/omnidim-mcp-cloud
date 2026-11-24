@@ -5,7 +5,7 @@ from typing import Annotated, Any
 
 import structlog
 from fastapi import APIRouter, Depends, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app import __version__
@@ -95,7 +95,7 @@ async def mcp_endpoint(
     request: Request,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-) -> JSONResponse:
+) -> Response:
     return await _serve(request, factory, authorization, read_only=False)
 
 
@@ -104,7 +104,7 @@ async def mcp_readonly_endpoint(
     request: Request,
     factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-) -> JSONResponse:
+) -> Response:
     return await _serve(request, factory, authorization, read_only=True)
 
 
@@ -114,7 +114,7 @@ async def _serve(
     authorization: str | None,
     *,
     read_only: bool,
-) -> JSONResponse:
+) -> Response:
     try:
         async with factory() as session:
             token: ResolvedToken = await resolve_bearer(session, authorization)
@@ -130,10 +130,12 @@ async def _serve(
 
 
 async def _log_error(
-    request: Request, response: JSONResponse, token: ResolvedToken, *, read_only: bool
+    request: Request, response: Response, token: ResolvedToken, *, read_only: bool
 ) -> None:
     """One mcp_error line for every JSON-RPC error we send back, so failures that happen
     before a tool runs (bad arguments, unknown tool or method) show on the MCP board."""
+    if not response.body:
+        return
     payload = json.loads(bytes(response.body))
     error = payload.get("error") if isinstance(payload, dict) else None
     if not isinstance(error, dict):
@@ -160,7 +162,7 @@ async def _log_error(
     )
 
 
-async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) -> JSONResponse:
+async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) -> Response:
     try:
         body = await request.json()
     except Exception:
@@ -205,8 +207,11 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
             )
         )
 
-    if method == "notifications/initialized":
-        return JSONResponse(status_code=202, content={})
+    if isinstance(method, str) and method.startswith("notifications/") and req_id is None:
+        return Response(status_code=202)
+
+    if method == "ping":
+        return JSONResponse(content=_result(req_id, {}))
 
     if method == "tools/list":
         return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing(read_only)}))
@@ -267,6 +272,9 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
 
     if method == "resources/list":
         return JSONResponse(content=_result(req_id, {"resources": resources_for_listing()}))
+
+    if method == "resources/templates/list":
+        return JSONResponse(content=_result(req_id, {"resourceTemplates": []}))
 
     if method == "resources/read":
         uri = params.get("uri")
