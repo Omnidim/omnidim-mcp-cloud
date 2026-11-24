@@ -8,10 +8,12 @@ from collections.abc import Iterator
 import httpx
 import pytest
 
-from app.procedures import DEMO_OFFER_RULE, EXTRA_TOOLS, ROUTING_GUIDE, build_prompt
+from app.procedures import DEMO_OFFER_RULE, EXTRA_TOOLS, build_prompt, guide_text
 from app.routes.mcp import INSTRUCTIONS
 from app.services import dispatcher
 from app.services.bearer import ResolvedToken
+
+ROUTING_GUIDE = guide_text("omnidim://guide/routing") or ""
 
 TOKEN = ResolvedToken(
     odoo_user_id=7, odoo_api_key_id=1, odoo_api_key_value="key", client_id="app-1", scope=""
@@ -73,7 +75,7 @@ def test_only_the_answers_are_required() -> None:
 
 def test_the_routing_guide_sends_demo_requests_to_the_procedure() -> None:
     # Clients without prompts pick tools from this guide and the tool text alone.
-    assert "`book_demo` prompt" in ROUTING_GUIDE
+    assert "`book_demo` playbook" in ROUTING_GUIDE
     assert "Use it when the user asks for a demo" in _tool("getDemoQuestions")["description"]
 
 

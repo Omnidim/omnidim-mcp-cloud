@@ -4,8 +4,6 @@ from typing import Any
 
 from app._generated.tools import TOOLS
 from app.procedures import (
-    AGENT_CONFIG_GUIDE,
-    CALL_TIPS_GUIDE,
     build_prompt,
     prompts_for_listing,
     read_resource,
@@ -40,7 +38,7 @@ def test_design_asks_every_question_in_one_message_and_builds_nothing() -> None:
     assert "Confirm, or tell me what to change." in text
     assert "createAgent" not in text
     assert "updateAgent" not in text
-    assert "`provision_agent` prompt" in text
+    assert "`provision_agent` playbook" in text
 
 
 def test_outbound_welcome_is_a_short_name_check_unless_the_user_gave_one() -> None:
@@ -52,7 +50,7 @@ def test_outbound_welcome_is_a_short_name_check_unless_the_user_gave_one() -> No
 
 def test_build_follows_the_approved_design() -> None:
     text = _playbook("provision_agent", {"purpose": "remind dental patients"})
-    assert "`design_agent` prompt" in text
+    assert "`design_agent` playbook" in text
     assert "No conflicts found" in text
     assert "[MISSING: what]" in text
     assert "omnidim://guide/agent-prompt" in text
@@ -97,7 +95,7 @@ def test_the_prompt_guide_has_eight_sections() -> None:
 
 
 def test_examples_use_the_measured_temperature() -> None:
-    blocks = re.findall(r"^\{\n.*?\n\}$", AGENT_CONFIG_GUIDE, re.M | re.S)
+    blocks = re.findall(r"^\{\n.*?\n\}$", _guide("omnidim://reference/agent-config"), re.M | re.S)
     examples = [json.loads(m) for m in blocks]
     assert examples
     for example in examples:
@@ -105,7 +103,7 @@ def test_examples_use_the_measured_temperature() -> None:
 
 
 def test_call_tips_no_longer_teach_filler_acknowledgements() -> None:
-    assert "Got it" not in CALL_TIPS_GUIDE
+    assert "Got it" not in _guide("omnidim://guide/call-tips")
 
 
 def _schema(tool: str) -> dict[str, Any]:
@@ -179,7 +177,8 @@ def test_one_rule_for_asking_permission() -> None:
 
 
 def test_the_read_back_table_names_only_fields_the_write_tools_accept() -> None:
-    guide = AGENT_CONFIG_GUIDE[AGENT_CONFIG_GUIDE.index("## Reading an agent back") :]
+    config = _guide("omnidim://reference/agent-config")
+    guide = config[config.index("## Reading an agent back") :]
     rows = re.findall(r"^\| `[^\n]*\| ([^\n]*) \|$", guide, flags=re.M)
     props = _schema("updateAgent")["properties"]
     named = re.findall(r"`([a-z_]+)(?:\[\])?((?:\.[a-z_]+)?)`", "\n".join(rows))

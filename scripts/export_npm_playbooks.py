@@ -10,11 +10,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.procedures import (
     _PLAYBOOK_NOTE,
-    _RESOURCES,
     PLAYBOOK_NAMES,
     build_prompt,
     guide_text,
     prompts_for_listing,
+    resources_for_listing,
 )
 
 
@@ -44,10 +44,10 @@ def playbooks() -> dict[str, Any]:
         ],
         "guides": [
             {
-                **{k: r[k] for k in ("uri", "name", "description", "mimeType")},
+                **r,
                 "text": guide_text(r["uri"]),
             }
-            for r in _RESOURCES
+            for r in resources_for_listing()
             if r["mimeType"] == "text/markdown"
         ],
     }

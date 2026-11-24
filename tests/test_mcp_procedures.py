@@ -278,7 +278,8 @@ async def test_campaign_prompt_and_resource(client: AsyncClient) -> None:
     )
     text = res.json()["result"]["messages"][0]["content"]["text"]
     assert "call 8,000 renewal leads today" in text
-    assert 'phone_number_id "177"' in text
+    assert "- phone_number_id: 177" in text
+    assert "If the user named a dialing number, use its phone_number_id" in text
     assert "save_as_draft: true" in text
     assert "never start one they have not approved" in text
     assert "3600 / average call seconds" in text
@@ -351,11 +352,10 @@ def test_every_resource_a_prompt_points_at_actually_exists():
     """
     import re
 
-    from app.procedures import _PROMPTS, _RESOURCES, ROUTING_GUIDE, read_resource
+    from app.procedures import GUIDE_NAMES, guide_text, read_resource, resources_for_listing
 
-    served = {r["uri"] for r in _RESOURCES}
-    text = ROUTING_GUIDE + "".join(r["text"] for r in _RESOURCES)
-    text += "".join(p["build"]({}) for p in _PROMPTS)
+    served = {r["uri"] for r in resources_for_listing()}
+    text = "".join(guide_text(name) or "" for name in GUIDE_NAMES)
 
     for uri in set(re.findall(r"omnidim://[a-z0-9/\-]+", text)):
         assert uri in served, f"{uri} is referenced but not served"
@@ -434,9 +434,11 @@ def test_outbound_greeting_examples_are_short_name_checks() -> None:
     import json
     import re
 
-    from app.procedures import AGENT_CONFIG_GUIDE
+    from app.procedures import read_resource
 
-    blocks = re.findall(r"^\{\n.*?\n\}$", AGENT_CONFIG_GUIDE, re.M | re.S)
+    resource = read_resource("omnidim://reference/agent-config")
+    assert resource is not None
+    blocks = re.findall(r"^\{\n.*?\n\}$", resource["contents"][0]["text"], re.M | re.S)
     examples = [json.loads(m) for m in blocks]
     outbound = [e for e in examples if e["call_type"] == "Outgoing"]
     assert outbound
@@ -467,7 +469,7 @@ def test_no_playbook_acts_without_the_users_yes() -> None:
     assert "restore only on their yes" in _text("omnidim://guide/agent-versioning")
     assert "get a yes, then `publishWorkflow`" in _text("omnidim://guide/workflows")
     assert "release only after the user confirms" in _text("omnidim://guide/routing")
-    assert "`build_outbound_campaign` prompt" in _text("omnidim://guide/routing")
+    assert "`build_outbound_campaign` playbook" in _text("omnidim://guide/routing")
 
 
 def test_campaign_steps_match_the_api() -> None:
