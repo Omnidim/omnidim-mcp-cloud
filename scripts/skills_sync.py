@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import shutil
 import sys
 import tarfile
@@ -16,8 +17,14 @@ USAGE = "uv run python scripts/skills_sync.py <branch, tag or commit of Omnidim/
 
 
 def _commit(ref: str) -> str:
-    url = f"https://api.github.com/repos/{REPO}/commits/{ref}"
-    with urllib.request.urlopen(url, timeout=30) as res:
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    with urllib.request.urlopen(
+        urllib.request.Request(
+            f"https://api.github.com/repos/{REPO}/commits/{ref}", headers=headers
+        ),
+        timeout=30,
+    ) as res:
         sha: str = json.load(res)["sha"]
     return sha
 
@@ -36,6 +43,21 @@ def _unpack(archive: tarfile.TarFile, into: Path) -> None:
         target.write_bytes(extracted.read())
 
 
+def _swap(staging: Path, vendor: Path) -> None:
+    old = vendor.with_name(vendor.name + ".old")
+    shutil.rmtree(old, ignore_errors=True)
+    if vendor.exists():
+        vendor.rename(old)
+    try:
+        staging.rename(vendor)
+    except OSError:
+        if old.exists():
+            old.rename(vendor)
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    shutil.rmtree(old, ignore_errors=True)
+
+
 def sync(ref: str) -> str:
     sha = _commit(ref)
     url = f"https://codeload.github.com/{REPO}/tar.gz/{sha}"
@@ -52,8 +74,7 @@ def sync(ref: str) -> str:
     except Exception:
         shutil.rmtree(staging)
         raise
-    shutil.rmtree(VENDOR, ignore_errors=True)
-    staging.rename(VENDOR)
+    _swap(staging, VENDOR)
     return sha
 
 

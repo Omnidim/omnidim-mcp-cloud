@@ -12,6 +12,7 @@ from app.procedures import (
     PLAYBOOK_NAMES,
     build_prompt,
     guide_text,
+    load_playbooks,
     prompts_for_listing,
     read_resource,
     resources_for_listing,
@@ -134,3 +135,36 @@ def test_each_playbook_declares_its_own_prompt_inputs() -> None:
         assert meta["name"] == path.stem.replace("-", "_")
         assert listed[meta["name"]]["arguments"] == meta.get("arguments", [])
         assert listed[meta["name"]]["description"] == body.split("\n", 1)[0].removeprefix("# ")
+
+
+def _skill_folder(root: Path, files: dict[str, str]) -> Path:
+    folder = root / "skills" / "omnidim-x"
+    folder.mkdir(parents=True)
+    (folder / "SKILL.md").write_text("---\nname: omnidim-x\n---\n\n# X\n")
+    for name, text in files.items():
+        (folder / name).write_text(text)
+    return root
+
+
+def test_a_file_without_a_playbook_header_is_not_a_playbook(tmp_path: Path) -> None:
+    root = _skill_folder(
+        tmp_path,
+        {
+            "do-x.md": "---\nname: do_x\n---\n\n# Do x\n\n1. Step.\n",
+            "notes.md": "# Notes for people\n\nNot a playbook.\n",
+        },
+    )
+    assert list(load_playbooks(root)) == ["do_x"]
+
+
+@pytest.mark.parametrize("taken", ["book_demo", "do_x"])
+def test_a_playbook_name_is_used_once(tmp_path: Path, taken: str) -> None:
+    root = _skill_folder(
+        tmp_path,
+        {
+            "do-x.md": "---\nname: do_x\n---\n\n# Do x\n\n1. Step.\n",
+            "other.md": f"---\nname: {taken}\n---\n\n# Other\n\n1. Step.\n",
+        },
+    )
+    with pytest.raises(ValueError, match=taken):
+        load_playbooks(root, reserved=frozenset({"book_demo"}))

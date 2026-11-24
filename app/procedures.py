@@ -258,7 +258,9 @@ def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
     return meta, text[match.end() :]
 
 
-def _playbook_file(path: Path) -> Playbook:
+def _playbook_file(path: Path) -> Playbook | None:
+    if not path.read_text().startswith("---\n"):
+        return None
     meta, body = _split_frontmatter(path)
     title, steps = body.split("\n", 1)
     return Playbook(
@@ -266,21 +268,28 @@ def _playbook_file(path: Path) -> Playbook:
     )
 
 
+def load_playbooks(root: Path, reserved: frozenset[str] = frozenset()) -> dict[str, Playbook]:
+    found: dict[str, Playbook] = {}
+    for path in sorted(root.glob("skills/*/*.md")):
+        playbook = None if path.name == "SKILL.md" else _playbook_file(path)
+        if playbook is None:
+            continue
+        if playbook.name in found or playbook.name in reserved:
+            raise ValueError(f"{path}: the playbook name {playbook.name} is already taken")
+        found[playbook.name] = playbook
+    return found
+
+
+_BOOK_DEMO = Playbook(
+    "book_demo",
+    "Book a demo call with the OmniDimension team: ask every booking question, route by "
+    "call volume, offer free times, book the picked one, and show the meeting details.",
+    [],
+    _BOOK_DEMO_STEPS,
+)
 _PLAYBOOKS: dict[str, Playbook] = {
-    "book_demo": Playbook(
-        "book_demo",
-        "Book a demo call with the OmniDimension team: ask every booking question, route by "
-        "call volume, offer free times, book the picked one, and show the meeting details.",
-        [],
-        _BOOK_DEMO_STEPS,
-    ),
-    **{
-        p.name: p
-        for p in map(
-            _playbook_file,
-            sorted(f for f in (_SKILLS / "skills").glob("*/*.md") if f.name != "SKILL.md"),
-        )
-    },
+    _BOOK_DEMO.name: _BOOK_DEMO,
+    **load_playbooks(_SKILLS, reserved=frozenset({_BOOK_DEMO.name})),
 }
 
 _SERVER_ADDITIONS = {

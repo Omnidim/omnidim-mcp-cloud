@@ -22,6 +22,8 @@ jobs:
           python-version-file: .python-version
 
       - id: sync
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: echo "sha=$(python scripts/skills_sync.py main)" >> "$GITHUB_OUTPUT"
 
       - name: Mint an installation token
