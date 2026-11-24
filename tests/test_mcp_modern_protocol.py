@@ -190,10 +190,11 @@ async def test_a_base64_name_header_is_decoded_before_the_check(client: AsyncCli
     assert res.json()["result"]["contents"][0]["uri"] == uri
 
 
-async def test_unknown_modern_method_is_not_found(client: AsyncClient) -> None:
+@pytest.mark.parametrize("method", ["tasks/get", "initialize", "ping"])
+async def test_methods_outside_2026_07_28_are_not_found(client: AsyncClient, method: str) -> None:
     token = await _mint_access_token(client)
 
-    res = await _modern(client, token, "tasks/get")
+    res = await _modern(client, token, method)
 
     assert res.status_code == 404
     assert res.json()["error"]["code"] == -32601

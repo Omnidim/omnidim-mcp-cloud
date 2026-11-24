@@ -181,6 +181,7 @@ _CACHEABLE = frozenset(
     }
 )
 _MODERN_ONLY = frozenset({"server/discover", "skills/list", "skills/get"})
+_LEGACY_ONLY = frozenset({"initialize", "ping"})
 _NAME_FIELD = {"tools/call": "name", "prompts/get": "name", "resources/read": "uri"}
 _BASE64_START, _BASE64_END = "=?base64?", "?="
 _CAPABILITIES: dict[str, Any] = {
@@ -237,7 +238,7 @@ def _header_mismatch(
 async def _call(
     method: str, params: dict[str, Any], token: ResolvedToken, *, read_only: bool, modern: bool
 ) -> dict[str, Any]:
-    if method in _MODERN_ONLY and not modern:
+    if method in (_LEGACY_ONLY if modern else _MODERN_ONLY):
         raise MethodNotFound(method)
 
     if method == "initialize":
