@@ -82,6 +82,26 @@ class IssueCodeRequest(BaseModel):
     approved_scope: str
 
 
+class IssueTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    odoo_user_id: int = Field(gt=0)
+    odoo_api_key_id: int = Field(gt=0)
+    odoo_api_key_value: str = Field(min_length=1)
+    # Checked in issue_operator_token so an unknown value is a 400, not a 422.
+    scope: str = "omnidim:all"
+
+
+class IssueTokenResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    access_token: str
+    token_type: Literal["Bearer"] = "Bearer"
+    expires_in: int
+    scope: str
+    grant_id: str
+
+
 class IssueCodeResponse(BaseModel):
     code: str
     redirect_to: str

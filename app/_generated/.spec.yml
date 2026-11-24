@@ -1,4 +1,6 @@
 openapi_spec: openapi.yaml
 openapi_spec_url: https://docs.omnidim.io/openapi.yaml
 openapi_spec_sha256: 9cb354281d9358d70558a0eb6a5112c995dde4ee4b8d0c98f2457e3593466ed8
-tool_count: 94
+internal_spec: internal-openapi.yaml
+internal_spec_sha256: aea39ad671f3b7f21a67d2a935cc5b156314345c2d207432fd6b6e88b5d45eb9
+tool_count: 99

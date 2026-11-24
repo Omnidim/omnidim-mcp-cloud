@@ -1,0 +1,498 @@
+# Operations kept out of the public docs spec, merged into it by scripts/regen.py.
+#
+# Every operation here is operator-only: tools/list shows it only to tokens
+# minted by /internal/issue-token for an operator (OmniOP) session, and
+# tools/call refuses it for anyone else. Same shape as the public spec, with an
+# x-mcp block per operation. A path or schema that also appears upstream stops
+# the regen: delete it here once the public spec documents it (it then becomes
+# a normal public tool).
+#
+#   getCallEvents, getPlanAndAddons: from omnidim-docs feat/support-agent-endpoints,
+#     not yet in the published spec.
+#   createSupportCase, getSupportCase, addCaseMessage: accept only operator keys.
+#     Source of truth: omnidim omni_assistant/controllers/external_apis/support_case_api.py
+#
+# x-extra-parameters adds query parameters to a public operation the published
+# spec does not list yet. A name the public operation already has stops the regen.
+paths:
+  /calls/logs/{call_log_id}/events:
+    get:
+      operationId: getCallEvents
+      x-mcp:
+        title: Get call events
+        effect: read
+      summary: Get call events
+      description: |
+        What happened on one call, step by step: what the caller and the agent
+        said, how long the agent took to reply, the tools it ran, transfers,
+        voicemail, language switches, interruptions, errors, and how the call
+        ended.
+
+        Use it to find out why a call went the way it did: why it hung up, why
+        a transfer failed, or where the agent was slow.
+
+        Calls older than 30 days have no timeline. For those,
+        `timeline_available` is `false` and `turns` holds the transcript only.
+      parameters:
+      - $ref: '#/components/parameters/ClientUserId'
+      - name: call_log_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Id of the call log, as returned by the call log list.
+      responses:
+        '200':
+          description: The call's steps and how it ended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallEvents'
+  /account/plan:
+    get:
+      operationId: getPlanAndAddons
+      x-mcp:
+        title: Get plan and add-ons
+        effect: read
+      summary: Get plan and add-ons
+      description: |
+        Read your organization's plan: its status and renewal or expiry date,
+        your concurrency add-ons, your concurrency limit, which plan features
+        you have, and the phone numbers that renew in the next 14 days with
+        whether your balance covers each renewal.
+
+        Your balance and rates are on Get account balance.
+
+        The API key's user needs Billing access in your organization. If
+        you get a `403`, an administrator can grant it when Billing is
+        enabled for your organization; when it is not, contact support.
+      parameters:
+      - $ref: '#/components/parameters/ClientUserId'
+      responses:
+        '200':
+          description: The account's plan and what runs out soon.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPlan'
+  /support/cases:
+    post:
+      operationId: createSupportCase
+      x-mcp:
+        title: Create support case
+        effect: write
+      summary: Create support case
+      description: |
+        File a support case for the signed-in customer. Only after the customer
+        has seen and confirmed the pre-filled form. The customer gets the usual
+        acknowledgement email. Limited to a few cases per hour.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - title
+              - description
+              - type
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                  maxLength: 10000
+                  description: What happened, in the customer's words plus the findings in plain words.
+                type:
+                  type: string
+                  enum:
+                  - bug
+                  - feature_request
+                priority:
+                  type: string
+                  enum:
+                  - critical
+                  - high
+                  - medium
+                  default: medium
+                call_log_ids:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: integer
+                  description: The customer's call logs this case is about.
+                agent_ids:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: integer
+                  description: The customer's agents this case is about.
+      responses:
+        '201':
+          description: The new case.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+  /support/cases/{case_number}:
+    get:
+      operationId: getSupportCase
+      x-mcp:
+        title: Get support case
+        effect: read
+      summary: Get support case
+      description: A support case of this customer, with its public thread. Internal notes are never included.
+      parameters:
+      - name: case_number
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The case number, as returned when the case was created.
+      responses:
+        '200':
+          description: The case.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+  /support/cases/{case_number}/messages:
+    post:
+      operationId: addCaseMessage
+      x-mcp:
+        title: Add case message
+        effect: write
+      summary: Add case message
+      description: Post a message on the customer's support case, as the customer. Reopens a resolved
+        case.
+      parameters:
+      - name: case_number
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The case number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - body
+              properties:
+                body:
+                  type: string
+                  maxLength: 10000
+      responses:
+        '200':
+          description: The case with the new message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportCase'
+components:
+  schemas:
+    CallEvents:
+      type: object
+      description: |
+        What happened on one call, step by step, with the facts about how it
+        was answered and how it ended.
+      properties:
+        call_id:
+          type: integer
+          description: Id of the call log.
+        answered_by:
+          type: string
+          enum:
+          - human
+          - voicemail
+          - unknown
+          description: Who picked up, as far as the call could tell.
+        amd_detected:
+          type: boolean
+          description: Whether answering machine detection ran on the call.
+        end_reason:
+          type: string
+          description: Why the call ended.
+          enum:
+          - caller_hung_up
+          - agent_ended
+          - silence_timeout
+          - voicemail
+          - transferred
+          - platform_ended
+          - carrier_ended
+          - screening
+          - no_answer
+          - busy
+          - failed
+          - canceled
+          - unknown
+        duration_s:
+          type: number
+          description: Call length in seconds.
+        voicemail_detection_on:
+          type: boolean
+          description: Whether voicemail detection was on for this call.
+        transfer_attempted:
+          type: boolean
+          description: Whether the agent tried to transfer the call.
+        transfer_connected:
+          type: boolean
+          description: Whether a transfer went through.
+        timeline_available:
+          type: boolean
+          description: |
+            `false` for calls older than 30 days. Their `turns` then come from
+            the transcript only, with no times, latencies or events.
+        turns:
+          type: array
+          maxItems: 500
+          description: The call's steps, oldest first. At most 500.
+          items:
+            $ref: '#/components/schemas/CallEventTurn'
+        truncated:
+          type: boolean
+          description: '`true` when the call had more than 500 steps and only the first 500 are listed.'
+    CallEventTurn:
+      type: object
+      description: One step of a call.
+      properties:
+        t_ms:
+          type: integer
+          nullable: true
+          description: Milliseconds from the start of the call. `null` when the call has no timeline.
+        speaker:
+          type: string
+          enum:
+          - caller
+          - agent
+          - system
+        text:
+          type: string
+          nullable: true
+          description: |
+            What was said, for `speech`. For `tool_call`, the name of your custom
+            API tool; `null` for built-in tools.
+        kind:
+          type: string
+          enum:
+          - speech
+          - tool_call
+          - transfer
+          - voicemail_detected
+          - language_switch
+          - interrupt
+          - silence_nudge
+          - hangup
+          - error
+          description: |
+            - `speech`: the caller or the agent spoke.
+            - `tool_call`: the agent ran a tool.
+            - `transfer`: the agent started a transfer.
+            - `voicemail_detected`: the call reached voicemail.
+            - `language_switch`: the conversation changed language.
+            - `interrupt`: the caller spoke over the agent.
+            - `silence_nudge`: the agent prompted a silent caller.
+            - `hangup`: the call ended.
+            - `error`: something failed during the call.
+        reason:
+          type: string
+          nullable: true
+          description: |
+            Set on `hangup` (the same values as `end_reason`), `error`
+            (`speech_recognition_error`, `voice_generation_error`,
+            `ai_response_error`, `tool_error`, `recording_error`,
+            `telephony_error`, `platform_error`), and on a failed `tool_call`
+            (`tool_failed`) or `transfer` (`transfer_failed`).
+        latency_ms:
+          type: integer
+          nullable: true
+          description: On agent `speech`, the milliseconds between the caller finishing and the agent
+            starting to speak.
+        language:
+          type: string
+          nullable: true
+          description: On `language_switch`, the language the conversation moved to.
+    AccountPlan:
+      type: object
+      description: |
+        Your organization's plan, its add-ons, its concurrency, the features
+        the plan includes, and the phone numbers that renew soon.
+      properties:
+        organization:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        plan:
+          type: object
+          properties:
+            id:
+              type: integer
+              nullable: true
+            name:
+              type: string
+              nullable: true
+              description: Name of the active plan.
+            billing_interval:
+              type: string
+              nullable: true
+            is_usage_based:
+              type: boolean
+              description: Whether calls are metered to your payment method instead of stopping at a zero
+                balance.
+            subscription_status:
+              type: string
+              nullable: true
+              description: Status of the plan's subscription, for example `active`, `past_due` or `canceled`.
+            renews_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: When an active subscription renews.
+            expires_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: When a subscription that is not renewing runs out. `null` while it renews.
+        add_ons:
+          type: array
+          description: Concurrency add-ons that are live, plus the ones that ended in the last 30 days.
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                - concurrency
+              name:
+                type: string
+                description: Where the add-on came from, for example `Purchased Concurrency` or `Subscription
+                  Plan`.
+              quantity:
+                type: integer
+                description: Concurrent calls the add-on gives.
+              status:
+                type: string
+                enum:
+                - active
+                - grace
+                - expired
+              expires_at:
+                type: string
+                format: date-time
+                nullable: true
+              auto_renew:
+                type: boolean
+        concurrency:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: Calls your organization can run at once.
+            in_use:
+              type: integer
+              description: Calls running now.
+            available:
+              type: integer
+              description: Calls you can start now.
+        features:
+          type: array
+          description: Each feature sold on plans, and whether your plan includes it.
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: whatsapp
+              name:
+                type: string
+                example: WhatsApp
+              available:
+                type: boolean
+                description: Whether your organization has the feature.
+        numbers_renewing_soon:
+          type: array
+          description: Phone numbers bought from us that renew in the next 14 days, soonest first.
+          items:
+            type: object
+            properties:
+              phone_number:
+                type: string
+              renews_at:
+                type: string
+                format: date-time
+              auto_renew:
+                type: boolean
+                description: '`false` when the number is set to be released on its date instead.'
+              renewal_cost_usd:
+                type: number
+                description: What the renewal costs. `0` when `auto_renew` is `false`.
+              wallet_covers:
+                type: boolean
+                nullable: true
+                description: |
+                  Whether your balance covers this renewal, after the renewals
+                  due before it. `null` when `auto_renew` is `false`.
+    SupportCase:
+      type: object
+      properties:
+        case_number:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+          - bug
+          - feature_request
+        priority:
+          type: string
+        status:
+          type: string
+        status_label:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date-time
+              author:
+                type: string
+              body:
+                type: string
+              from_customer:
+                type: boolean
+              from_support:
+                type: boolean
+x-extra-parameters:
+  listCallLogs:
+  - name: date_from
+    in: query
+    required: false
+    schema:
+      type: string
+      format: date
+    description: Only calls on or after this day (YYYY-MM-DD, inclusive), in the time zone set on your
+      account. UTC when none is set.
+  - name: date_to
+    in: query
+    required: false
+    schema:
+      type: string
+      format: date
+    description: Only calls on or before this day (YYYY-MM-DD, inclusive), in the time zone set on your
+      account. Must not be earlier than `date_from`.

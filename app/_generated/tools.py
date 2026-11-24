@@ -4,6 +4,7 @@ Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
 Source spec:   openapi.yaml   sha256=9cb354281d93
+Internal spec: internal-openapi.yaml   sha256=aea39ad671f3
 """
 from __future__ import annotations
 
@@ -176,6 +177,42 @@ _TOOLS_JSON = r"""[
             "destructiveHint": false,
             "openWorldHint": false
         }
+    },
+    {
+        "name": "addCaseMessage",
+        "description": "Add case message. Post a message on the customer's support case, as the customer. Reopens a resolved case.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "case_number": {
+                    "type": "string",
+                    "description": "The case number."
+                },
+                "body": {
+                    "type": "string",
+                    "maxLength": 10000
+                }
+            },
+            "required": [
+                "body",
+                "case_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/support/cases/{case_number}/messages",
+        "path_params": [
+            "case_number"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Add case message",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "operator_only": true
     },
     {
         "name": "addPostCallAction",
@@ -1989,6 +2026,74 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "createSupportCase",
+        "description": "Create support case. File a support case for the signed-in customer. Only after the customer\nhas seen and confirmed the pre-filled form. The customer gets the usual\nacknowledgement email. Limited to a few cases per hour.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "description": "What happened, in the customer's words plus the findings in plain words."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "bug",
+                        "feature_request"
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "critical",
+                        "high",
+                        "medium"
+                    ],
+                    "default": "medium"
+                },
+                "call_log_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "The customer's call logs this case is about."
+                },
+                "agent_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "The customer's agents this case is about."
+                }
+            },
+            "required": [
+                "description",
+                "title",
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/support/cases",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create support case",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "operator_only": true
+    },
+    {
         "name": "createWhatsappCampaign",
         "description": "Create a campaign. Create a draft campaign from an approved template. It sends nothing until\nyou launch it.\n\nAdd contacts and launch it with the next calls. Scheduling is not offered.",
         "input_schema": {
@@ -2698,6 +2803,37 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "getCallEvents",
+        "description": "Get call events. What happened on one call, step by step: what the caller and the agent\nsaid, how long the agent took to reply, the tools it ran, transfers,\nvoicemail, language switches, interruptions, errors, and how the call\nended.\n\nUse it to find out why a call went the way it did: why it hung up, why\na transfer failed, or where the agent was slow.\n\nCalls older than 30 days have no timeline. For those,\n`timeline_available` is `false` and `turns` holds the transcript only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "call_log_id": {
+                    "type": "integer",
+                    "description": "Id of the call log, as returned by the call log list."
+                }
+            },
+            "required": [
+                "call_log_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/calls/logs/{call_log_id}/events",
+        "path_params": [
+            "call_log_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get call events",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "operator_only": true
+    },
+    {
         "name": "getCallLog",
         "description": "Get call log. Detailed information about a specific call (duration, status, transcript, sentiment, extracted variables).",
         "input_schema": {
@@ -2756,6 +2892,58 @@ _TOOLS_JSON = r"""[
             "destructiveHint": false,
             "openWorldHint": false
         }
+    },
+    {
+        "name": "getPlanAndAddons",
+        "description": "Get plan and add-ons. Read your organization's plan: its status and renewal or expiry date,\nyour concurrency add-ons, your concurrency limit, which plan features\nyou have, and the phone numbers that renew in the next 14 days with\nwhether your balance covers each renewal.\n\nYour balance and rates are on Get account balance.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization; when it is not, contact support.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/plan",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get plan and add-ons",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "operator_only": true
+    },
+    {
+        "name": "getSupportCase",
+        "description": "Get support case. A support case of this customer, with its public thread. Internal notes are never included.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "case_number": {
+                    "type": "string",
+                    "description": "The case number, as returned when the case was created."
+                }
+            },
+            "required": [
+                "case_number"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/support/cases/{case_number}",
+        "path_params": [
+            "case_number"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get support case",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "operator_only": true
     },
     {
         "name": "getVoice",
@@ -3581,6 +3769,16 @@ _TOOLS_JSON = r"""[
                     "type": "boolean",
                     "default": true,
                     "description": "Set to `false` for a lighter list. Each row then leaves out\n`call_conversation`, `sentiment_analysis_details`, `llm_prompt`,\n`voice_insides`, `custom_variables` and `metadata`. Fetch those for\none call with Get call log.\n"
+                },
+                "date_from": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Only calls on or after this day (YYYY-MM-DD, inclusive), in the time zone set on your account. UTC when none is set."
+                },
+                "date_to": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Only calls on or before this day (YYYY-MM-DD, inclusive), in the time zone set on your account. Must not be earlier than `date_from`."
                 }
             },
             "additionalProperties": true
@@ -3594,7 +3792,9 @@ _TOOLS_JSON = r"""[
             "agentid",
             "call_status",
             "bulk_call_id",
-            "include_details"
+            "include_details",
+            "date_from",
+            "date_to"
         ],
         "header_params": [],
         "annotations": {

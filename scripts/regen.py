@@ -7,6 +7,9 @@ on an allowed host) to override.
 
 Reads:
   https://docs.omnidim.io/openapi.yaml          (spec; or $SPEC override)
+  internal-openapi.yaml                         (operator-only operations kept
+                                                 out of the public docs; or
+                                                 $INTERNAL_SPEC)
 
 Each operation's x-mcp block decides its tool: title, effect (read, write or
 destructive), open-world, hide-params, or hidden. An operation without one
@@ -14,7 +17,7 @@ fails the regen, so nothing reaches agents before someone decides how.
 
 Writes:
   app/_generated/tools.py                       (Python tool registry)
-  app/_generated/.spec.yml                      (sha256 of the spec)
+  app/_generated/.spec.yml                      (sha256 of both specs)
 
 Run after the upstream spec changes:
   ./.venv/bin/python scripts/regen.py
@@ -45,6 +48,7 @@ ALLOWED_SPEC_HOSTS = {"docs.omnidim.io"}
 MAX_SPEC_BYTES = 8 * 1024 * 1024
 
 SPEC_SOURCE = os.environ.get("SPEC", DEFAULT_SPEC_URL)
+INTERNAL_SPEC_PATH = Path(os.environ.get("INTERNAL_SPEC", ROOT / "internal-openapi.yaml"))
 
 OUT_TOOLS = ROOT / "app" / "_generated" / "tools.py"
 OUT_HASH = ROOT / "app" / "_generated" / ".spec.yml"
@@ -82,6 +86,50 @@ def load_spec_bytes(source: str) -> tuple[bytes, str]:
         sys.stderr.write(f"missing spec file: {path}\n")
         sys.exit(1)
     return path.read_bytes(), str(path)
+
+
+def _operations(spec: dict[str, Any]) -> Iterable[tuple[str, dict[str, Any], dict[str, Any]]]:
+    for item in (spec.get("paths") or {}).values():
+        for method, op in item.items():
+            if method in {"get", "post", "put", "patch", "delete"} and isinstance(op, dict):
+                yield method, op, item
+
+
+def merge_internal(spec: dict[str, Any], internal: dict[str, Any]) -> set[str]:
+    """Merge the internal fragment into the spec; return its operation ids (operator-only).
+
+    Overlaps stop the regen: upstream now documents the operation, so the
+    fragment copy is stale and must be deleted rather than silently shadow it.
+    """
+    sections = (
+        (spec.setdefault("paths", {}), internal.get("paths") or {}),
+        (
+            spec.setdefault("components", {}).setdefault("schemas", {}),
+            (internal.get("components") or {}).get("schemas") or {},
+        ),
+    )
+    for target, extra in sections:
+        if clash := sorted(set(target) & set(extra)):
+            raise SystemExit(f"internal spec overlaps the public spec: {', '.join(clash)}")
+    operator_only = {
+        str(op.get("operationId")) for _, op, _ in _operations({"paths": sections[0][1]})
+    }
+    for target, extra in sections:
+        target.update(extra)
+
+    by_id = {op.get("operationId"): (op, item) for _, op, item in _operations(spec)}
+    for op_id, params in (internal.get("x-extra-parameters") or {}).items():
+        if op_id not in by_id:
+            raise SystemExit(f"x-extra-parameters: no operation {op_id} in the spec")
+        op, item = by_id[op_id]
+        existing = {
+            resolve_refs(p, spec).get("name")
+            for p in (*(item.get("parameters") or []), *(op.get("parameters") or []))
+        }
+        if clash := sorted({p["name"] for p in params} & existing):
+            raise SystemExit(f"x-extra-parameters: {op_id} already has {', '.join(clash)}")
+        op["parameters"] = [*(op.get("parameters") or []), *params]
+    return operator_only
 
 
 def slug(s: str) -> str:
@@ -533,8 +581,11 @@ def apply_briefs(spec: dict[str, Any]) -> None:
         }
 
 
-def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+def build_tools(
+    spec: dict[str, Any], operator_only: Iterable[str] = ()
+) -> tuple[list[dict[str, Any]], list[str]]:
     """Every exposed tool, sorted by name, and the operations left off."""
+    operator_only = set(operator_only)
     apply_briefs(spec)
     tools: list[dict[str, Any]] = []
     skipped: list[str] = []
@@ -552,6 +603,8 @@ def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
             strip_params(op, list(marks.get("hide-params") or []))
             tool = build_tool(path, method, op, path_item_params, spec)
             tool["annotations"] = annotations_for(marks)
+            if op_id in operator_only:
+                tool["operator_only"] = True
             if "merge" in marks:
                 to_merge.setdefault(marks["merge"]["tool"], []).append((tool, marks))
             else:
@@ -566,7 +619,7 @@ def build_tools(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     return tools, skipped
 
 
-def check(spec_hash: str, tools: list[dict[str, Any]]) -> int:
+def check(spec_hash: str, internal_hash: str, tools: list[dict[str, Any]]) -> int:
     """Compare a fresh generation against the committed sentinel + registry."""
     # Imported here so a plain regen never depends on the committed output.
     from app._generated.tools import TOOLS as committed
@@ -582,6 +635,8 @@ def check(spec_hash: str, tools: list[dict[str, Any]]) -> int:
             f"spec moved: committed {sentinel.get('openapi_spec_sha256', '?')[:12]}, "
             f"upstream {spec_hash[:12]}"
         )
+    if sentinel.get("internal_spec_sha256") != internal_hash:
+        problems.append(f"{INTERNAL_SPEC_PATH.name} changed since the last regen")
 
     fresh_names = {t["name"] for t in tools}
     committed_names = {t["name"] for t in committed}
@@ -604,14 +659,17 @@ def main() -> int:
     spec = yaml.safe_load(spec_bytes)
     spec_name = spec_source.rsplit("/", 1)[-1]
     spec_is_url = spec_source.startswith("http")
-    tools, skipped = build_tools(spec)
+    internal_bytes = INTERNAL_SPEC_PATH.read_bytes()
+    operator_only = merge_internal(spec, yaml.safe_load(internal_bytes) or {})
+    tools, skipped = build_tools(spec, operator_only)
 
     # Drift sentinel: hash the spec so a checkout can verify tools.py is in
     # sync with the source of truth.
     spec_hash = hashlib.sha256(spec_bytes).hexdigest()
+    internal_hash = hashlib.sha256(internal_bytes).hexdigest()
 
     if "--check" in sys.argv[1:]:
-        return check(spec_hash, tools)
+        return check(spec_hash, internal_hash, tools)
 
     # Embed the registry as a JSON string and load it at import time so the
     # generated module stays valid Python regardless of whether descriptions
@@ -623,6 +681,7 @@ Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
 Source spec:   {spec_name}   sha256={spec_hash[:12]}
+Internal spec: {INTERNAL_SPEC_PATH.name}   sha256={internal_hash[:12]}
 """
 from __future__ import annotations
 
@@ -645,6 +704,8 @@ TOOLS: Final[list[Tool]] = json.loads(_TOOLS_JSON)
         meta_lines.append(f"openapi_spec_url: {spec_source}")
     meta_lines += [
         f"openapi_spec_sha256: {spec_hash}",
+        f"internal_spec: {INTERNAL_SPEC_PATH.name}",
+        f"internal_spec_sha256: {internal_hash}",
         f"tool_count: {len(tools)}",
     ]
     OUT_HASH.write_text("\n".join(meta_lines) + "\n")

@@ -22,10 +22,14 @@ class Settings(BaseSettings):
     dashboard_base_url: str = Field(description="Origin where the consent screen is hosted.")
     odoo_internal_base_url: str
     odoo_internal_shared_secret: str
+    # Where tool calls go; point at a local Odoo for local testing.
+    backend_base_url: str = "https://omnidim.io/api/v1"
 
     token_signing_key: str = Field(min_length=32)
     access_token_ttl_seconds: int = 3600
     refresh_token_ttl_seconds: int = 60 * 60 * 24 * 90
+    # Owns the tokens minted by /internal/issue-token for operator (OmniOP) sessions.
+    operator_client_id: str = "omniop-operator"
 
     loki_push_url: str = ""
     loki_labels: str = "service=omni-mcp-server"

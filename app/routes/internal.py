@@ -12,8 +12,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.config import Settings, get_settings
 from app.dependencies import get_session_factory
 from app.models import AuthorizationRequest, OAuthClient
-from app.schemas.oauth import DenyRequest, DenyResponse, IssueCodeRequest, IssueCodeResponse
+from app.schemas.oauth import (
+    DenyRequest,
+    DenyResponse,
+    IssueCodeRequest,
+    IssueCodeResponse,
+    IssueTokenRequest,
+    IssueTokenResponse,
+)
 from app.services.issue_code import IssueCodeError, deny_request, issue_code
+from app.services.token import TokenError, issue_operator_token
 
 router = APIRouter(prefix="/internal", tags=["internal"], include_in_schema=False)
 
@@ -129,3 +137,31 @@ async def post_deny(
             detail={"error": exc.code, "error_description": exc.description},
         ) from exc
     return DenyResponse(redirect_to=redirect_to)
+
+
+@router.post(
+    "/issue-token",
+    dependencies=[Depends(_require_shared_secret)],
+    response_model=IssueTokenResponse,
+)
+async def post_issue_token(
+    body: IssueTokenRequest,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> IssueTokenResponse:
+    """Mint an MCP access token for an operator (OmniOP) session, no OAuth round trip."""
+    try:
+        async with factory() as session:
+            issued = await issue_operator_token(
+                session,
+                odoo_user_id=body.odoo_user_id,
+                odoo_api_key_id=body.odoo_api_key_id,
+                odoo_api_key_value=body.odoo_api_key_value,
+                scope=body.scope,
+            )
+            await session.commit()
+    except TokenError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"error": exc.code, "error_description": exc.description},
+        ) from exc
+    return IssueTokenResponse.model_validate(issued)

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app import __version__
 from app._generated.tools import TOOLS
+from app.config import get_settings
 from app.dependencies import get_session_factory
 from app.procedures import (
     DEMO_OFFER_RULE,
@@ -20,6 +21,7 @@ from app.procedures import (
     resources_for_listing,
     tool_meta,
 )
+from app.scopes import DEFAULT_SCOPE, can_write
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
 from app.services.dispatcher import DispatchError, dispatch_tool
 from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
@@ -64,10 +66,20 @@ _READ_ONLY_TOOLS = frozenset(
 )
 
 
-def _tools_for_listing(read_only: bool) -> list[dict[str, Any]]:
+# Tools only an operator (OmniOP) session may see or call; see internal-openapi.yaml.
+_OPERATOR_ONLY_TOOLS = frozenset(t["name"] for t in TOOLS if t.get("operator_only"))
+
+
+def _is_operator(token: ResolvedToken) -> bool:
+    return token.client_id == get_settings().operator_client_id
+
+
+def _tools_for_listing(read_only: bool, operator: bool = False) -> list[dict[str, Any]]:
     tools = []
     for t in (*TOOLS, *EXTRA_TOOLS):
         if read_only and t["name"] not in _READ_ONLY_TOOLS:
+            continue
+        if not operator and t["name"] in _OPERATOR_ONLY_TOOLS:
             continue
         tool: dict[str, Any] = {
             "name": t["name"],
@@ -208,8 +220,16 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
     if method == "notifications/initialized":
         return JSONResponse(status_code=202, content={})
 
+    if method == "ping":  # MCP spec: answer with an empty result
+        return JSONResponse(content=_result(req_id, {}))
+
+    operator = _is_operator(token)
+    # An omnidim:read token sees and runs read-only tools only, as on /mcp/readonly.
+    scope_read_only = not can_write(token.scope)
+
     if method == "tools/list":
-        return JSONResponse(content=_result(req_id, {"tools": _tools_for_listing(read_only)}))
+        tools = _tools_for_listing(read_only or scope_read_only, operator)
+        return JSONResponse(content=_result(req_id, {"tools": tools}))
 
     if method == "tools/call":
         tool_name = params.get("name")
@@ -220,6 +240,18 @@ async def _answer(request: Request, token: ResolvedToken, *, read_only: bool) ->
                     req_id, -32602,
                     "tools/call requires name (str) + arguments (object)",
                 ),
+            )
+        if not operator and tool_name in _OPERATOR_ONLY_TOOLS:
+            return JSONResponse(content=_error(req_id, -32602, f"unknown tool: {tool_name}"))
+        if scope_read_only and tool_name not in _READ_ONLY_TOOLS:
+            log.info("tool_call_denied", tool=tool_name, client_id=token.client_id)
+            return JSONResponse(
+                content=_error(
+                    req_id,
+                    -32003,
+                    "insufficient_scope",
+                    {"tool": tool_name, "required_scope": DEFAULT_SCOPE},
+                )
             )
         if read_only and tool_name not in _READ_ONLY_TOOLS:
             return JSONResponse(

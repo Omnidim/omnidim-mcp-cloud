@@ -12,6 +12,8 @@ os.environ.setdefault("DASHBOARD_BASE_URL", "http://localhost:3000")
 os.environ.setdefault("ODOO_INTERNAL_BASE_URL", "http://localhost:8069")
 os.environ.setdefault("ODOO_INTERNAL_SHARED_SECRET", "test-shared-secret")
 os.environ.setdefault("TOKEN_SIGNING_KEY", "test-signing-key-padded-to-32-bytes!!")
+# Pinned so a local .env pointing tool calls at a local Odoo does not leak into tests.
+os.environ.setdefault("BACKEND_BASE_URL", "https://omnidim.io/api/v1")
 
 from app.main import create_app
 
