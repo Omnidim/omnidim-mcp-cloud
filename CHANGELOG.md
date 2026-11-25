@@ -2,6 +2,18 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.24.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.23.1...v0.24.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* fold the workflow tools into workflow (read) and workflowActions (write) ([#154](https://github.com/Omnidim/omnidim-mcp-cloud/issues/154))
+
+### Added
+
+* fold the workflow tools into workflow (read) and workflowActions (write) ([#154](https://github.com/Omnidim/omnidim-mcp-cloud/issues/154)) ([a7ba8f0](https://github.com/Omnidim/omnidim-mcp-cloud/commit/a7ba8f0e77f934c8dad5761e4723530051edfdd4))
+* operator tokens with omnidim:read scope, operator-only support tools, valid-JSON trimming, BACKEND_BASE_URL, ping ([#137](https://github.com/Omnidim/omnidim-mcp-cloud/issues/137)) ([ac7630e](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ac7630e9fa9e57650b8069cc192b25e871ab4cbb))
+
 ## [0.23.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.23.0...v0.23.1) (2026-11-25)
 
 
