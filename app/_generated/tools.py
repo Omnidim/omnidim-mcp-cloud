@@ -3,7 +3,7 @@
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
 
-Source spec:   openapi.yaml   sha256=9cb354281d93
+Source spec:   omnidim.yaml   sha256=5fafdbd8cdcc
 Internal spec: internal-openapi.yaml   sha256=aea39ad671f3
 """
 from __future__ import annotations
@@ -1207,8 +1207,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -1560,7 +1560,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30,
+                            "default": 30.0,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -3178,7 +3178,7 @@ _TOOLS_JSON = r"""[
                 },
                 "execution_id": {
                     "type": "integer",
-                    "description": "The `execution_id` from `testWorkflow`."
+                    "description": "The `execution_id` from `testWorkflow` or `listWorkflowExecutions`."
                 }
             },
             "required": [
@@ -4460,6 +4460,62 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "listWorkflowExecutions",
+        "description": "List workflow runs. List recent runs of a workflow, newest first, with the step that failed.\n\nUse it to find the run behind \"my workflow didn't run after the call\":\nfilter by `state=failed`, or by the `call_sid` of the call that should\nhave started it. Read one run's steps with `getWorkflowExecution`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "workflow_id": {
+                    "type": "integer",
+                    "description": "Id of the workflow."
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "running",
+                        "waiting",
+                        "completed",
+                        "failed",
+                        "cancelled"
+                    ],
+                    "description": "Only runs in this state."
+                },
+                "call_sid": {
+                    "type": "string",
+                    "description": "Only runs started by this call."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 20,
+                    "description": "How many runs to return."
+                }
+            },
+            "required": [
+                "workflow_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/workflows/{workflow_id}/executions",
+        "path_params": [
+            "workflow_id"
+        ],
+        "query_params": [
+            "state",
+            "call_sid",
+            "limit"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List workflow runs",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
         "name": "listWorkflowFieldOptions",
         "description": "List choices for a node field. List the choices for one `ref` field of a node type.\n\nExamples are the phone numbers, agents or integrations in your account. Call\nit for every `ref` field and never guess an id. If it returns `400\nno_options`, the field is not a list choice, so ask the user for the value.",
         "input_schema": {
@@ -5578,8 +5634,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2,
-                            "default": 1,
+                            "maximum": 2.0,
+                            "default": 1.0,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
