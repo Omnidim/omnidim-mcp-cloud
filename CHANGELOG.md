@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.26.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.26.1...v0.26.2) (2026-11-25)
+
+
+### Fixed
+
+* agent voice field without a provider recommendation ([#166](https://github.com/Omnidim/omnidim-mcp-cloud/issues/166)) ([3ea915c](https://github.com/Omnidim/omnidim-mcp-cloud/commit/3ea915ccd578ab25b14492ee2632e4004b8d38ae))
+
 ## [0.26.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.26.0...v0.26.1) (2026-11-25)
 
 
