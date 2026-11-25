@@ -644,10 +644,9 @@ async def test_mcp_tools_call_upstream_4xx_returns_is_error(
     assert "forbidden" in body["result"]["content"][0]["text"]
 
 
-async def test_an_old_workflow_tool_name_still_runs_as_the_merged_tool(
+async def test_each_workflow_operation_is_its_own_tool(
     client: AsyncClient, mock_backend
 ) -> None:
-    # The workflow canvas and older chats call getWorkflow; it is folded into `workflow`.
     token = await _mint_access_token(client)
     captured = mock_backend(lambda req: httpx.Response(200, json={"id": 12, "name": "Leads"}))
     res = await client.post(
@@ -670,5 +669,6 @@ async def test_an_old_workflow_tool_name_still_runs_as_the_merged_tool(
         json={"jsonrpc": "2.0", "id": 12, "method": "tools/list"},
     )
     names = {t["name"] for t in listed.json()["result"]["tools"]}
-    assert {"workflow", "workflowActions", "deleteWorkflow", "showWorkflow"} <= names
-    assert not names & {"getWorkflow", "listWorkflows", "testWorkflow", "getWorkflowExecution"}
+    split = {"getWorkflow", "listWorkflows", "testWorkflow", "deleteWorkflow", "showWorkflow"}
+    assert split <= names
+    assert not names & {"workflow", "workflowActions"}

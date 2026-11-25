@@ -63,7 +63,7 @@ Your client asks you to confirm before a tool that places a call, sends a messag
 | Calls | Place a call and read call logs and transcripts | 3 |
 | Call campaigns | Create, start, pace and retry bulk call campaigns | 15 |
 | Phone numbers | Search, buy, attach and import numbers (Twilio, Exotel, SIP) | 9 |
-| Workflows | Build, test and publish post-call workflows | 4 |
+| Workflows | Build, test and publish post-call workflows | 16 |
 | Knowledge base | Upload files and attach them to agents | 4 |
 | Voices and providers | Pick voices, models and providers, and manage cloned voices | 8 |
 | Integrations | Connect agents to your APIs and apps | 4 |
@@ -82,7 +82,7 @@ Your client asks you to confirm before a tool that places a call, sends a messag
 | Phone numbers | `listPhoneNumbers`, `searchPhoneNumbers`, `purchasePhoneNumber`, `releasePhoneNumber`, `setPhoneNumberAutoRenew`, `phoneNumberAgentActions`, `importTwilioNumber`, `importExotelNumber`, `importSipTrunk` |
 | WhatsApp | `listWhatsappNumbers`, `importWhatsappNumbers`, `previewWhatsappNumbers`, `getWhatsappNumber`, `listWhatsappTemplates`, `syncWhatsappTemplates`, `getWhatsappCalling`, `setWhatsappCalling`, `listWhatsappConversations`, `getWhatsappConversation`, `whatsappConversationActions`, `listWhatsappMessages`, `sendWhatsappMessage`, `getWhatsappMessage`, `listWhatsappOptOuts`, `addWhatsappOptOut`, `liftWhatsappOptOut`, `listWhatsappCampaigns`, `createWhatsappCampaign`, `getWhatsappCampaign`, `listWhatsappCampaignContacts`, `addWhatsappCampaignContacts`, `whatsappCampaignActions` |
 | Knowledge base | `listKnowledgeBaseFiles`, `uploadKnowledgeBaseFile`, `agentKnowledgeBaseActions`, `deleteKnowledgeBaseFile` |
-| Workflows | `workflow`, `workflowActions`, `deleteWorkflow`, `showWorkflow` |
+| Workflows | `listWorkflows`, `createWorkflow`, `getWorkflow`, `editWorkflow`, `validateWorkflow`, `publishWorkflow`, `activateWorkflow`, `deactivateWorkflow`, `testWorkflow`, `listWorkflowExecutions`, `getWorkflowExecution`, `listWorkflowNodeTypes`, `getWorkflowNodeType`, `listWorkflowFieldOptions`, `deleteWorkflow`, `showWorkflow` |
 | Voice cloning | `listClonedVoices`, `getClonedVoice`, `deleteClonedVoice`, `updateClonedVoice`, `regenerateClonedVoiceSample` |
 | Integrations | `listIntegrations`, `createCustomApiIntegration`, `listAgentIntegrations`, `agentIntegrationActions` |
 | Providers | `listProviders`, `listVoices`, `getVoice` |
