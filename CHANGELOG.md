@@ -2,6 +2,19 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.26.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.25.0...v0.26.0) (2026-11-25)
+
+
+### Added
+
+* listCallLogs filters by number and direction ([#163](https://github.com/Omnidim/omnidim-mcp-cloud/issues/163)) ([a277791](https://github.com/Omnidim/omnidim-mcp-cloud/commit/a277791facdf429c3b0a9ebad0b39cc17b1e7bcf))
+
+
+### Fixed
+
+* refresh playbooks and guides from Omnidim/skills ([#158](https://github.com/Omnidim/omnidim-mcp-cloud/issues/158)) ([40dc774](https://github.com/Omnidim/omnidim-mcp-cloud/commit/40dc7748e275809280e6848ddf7d8fb79faa8c05))
+* serve each workflow operation as its own tool and drop promotional tool text ([#159](https://github.com/Omnidim/omnidim-mcp-cloud/issues/159)) ([827a652](https://github.com/Omnidim/omnidim-mcp-cloud/commit/827a652ea062aae980e8dc6e36406b4b9fbf2d2c))
+
 ## [0.25.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.24.0...v0.25.0) (2026-11-25)
 
 
