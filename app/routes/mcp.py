@@ -24,7 +24,7 @@ from app.procedures import (
 )
 from app.scopes import DEFAULT_SCOPE, can_write
 from app.services.bearer import BearerError, ResolvedToken, resolve_bearer
-from app.services.dispatcher import DispatchError, dispatch_tool
+from app.services.dispatcher import DispatchError, dispatch_tool, unfold
 from app.services.docs import DOCS_TOOL_NAMES, call_docs_tool
 from app.services.guides import read_guide
 from app.skills import SKILLS_EXTENSION, read_skill_file, skill_entries, skill_entry
@@ -283,6 +283,7 @@ async def _call(
         arguments = params.get("arguments") or {}
         if not isinstance(tool_name, str) or not isinstance(arguments, dict):
             raise RpcError(-32602, "tools/call requires name (str) + arguments (object)")
+        tool_name, arguments = unfold(tool_name, arguments)
         if not operator and tool_name in _OPERATOR_ONLY_TOOLS:
             raise RpcError(-32602, f"unknown tool: {tool_name}")
         if scope_read_only and tool_name not in _READ_ONLY_TOOLS:

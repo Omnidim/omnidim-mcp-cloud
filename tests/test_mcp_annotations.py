@@ -84,7 +84,7 @@ def test_changing_existing_settings_is_destructive() -> None:
         ("setBulkCallDailyTimeControl", "PUT"),
         ("setBulkCallNumberActive", "PUT"),
         ("updateAgent", "PUT"),
-        ("editWorkflow", "PATCH"),
+        ("workflowActions", "PATCH"),
         ("whatsappCampaignActions", "POST"),
     ):
         a = tool_annotations(name, method)
@@ -165,3 +165,11 @@ def test_a_merged_tool_asks_before_its_strongest_action() -> None:
     assert campaign["openWorldHint"] is True
     providers = tool_annotations("listProviders", "GET")
     assert providers["readOnlyHint"] is True
+
+
+def test_workflow_reads_stay_read_only_after_the_merge() -> None:
+    # One read tool, so read-only tokens (the support agent) keep every workflow read.
+    a = _BY_NAME["workflow"]["annotations"]
+    assert a["readOnlyHint"] is True
+    assert a["destructiveHint"] is False
+    assert _BY_NAME["deleteWorkflow"]["annotations"]["destructiveHint"] is True

@@ -32,25 +32,29 @@ _SHOW_WORKFLOW_DESCRIPTION = (
     "Show a workflow to the user as an interactive canvas in the chat, where they can move, "
     "rename, edit and delete nodes. Call it when the user asks to see a workflow, and once "
     "after you finish building or changing one. Do not call it before every edit: use "
-    "`getWorkflow` to read the draft.\n\n(Tags: Workflows)"
+    "`workflow` with `action` `get` to read the draft.\n\n(Tags: Workflows)"
 )
 
 
 def _show_workflow_tool() -> dict[str, Any]:
-    # Same endpoint as getWorkflow; it exists so the canvas has one trigger, not one per build step.
-    get = next(t for t in TOOLS if t["name"] == "getWorkflow")
+    # Same endpoint as `workflow` action `get`; it exists so the canvas has one trigger, not one
+    # per build step. Its own tool: the canvas view hangs off this tool's name (tool_meta).
+    read = next(t for t in TOOLS if t["name"] == "workflow")
+    get = read["actions"]["get"]
     return {
-        **get,
         "name": "showWorkflow",
         "description": _SHOW_WORKFLOW_DESCRIPTION,
         "input_schema": {
             "type": "object",
-            "properties": {"workflow_id": get["input_schema"]["properties"]["workflow_id"]},
+            "properties": {"workflow_id": read["input_schema"]["properties"]["workflow_id"]},
             "required": ["workflow_id"],
         },
+        "method": get["method"],
+        "path": get["path"],
+        "path_params": get["path_params"],
         "query_params": [],
         "header_params": [],
-        "annotations": {**get["annotations"], "title": "Show workflow canvas"},
+        "annotations": {**read["annotations"], "title": "Show workflow canvas"},
     }
 
 

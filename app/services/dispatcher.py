@@ -43,6 +43,25 @@ LIST_KEYS: Final = (
 )
 
 _TOOLS_BY_NAME: Final = {t["name"]: t for t in (*TOOLS, *EXTRA_TOOLS)}
+# A folded operation's old tool name -> (merged tool, its action field, action). Clients built
+# before a merge (the workflow canvas, saved skills, older chats) still call the old name; it
+# runs as the merged tool and is never listed.
+_FOLDED: Final = {
+    route["operation"]: (t["name"], t.get("field", "action"), action)
+    for t in TOOLS
+    for action, route in t.get("actions", {}).items()
+    if route["operation"] not in _TOOLS_BY_NAME
+}
+
+
+def unfold(name: str, arguments: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """The merged tool and arguments behind an old tool name; other names come back as they are."""
+    folded = _FOLDED.get(name)
+    if folded is None:
+        return name, arguments
+    tool, field, action = folded
+    return tool, {**arguments, field: action}
+
 
 
 def _default_client_factory() -> httpx.AsyncClient:
