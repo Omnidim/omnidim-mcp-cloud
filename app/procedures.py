@@ -249,7 +249,7 @@ _SKILLS = Path(__file__).parent / "vendor" / "omnidim-skills"
 _FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n+", re.S)
 
 
-def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
+def split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
     text = path.read_text(encoding="utf-8-sig")
     match = _FRONTMATTER.match(text)
     if not match:
@@ -263,7 +263,7 @@ def _split_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
 def _playbook_file(path: Path) -> Playbook | None:
     if path.read_text(encoding="utf-8-sig").split("\n", 1)[0] != "---":
         return None
-    meta, body = _split_frontmatter(path)
+    meta, body = split_frontmatter(path)
     if "name" not in meta:
         raise ValueError(f"{path}: the header must give the playbook a name")
     title, steps = body.split("\n", 1)
@@ -302,7 +302,7 @@ _SERVER_ADDITIONS = {
 
 
 def _guide_file(path: Path) -> Guide:
-    meta, body = _split_frontmatter(path)
+    meta, body = split_frontmatter(path)
     uri = f"omnidim://{path.parent.name}/{path.stem}"
     return Guide(
         uri, meta["name"], meta["description"], body.rstrip() + _SERVER_ADDITIONS.get(uri, "")
