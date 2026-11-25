@@ -478,21 +478,3 @@ components:
                 type: boolean
               from_support:
                 type: boolean
-x-extra-parameters:
-  listCallLogs:
-  - name: date_from
-    in: query
-    required: false
-    schema:
-      type: string
-      format: date
-    description: Only calls on or after this day (YYYY-MM-DD, inclusive), in the time zone set on your
-      account. UTC when none is set.
-  - name: date_to
-    in: query
-    required: false
-    schema:
-      type: string
-      format: date
-    description: Only calls on or before this day (YYYY-MM-DD, inclusive), in the time zone set on your
-      account. Must not be earlier than `date_from`.

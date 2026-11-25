@@ -3822,20 +3822,40 @@ _TOOLS_JSON = r"""[
                     "type": "integer",
                     "description": "Filter by bulk-call campaign ID. Takes one ID."
                 },
-                "include_details": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Set to `false` for a lighter list. Each row then leaves out\n`call_conversation`, `sentiment_analysis_details`, `llm_prompt`,\n`voice_insides`, `custom_variables` and `metadata`. Fetch those for\none call with Get call log.\n"
-                },
                 "date_from": {
                     "type": "string",
                     "format": "date",
-                    "description": "Only calls on or after this day (YYYY-MM-DD, inclusive), in the time zone set on your account. UTC when none is set."
+                    "example": "2026-10-01",
+                    "description": "Only calls on or after this day (`YYYY-MM-DD`), in your account's time zone."
                 },
                 "date_to": {
                     "type": "string",
                     "format": "date",
-                    "description": "Only calls on or before this day (YYYY-MM-DD, inclusive), in the time zone set on your account. Must not be earlier than `date_from`."
+                    "example": "2026-10-07",
+                    "description": "Only calls on or before this day (`YYYY-MM-DD`), in your account's time zone. Can't be before `date_from`."
+                },
+                "to_number": {
+                    "type": "string",
+                    "example": "+15551234567",
+                    "description": "Only calls to this phone number. Digits with an optional leading `+`; part of a number matches too, so `5551234567` also finds `+15551234567`."
+                },
+                "from_number": {
+                    "type": "string",
+                    "example": "+15551234567",
+                    "description": "Only calls from this phone number. Same format as `to_number`."
+                },
+                "call_direction": {
+                    "type": "string",
+                    "enum": [
+                        "inbound",
+                        "outbound"
+                    ],
+                    "description": "Only inbound or only outbound calls."
+                },
+                "include_details": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Set to `false` for a lighter list. Each row then leaves out\n`call_conversation`, `sentiment_analysis_details`, `llm_prompt`,\n`voice_insides`, `custom_variables` and `metadata`. Fetch those for\none call with Get call log.\n"
                 }
             },
             "additionalProperties": true
@@ -3849,9 +3869,12 @@ _TOOLS_JSON = r"""[
             "agentid",
             "call_status",
             "bulk_call_id",
-            "include_details",
             "date_from",
-            "date_to"
+            "date_to",
+            "to_number",
+            "from_number",
+            "call_direction",
+            "include_details"
         ],
         "header_params": [],
         "annotations": {
