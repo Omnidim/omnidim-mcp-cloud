@@ -1223,7 +1223,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. `provider=featured` lists OmniDimension voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
@@ -5703,7 +5703,7 @@ _TOOLS_JSON = r"""[
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. We recommend OmniDimension voices (list them with `provider=featured`) and Cartesia voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
+                            "description": "The voice provider to use: the `service` of a voice from the voices list, which returns only voices your organization can use. Send `voice_id` alongside it. `provider=featured` lists OmniDimension voices. An agent created without `voice` gets the platform default, a Cartesia voice, which every account can use.",
                             "example": "cartesia"
                         },
                         "voice_id": {
