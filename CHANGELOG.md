@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.25.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.24.0...v0.25.0) (2026-11-25)
+
+
+### Added
+
+* **wellknown:** serve the ChatGPT plugin domain token ([#156](https://github.com/Omnidim/omnidim-mcp-cloud/issues/156)) ([c210c24](https://github.com/Omnidim/omnidim-mcp-cloud/commit/c210c24445fea36c5c2efef6b7b50e8a701953a0))
+
 ## [0.24.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.23.1...v0.24.0) (2026-11-25)
 
 
