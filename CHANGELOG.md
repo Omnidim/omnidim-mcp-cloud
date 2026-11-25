@@ -2,6 +2,20 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.23.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.22.0...v0.23.0) (2026-11-25)
+
+
+### Added
+
+* Claude loads the OmniDimension skills straight from the connector ([#147](https://github.com/Omnidim/omnidim-mcp-cloud/issues/147)) ([ac1f5d9](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ac1f5d99f74e4bfbb01d7a76fee0ba0646cbd570))
+* name the website each connected AI app signs in from ([#148](https://github.com/Omnidim/omnidim-mcp-cloud/issues/148)) ([0c5faa0](https://github.com/Omnidim/omnidim-mcp-cloud/commit/0c5faa01d8aaa40076f9bf37d09580d1430ed46e))
+
+
+### Fixed
+
+* name the merged tool where a tool description names a folded operation ([#150](https://github.com/Omnidim/omnidim-mcp-cloud/issues/150)) ([2938aa6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/2938aa6a30d59b9d5215134ff2c415d0cde5ecfd))
+* sync the skills from Omnidim/skills ce71fca, so served skills point at the MCP setup docs ([#151](https://github.com/Omnidim/omnidim-mcp-cloud/issues/151)) ([816a132](https://github.com/Omnidim/omnidim-mcp-cloud/commit/816a1328ff701a7673cea2d723903e80dd731eff))
+
 ## [0.22.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.2...v0.22.0) (2026-11-24)
 
 
