@@ -2,6 +2,13 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.26.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.26.0...v0.26.1) (2026-11-25)
+
+
+### Fixed
+
+* drop the sales link and voice ranking from agent and voice tool text ([#164](https://github.com/Omnidim/omnidim-mcp-cloud/issues/164)) ([ca5a5d8](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ca5a5d8bd21dfa520f442df71868939df7e4d3d4))
+
 ## [0.26.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.25.0...v0.26.0) (2026-11-25)
 
 
