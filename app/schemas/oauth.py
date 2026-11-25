@@ -80,6 +80,7 @@ class IssueCodeRequest(BaseModel):
     odoo_api_key_id: int
     odoo_api_key_value: str | None = None
     approved_scope: str
+    browser_id: str | None = Field(default=None, min_length=32, max_length=128)
 
 
 class IssueTokenRequest(BaseModel):
@@ -105,6 +106,15 @@ class IssueTokenResponse(BaseModel):
 class IssueCodeResponse(BaseModel):
     code: str
     redirect_to: str
+
+
+class DisconnectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    odoo_user_id: int
+    apps: list[Annotated[str, Field(min_length=1, max_length=255)]] = Field(
+        min_length=1, max_length=20
+    )
 
 
 class DenyRequest(BaseModel):

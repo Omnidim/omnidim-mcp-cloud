@@ -31,3 +31,21 @@ def test_each_variant_carries_a_marker_for_every_given_value() -> None:
     pinned = next(v for v in campaign["variants"] if v["given"] == ["agent_id", "goal"])
     assert _module.marker("agent_id") in pinned["text"]
     assert "bot_id" in pinned["text"]
+
+
+def test_the_npm_export_carries_each_served_skill_byte_for_byte() -> None:
+    vendor = Path(__file__).resolve().parents[1] / "app" / "vendor" / "omnidim-skills" / "skills"
+
+    skills = {s["name"]: s for s in _module.playbooks()["skills"]}
+
+    assert set(skills) == {
+        "omnidim-audit-calls",
+        "omnidim-build-agent",
+        "omnidim-build-workflow",
+        "omnidim-onboard-client",
+        "omnidim-run-campaign",
+    }
+    assert [n for n, s in skills.items() if s["readOnly"]] == ["omnidim-audit-calls"]
+    for name, skill in skills.items():
+        on_disk = {p.name: p.read_text() for p in (vendor / name).iterdir()}
+        assert {f["path"]: f["text"] for f in skill["files"]} == on_disk

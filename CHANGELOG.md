@@ -2,6 +2,41 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.23.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.22.0...v0.23.0) (2026-11-25)
+
+
+### Added
+
+* Claude loads the OmniDimension skills straight from the connector ([#147](https://github.com/Omnidim/omnidim-mcp-cloud/issues/147)) ([ac1f5d9](https://github.com/Omnidim/omnidim-mcp-cloud/commit/ac1f5d99f74e4bfbb01d7a76fee0ba0646cbd570))
+* name the website each connected AI app signs in from ([#148](https://github.com/Omnidim/omnidim-mcp-cloud/issues/148)) ([0c5faa0](https://github.com/Omnidim/omnidim-mcp-cloud/commit/0c5faa01d8aaa40076f9bf37d09580d1430ed46e))
+
+
+### Fixed
+
+* name the merged tool where a tool description names a folded operation ([#150](https://github.com/Omnidim/omnidim-mcp-cloud/issues/150)) ([2938aa6](https://github.com/Omnidim/omnidim-mcp-cloud/commit/2938aa6a30d59b9d5215134ff2c415d0cde5ecfd))
+* sync the skills from Omnidim/skills ce71fca, so served skills point at the MCP setup docs ([#151](https://github.com/Omnidim/omnidim-mcp-cloud/issues/151)) ([816a132](https://github.com/Omnidim/omnidim-mcp-cloud/commit/816a1328ff701a7673cea2d723903e80dd731eff))
+
+## [0.22.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.2...v0.22.0) (2026-11-24)
+
+
+### Added
+
+* list and disconnect a user's connected apps over the internal API ([#145](https://github.com/Omnidim/omnidim-mcp-cloud/issues/145)) ([e447c5c](https://github.com/Omnidim/omnidim-mcp-cloud/commit/e447c5cea0b18692c1f40e21c1057a6e50081042))
+
+## [0.21.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.1...v0.21.2) (2026-11-24)
+
+
+### Fixed
+
+* replace a browser's older MCP grant when it approves the same app again ([#143](https://github.com/Omnidim/omnidim-mcp-cloud/issues/143)) ([7c93539](https://github.com/Omnidim/omnidim-mcp-cloud/commit/7c935398956951d8e9f9d5d58cc5d86a2aea94db))
+
+## [0.21.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.21.0...v0.21.1) (2026-11-24)
+
+
+### Fixed
+
+* answer ping, accept every notification and list no resource templates, as the MCP spec asks ([#141](https://github.com/Omnidim/omnidim-mcp-cloud/issues/141)) ([99541ef](https://github.com/Omnidim/omnidim-mcp-cloud/commit/99541efe65278d4dcb93b2ff1d6ad5a300078efa))
+
 ## [0.21.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.20.0...v0.21.0) (2026-11-24)
 
 

@@ -38,6 +38,7 @@ class AuthorizationCode(Base, TimestampMixin):
     odoo_user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     odoo_api_key_id: Mapped[int] = mapped_column(Integer, nullable=False)
     odoo_api_key_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    browser_id_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     redirect_uri: Mapped[str] = mapped_column(Text, nullable=False)
     scope: Mapped[str] = mapped_column(Text, nullable=False)
     code_challenge: Mapped[str] = mapped_column(Text, nullable=False)
@@ -82,6 +83,7 @@ class AccessToken(Base, TimestampMixin):
     odoo_api_key_id: Mapped[int] = mapped_column(Integer, nullable=False)
     odoo_api_key_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     grant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    browser_id_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     scope: Mapped[str] = mapped_column(Text, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
@@ -107,6 +109,11 @@ class RefreshToken(Base, TimestampMixin):
 
 
 Index("ix_oauth_access_token_grant_id_revoked", AccessToken.grant_id, AccessToken.revoked_at)
+Index(
+    "ix_oauth_access_token_browser_id_hash",
+    AccessToken.browser_id_hash,
+    postgresql_where=AccessToken.browser_id_hash.isnot(None),
+)
 Index(
     "ix_oauth_refresh_token_grant_id_consumed", RefreshToken.grant_id, RefreshToken.consumed_at
 )

@@ -16,6 +16,7 @@ from app.procedures import (
     prompts_for_listing,
     resources_for_listing,
 )
+from app.skills import REACH, SKILLS_DIR, load_skills
 
 
 def marker(arg: str) -> str:
@@ -49,6 +50,14 @@ def playbooks() -> dict[str, Any]:
             }
             for r in resources_for_listing()
             if r["mimeType"] == "text/markdown"
+        ],
+        "skills": [
+            {
+                "name": skill.frontmatter["name"],
+                "readOnly": skill.served_on(read_only=True),
+                "files": [{"path": f.uri.split("/", 3)[3], "text": f.text} for f in skill.files],
+            }
+            for skill in load_skills(SKILLS_DIR, REACH).values()
         ],
     }
 

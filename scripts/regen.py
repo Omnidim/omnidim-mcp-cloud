@@ -611,10 +611,20 @@ def build_tools(
                 tools.append(tool)
     groups = spec.get("x-mcp-tools") or {}
     single_names = {t["name"] for t in tools}
+    folded: dict[str, str] = {}
     for name, members in to_merge.items():
         if name in single_names:
             raise SystemExit(f"{name} is both a merged tool and another tool")
-        tools.append(merged_tool(name, _merge_group(name, groups), members))
+        merged = merged_tool(name, _merge_group(name, groups), members)
+        tools.append(merged)
+        for tool, marks in members:
+            if tool["name"] != name:
+                action = merge_actions(marks["merge"])[0]
+                folded[tool["name"]] = f"`{name}` with `{merged['field']}` `{action}`"
+    for tool in tools:
+        tool["description"] = re.sub(
+            r"`(\w+)`", lambda m: folded.get(m[1], m[0]), tool["description"]
+        )
     tools.sort(key=lambda t: t["name"])
     return tools, skipped
 

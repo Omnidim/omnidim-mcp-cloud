@@ -146,7 +146,24 @@ async def test_mcp_initialized_notification_returns_202(client: AsyncClient) -> 
     assert res.status_code == 202
 
 
-async def test_mcp_ping_returns_empty_result(client: AsyncClient) -> None:
+@pytest.mark.parametrize(
+    "method",
+    ["notifications/roots/list_changed", "notifications/cancelled", "notifications/progress"],
+)
+async def test_mcp_accepts_every_notification_with_an_empty_202(
+    client: AsyncClient, method: str
+) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "method": method, "params": {}},
+    )
+    assert res.status_code == 202
+    assert res.content == b""
+
+
+async def test_mcp_ping_answers_with_an_empty_result(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     res = await client.post(
         "/mcp",
@@ -209,6 +226,27 @@ async def test_mcp_tools_call_uses_configured_backend_base_url(
     )
     (sent,) = captured
     assert str(sent.url).startswith("http://localhost:8070/api/v1/agents")
+
+
+async def test_mcp_lists_no_resource_templates(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 8, "method": "resources/templates/list"},
+    )
+    assert res.status_code == 200
+    assert res.json()["result"] == {"resourceTemplates": []}
+
+
+async def test_mcp_still_refuses_an_unknown_request(client: AsyncClient) -> None:
+    token = await _mint_access_token(client)
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"jsonrpc": "2.0", "id": 9, "method": "server/discover"},
+    )
+    assert res.json()["error"]["code"] == -32601
 
 
 async def test_mcp_tools_list_matches_generated_registry(client: AsyncClient) -> None:
