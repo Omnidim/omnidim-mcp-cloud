@@ -1234,8 +1234,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -1391,7 +1391,7 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is turned on per account. If it is off for yours, ask OmniDimension support to turn it on.",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
@@ -1587,7 +1587,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -4108,7 +4108,7 @@ _TOOLS_JSON = r"""[
                 "provider": {
                     "type": "string",
                     "example": "featured",
-                    "description": "Provider to list voices from. Omit to list every voice your organization can use.\n`featured` lists OmniDimension voices and is the recommended choice, followed by\n`cartesia`. A provider your organization cannot use returns a 400.\n"
+                    "description": "Provider to list voices from. Omit to list every voice your organization can use.\n`featured` lists OmniDimension voices. A provider your organization cannot use\nreturns a 400.\n"
                 },
                 "search": {
                     "type": "string",
@@ -5714,8 +5714,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -5871,7 +5871,7 @@ _TOOLS_JSON = r"""[
                 },
                 "voicemail": {
                     "type": "object",
-                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is an access-gated feature. If it isn't enabled for your account, [request access](https://omnidim.io/contact-us?reason=product&lock=1).",
+                    "description": "Voicemail / answering-machine handling for outbound calls. Set this with the nested object shown here; the agent object returns these values as the flat fields `voicemail_enabled` and `voicemail_message`. Voicemail detection is turned on per account. If it is off for yours, ask OmniDimension support to turn it on.",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
