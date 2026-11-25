@@ -1740,7 +1740,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createCustomApiIntegration",
-        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration.\n\nAttach it to an agent with `attachAgentIntegration`. The agent calls the\nendpoint during a call when the conversation needs it, then uses the\nresponse in its reply. The agent fills parameters marked `isLLMGenerated`\nfrom the conversation.",
+        "description": "Create a custom API integration. Save a call to your own HTTP endpoint as an integration.\n\nAttach it to an agent with `agentIntegrationActions` with `action` `attach`. The agent calls the\nendpoint during a call when the conversation needs it, then uses the\nresponse in its reply. The agent fills parameters marked `isLLMGenerated`\nfrom the conversation.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2283,7 +2283,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "deleteWorkflow",
-        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `deactivateWorkflow`.",
+        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `workflowActions` with `action` `deactivate`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -6075,7 +6075,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "whatsappConversationActions",
-        "description": "Take a conversation from the agent so your team answers, or hand it back to the agent.\n\nSet `action` to pick what to do.\n\n`take_over`: Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`handBackWhatsappConversation` when the person is done.\n\n`hand_back`: Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
+        "description": "Take a conversation from the agent so your team answers, or hand it back to the agent.\n\nSet `action` to pick what to do.\n\n`take_over`: Take over a conversation. Take the conversation from the agent, so it stops replying and your team\nanswers.\n\nRepeating it changes nothing. Hand it back with\n`whatsappConversationActions` with `action` `hand_back` when the person is done.\n\n`hand_back`: Hand a conversation back. Give the conversation back to the agent and clear any pause.\n\nThe agent answers the customer's next message. Repeating it changes nothing.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -6144,7 +6144,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "workflowActions",
-        "description": "Turn a published workflow on, or turn it off.\n\nSet `action` to pick what to do.\n\n`activate`: Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `deactivateWorkflow`.\n\n`deactivate`: Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
+        "description": "Turn a published workflow on, or turn it off.\n\nSet `action` to pick what to do.\n\n`activate`: Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `workflowActions` with `action` `deactivate`.\n\n`deactivate`: Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`workflowActions` with `action` `activate` to turn it back on.",
         "input_schema": {
             "type": "object",
             "properties": {
