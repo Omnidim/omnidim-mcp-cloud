@@ -25,7 +25,7 @@ def _payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _json_part(text: str) -> Any:
-    return json.loads(text.split("\n\n[")[0])
+    return json.loads(text)
 
 
 def test_one_large_call_log_keeps_transcript_recording_and_cost() -> None:
@@ -40,7 +40,7 @@ def test_one_large_call_log_keeps_transcript_recording_and_cost() -> None:
     assert row["recording_url"] == "https://example.com/rec/1.mp3"
     assert row["call_cost"] == 0.42
     assert "interactions" not in row
-    assert "interactions" in text.split("\n\n[")[1]
+    assert "interactions" in _json_part(text)["_note"]
 
 
 def test_a_page_of_call_logs_drops_turn_detail_before_rows() -> None:
@@ -84,3 +84,36 @@ def test_a_cut_page_never_hands_back_a_cursor_that_skips_the_cut_rows() -> None:
 def test_a_page_that_fits_keeps_its_cursor() -> None:
     payload = {"records": [{"id": 1}], "has_more": True, "next_cursor": "abc"}
     assert _json_part(_trim(payload).text)["next_cursor"] == "abc"
+
+
+def test_one_oversized_item_keeps_its_shape_and_shortens_long_text() -> None:
+    call = {"id": 173415, "bot_name": "Test Call Agent", "call_conversation": "y" * 61_000}
+    text = _trim({"call_log_data": [call], "total_records": 1}).text
+    assert len(text) <= MAX_LIST_CHARS
+    parsed = json.loads(text)
+    (kept,) = parsed["call_log_data"]
+    assert kept["id"] == 173415 and kept["bot_name"] == "Test Call Agent"
+    assert "truncated" in kept["call_conversation"]
+    assert "truncated" in parsed["_note"]
+
+
+def test_oversized_object_without_a_list_stays_valid_json() -> None:
+    parsed = json.loads(_trim({"id": 9, "prompt": "z" * 80_000}).text)
+    assert parsed["id"] == 9 and len(parsed["prompt"]) < 80_000
+
+
+def test_one_item_with_a_long_nested_list_is_shortened_not_dropped() -> None:
+    turns = [{"role": "user", "text": f"turn {i} " + "w" * 120} for i in range(600)]
+    call = {"id": 173415, "bot_name": "Test Call Agent", "transcript": turns}
+    parsed = json.loads(_trim({"call_log_data": [call], "total_records": 1}).text)
+    (kept,) = parsed["call_log_data"]
+    assert kept["id"] == 173415
+    assert 1 <= len(kept["transcript"]) < 600
+    assert "truncated" in parsed["_note"]
+
+
+def test_a_cut_list_result_stays_valid_json() -> None:
+    payload = {"bots": [{"id": i, "prompt": "x" * 500} for i in range(200)], "total_records": 200}
+    parsed = json.loads(_trim(payload).text)
+    assert 1 <= len(parsed["bots"]) < 200
+    assert "of 200 items" in parsed["_note"]

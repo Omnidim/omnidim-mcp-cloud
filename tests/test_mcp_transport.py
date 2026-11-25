@@ -174,6 +174,60 @@ async def test_mcp_ping_answers_with_an_empty_result(client: AsyncClient) -> Non
     assert res.json() == {"jsonrpc": "2.0", "id": 7, "result": {}}
 
 
+async def test_mcp_ping_requires_bearer(client: AsyncClient) -> None:
+    res = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 7, "method": "ping"})
+    assert res.status_code == 401
+
+
+async def test_list_call_logs_proxies_date_range(client: AsyncClient, mock_backend) -> None:
+    token = await _mint_access_token(client)
+    captured = mock_backend(
+        lambda req: httpx.Response(200, json={"call_log_data": [], "total_records": 0})
+    )
+    res = await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "listCallLogs",
+                "arguments": {"date_from": "2026-10-01", "date_to": "2026-10-07"},
+            },
+        },
+    )
+    assert res.json()["result"]["isError"] is False
+    (sent,) = captured
+    assert sent.url.path == "/api/v1/calls/logs"
+    assert sent.url.params["date_from"] == "2026-10-01"
+    assert sent.url.params["date_to"] == "2026-10-07"
+    props = next(t for t in TOOLS if t["name"] == "listCallLogs")["input_schema"]["properties"]
+    assert {"date_from", "date_to"} <= set(props)
+
+
+async def test_mcp_tools_call_uses_configured_backend_base_url(
+    client: AsyncClient, mock_backend, monkeypatch
+) -> None:
+    from app.config import get_settings
+
+    token = await _mint_access_token(client)
+    monkeypatch.setattr(get_settings(), "backend_base_url", "http://localhost:8070/api/v1/")
+    captured = mock_backend(lambda req: httpx.Response(200, json={"bots": [], "total_records": 0}))
+    await client.post(
+        "/mcp",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "listAgents", "arguments": {"pageno": 1}},
+        },
+    )
+    (sent,) = captured
+    assert str(sent.url).startswith("http://localhost:8070/api/v1/agents")
+
+
 async def test_mcp_lists_no_resource_templates(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
     res = await client.post(
@@ -204,10 +258,10 @@ async def test_mcp_tools_list_matches_generated_registry(client: AsyncClient) ->
     )
     assert res.status_code == 200
     tools = res.json()["result"]["tools"]
-    # The generated registry plus the hand-written tools (showWorkflow), nothing else.
-    assert len(tools) == len(TOOLS) + len(EXTRA_TOOLS)
+    # The generated registry plus the hand-written tools (showWorkflow), minus operator-only.
     names_in = {t["name"] for t in tools}
-    names_expected = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS)}
+    names_expected = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS) if not t.get("operator_only")}
+    assert len(tools) == len(names_expected)
     assert names_in == names_expected
     # Spot-check the shape of one tool.
     sample = next(t for t in tools if t["name"] == "listAgents")

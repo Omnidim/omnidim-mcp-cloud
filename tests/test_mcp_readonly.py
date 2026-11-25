@@ -10,7 +10,9 @@ from app._generated.tools import TOOLS
 from app.procedures import EXTRA_TOOLS
 from tests.test_mcp_transport import _mint_access_token, mock_backend  # noqa: F401
 
-READ_ONLY = {t["name"] for t in (*TOOLS, *EXTRA_TOOLS) if t["annotations"].get("readOnlyHint")}
+# Operator-only tools never reach an ordinary OAuth client.
+PUBLIC = [t for t in (*TOOLS, *EXTRA_TOOLS) if not t.get("operator_only")]
+READ_ONLY = {t["name"] for t in PUBLIC if t["annotations"].get("readOnlyHint")}
 
 
 async def _rpc(client: AsyncClient, token: str, path: str, method: str, params: Any = None) -> Any:
@@ -84,4 +86,4 @@ async def test_full_endpoint_still_lists_every_tool(client: AsyncClient) -> None
 
     tools = (await _rpc(client, token, "/mcp", "tools/list"))["result"]["tools"]
 
-    assert len(tools) == len(TOOLS) + len(EXTRA_TOOLS)
+    assert len(tools) == len(PUBLIC)

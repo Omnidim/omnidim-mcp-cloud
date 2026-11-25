@@ -19,9 +19,12 @@ from app.schemas.oauth import (
     DisconnectRequest,
     IssueCodeRequest,
     IssueCodeResponse,
+    IssueTokenRequest,
+    IssueTokenResponse,
 )
 from app.services.connections import end_connections, list_connections, web_site
 from app.services.issue_code import IssueCodeError, deny_request, issue_code
+from app.services.token import TokenError, issue_operator_token
 from app.services.upstream_keys import revoke_api_keys
 
 log = structlog.get_logger()
@@ -137,6 +140,34 @@ async def post_deny(
             detail={"error": exc.code, "error_description": exc.description},
         ) from exc
     return DenyResponse(redirect_to=redirect_to)
+
+
+@router.post(
+    "/issue-token",
+    dependencies=[Depends(_require_shared_secret)],
+    response_model=IssueTokenResponse,
+)
+async def post_issue_token(
+    body: IssueTokenRequest,
+    factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> IssueTokenResponse:
+    """Mint an MCP access token for an operator (OmniOP) session, no OAuth round trip."""
+    try:
+        async with factory() as session:
+            issued = await issue_operator_token(
+                session,
+                odoo_user_id=body.odoo_user_id,
+                odoo_api_key_id=body.odoo_api_key_id,
+                odoo_api_key_value=body.odoo_api_key_value,
+                scope=body.scope,
+            )
+            await session.commit()
+    except TokenError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"error": exc.code, "error_description": exc.description},
+        ) from exc
+    return IssueTokenResponse.model_validate(issued)
 
 
 @router.get("/connections/{odoo_user_id}", dependencies=[Depends(_require_shared_secret)])

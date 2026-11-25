@@ -15,12 +15,12 @@ from opentelemetry.trace import StatusCode
 
 from app import __version__
 from app._generated.tools import TOOLS
+from app.config import get_settings
 from app.procedures import EXTRA_TOOLS
 from app.services.bearer import ResolvedToken
 
 log = structlog.get_logger()
 
-BACKEND_BASE_URL: Final = "https://omnidim.io/api/v1"
 USER_AGENT: Final = f"omnidim-mcp-cloud/{__version__}"
 TIMEOUT_SECONDS: Final = 60.0
 MAX_LIST_CHARS: Final = 25_000
@@ -127,7 +127,29 @@ def _without_turn_detail(data: Any) -> tuple[Any, bool]:
     return ({**data, key: slim} if key is not None else slim), True
 
 
+def _shorten(value: Any, limit: int, items: int) -> Any:
+    """Cut long strings to `limit` chars and long lists to `items` entries, keeping the shape."""
+    if isinstance(value, str) and len(value) > limit:
+        return value[:limit] + f"...[truncated {len(value) - limit} chars]"
+    if isinstance(value, dict):
+        return {k: _shorten(v, limit, items) for k, v in value.items()}
+    if isinstance(value, list):
+        kept = [_shorten(v, limit, items) for v in value[:items]]
+        if len(value) > items:
+            kept.append(f"...[truncated {len(value) - items} more items]")
+        return kept
+    return value
+
+
+def _with_note(data: Any, note: str) -> str:
+    # The note rides inside the JSON so clients can always parse the result.
+    if isinstance(data, dict):
+        return json.dumps({**data, "_note": note}, indent=2, ensure_ascii=False)
+    return json.dumps({"items": data, "_note": note}, indent=2, ensure_ascii=False)
+
+
 def _trim(data: Any) -> ToolResult:
+    """Fit a result under MAX_LIST_CHARS while keeping it valid JSON."""
     redacted = _redact(data)
     full = json.dumps(redacted, indent=2, ensure_ascii=False)
     if len(full) <= MAX_LIST_CHARS:
@@ -140,38 +162,51 @@ def _trim(data: Any) -> ToolResult:
         slim_text = json.dumps(slim, indent=2, ensure_ascii=False)
         if len(slim_text) <= MAX_LIST_CHARS:
             note = (
-                "\n\n[Left out per-turn detail (interactions) to fit. call_conversation "
-                "has the transcript.]"
+                "Left out per-turn detail (interactions) to fit. call_conversation "
+                "has the transcript."
             )
-            return ToolResult(text=slim_text + note)
+            return ToolResult(text=_with_note(slim, note))
         redacted, full = slim, slim_text
 
     found = _find_list(redacted)
-    if found is None:
-        return ToolResult(text=full)
-
-    arr, key = found
-    page_links = ("next_cursor", "has_more")
-    kept = len(arr)
-    while kept > 1:
-        trimmed = arr[:kept]
+    if found is not None:
+        arr, key = found
+        page_links = ("next_cursor", "has_more")
+        kept = len(arr)
+        while kept > 1:
+            trimmed = arr[:kept]
+            body: Any = trimmed
+            if key is not None and isinstance(redacted, dict):
+                rest = {k: v for k, v in redacted.items() if k not in page_links}
+                body = {**rest, key: trimmed}
+            note = (
+                f"Showing {kept} of {len(arr)} items.{drop_note} The rest were cut to fit, "
+                f"and the next page would skip them: ask again with pagesize {kept} to read "
+                "every row, filter, or fetch a specific item by ID for full detail."
+            )
+            candidate = _with_note(body, note)
+            if len(candidate) <= MAX_LIST_CHARS:
+                return ToolResult(text=candidate)
+            kept = max(1, int(kept * 0.6))
         if key is not None and isinstance(redacted, dict):
             rest = {k: v for k, v in redacted.items() if k not in page_links}
-            candidate = json.dumps({**rest, key: trimmed}, indent=2, ensure_ascii=False)
+            redacted = {**rest, key: arr[:1]}
         else:
-            candidate = json.dumps(trimmed, indent=2, ensure_ascii=False)
-        if len(candidate) <= MAX_LIST_CHARS:
-            note = (
-                f"\n\n[Showing {kept} of {len(arr)} items.{drop_note} The rest were cut to fit, "
-                f"and the next page would skip them: ask again with pagesize {kept} to read every "
-                "row, filter, or fetch a specific item by ID for full detail.]"
-            )
-            return ToolResult(text=candidate + note)
-        kept = max(1, int(kept * 0.6))
+            redacted = arr[:1]
 
+    # Still too big (one huge item, or no list): shorten long strings and nested lists.
+    # ponytail: halving both caps until it fits; fine for the few huge fields (transcripts).
+    limit, items = 4000, 200
+    while limit >= 50:
+        candidate = _with_note(
+            _shorten(redacted, limit, items),
+            f"Long text fields were truncated. Full size: {len(full)} chars.{drop_note}",
+        )
+        if len(candidate) <= MAX_LIST_CHARS:
+            return ToolResult(text=candidate)
+        limit, items = limit // 2, max(1, items // 2)
     return ToolResult(
-        text=full[:MAX_LIST_CHARS]
-        + f"\n\n[Response truncated. Full size: {len(full)} chars.{drop_note}]",
+        text=_with_note({}, f"Result too large to return ({len(full)} chars). Fetch by ID.")
     )
 
 
@@ -315,7 +350,7 @@ async def dispatch_tool(
         arguments, route["path_params"], route["query_params"], route["header_params"]
     )
 
-    url = f"{BACKEND_BASE_URL}{path}"
+    url = f"{get_settings().backend_base_url.rstrip('/')}{path}"
     # Spec headers first, so a tool argument can never replace the credential.
     headers = {
         **spec_headers,
