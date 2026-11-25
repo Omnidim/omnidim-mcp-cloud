@@ -15,7 +15,6 @@ FULL_SKILLS = {
     "omnidim-audit-calls",
     "omnidim-build-agent",
     "omnidim-build-workflow",
-    "omnidim-onboard-client",
     "omnidim-run-campaign",
 }
 

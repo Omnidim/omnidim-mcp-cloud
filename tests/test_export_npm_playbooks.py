@@ -42,7 +42,6 @@ def test_the_npm_export_carries_each_served_skill_byte_for_byte() -> None:
         "omnidim-audit-calls",
         "omnidim-build-agent",
         "omnidim-build-workflow",
-        "omnidim-onboard-client",
         "omnidim-run-campaign",
     }
     assert [n for n, s in skills.items() if s["readOnly"]] == ["omnidim-audit-calls"]
