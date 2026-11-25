@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,16 @@ class Connection:
     connections: int
     connected_at: datetime
     last_active_at: datetime
+    used_redirects: list[str]
+
+
+def web_site(used_redirects: list[str]) -> str | None:
+    hosts = sorted(
+        host.removeprefix("www.")
+        for uri in used_redirects
+        if (parts := urlsplit(uri)).scheme == "https" and (host := parts.hostname)
+    )
+    return hosts[0] if hosts else None
 
 
 async def list_connections(
@@ -24,10 +35,15 @@ async def list_connections(
         text(
             """
             SELECT c.client_name, count(DISTINCT r.grant_id),
-                   min(a.created_at), max(a.created_at)
+                   min(a.created_at), max(a.created_at),
+                   array_remove(array_agg(DISTINCT code.redirect_uri), NULL)
             FROM oauth_refresh_token r
             JOIN oauth_client c ON c.client_id = r.client_id
             JOIN oauth_access_token a ON a.grant_id = r.grant_id
+            LEFT JOIN oauth_authorization_code code
+              ON code.client_id = r.client_id
+             AND code.odoo_user_id = r.odoo_user_id
+             AND code.consumed_at IS NOT NULL
             WHERE r.odoo_user_id = :odoo_user_id
               AND r.consumed_at IS NULL
               AND r.expires_at > :now

@@ -62,6 +62,21 @@ def test_merged_operations_become_one_tool_with_an_action_field() -> None:
     assert "deactivateWorkflow summary" in tool["description"]
 
 
+def test_a_description_names_the_merged_tool_in_place_of_a_folded_operation() -> None:
+    spec = _workflow_spec()
+    spec["paths"]["/workflows"]["get"]["description"] = "To pause one, use `deactivateWorkflow`."
+    spec["paths"]["/workflows/{workflow_id}/activate"]["post"]["description"] = (
+        "Undo it with `deactivateWorkflow`."
+    )
+    tools = _by_name(spec)
+
+    pointer = "use `workflowActions` with `action` `deactivate`."
+    assert pointer in tools["listWorkflows"]["description"]
+    merged = tools["workflowActions"]["description"]
+    assert "Undo it with `workflowActions` with `action` `deactivate`." in merged
+    assert "`deactivateWorkflow`" not in merged
+
+
 def test_each_action_keeps_its_own_route() -> None:
     routes = _by_name(_workflow_spec())["workflowActions"]["actions"]
     assert routes["deactivate"]["operation"] == "deactivateWorkflow"
