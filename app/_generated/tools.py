@@ -14,36 +14,6 @@ Tool = dict[str, Any]
 
 _TOOLS_JSON = r"""[
     {
-        "name": "activateWorkflow",
-        "description": "Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `deactivateWorkflow`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/activate",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Turn workflow on",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "addBulkCallContact",
         "description": "Add contact to dynamic campaign. Push one contact into a dynamic bulk-call campaign.\n\nDynamic campaigns are created from the dashboard (Bulk Call > Create New\nCampaign > Dynamic Campaign) and wait for contacts. Use this webhook to feed\nthem from a CRM, form or automation platform. The contact is queued at once.\nThe campaign calls it as soon as it is within operating hours.",
         "input_schema": {
@@ -1031,7 +1001,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "createAgent",
-        "description": "Create agent. Create an agent from a name and a context. Every other setting is optional.\n\nOptional settings: transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM, Cloud\nWhatsApp, or a workflow), ambient background track, initial ringing\nsound and multilingual support.\n\nLeave out `model`, `transcriber` and `voice` to get your organization's\ndefaults, which always work. To pick one, use the LLM, STT or TTS provider\nlist: it shows only the models your organization can use. Any other model is\nrefused, and the error names the default to use.\n\n> **Voicemail detection is turned on per account.** If it is off for yours, ask OmniDimension support to turn it on before you configure the `voicemail` object.",
+        "description": "Create agent. Create an agent from a name and a context. Every other setting is optional.\n\nOptional settings: transcriber, model, voice, web search, transfer,\nend-call conditions, post-call actions (email, webhook, Omni CRM, Cloud\nWhatsApp, or a workflow), ambient background track, initial ringing\nsound and multilingual support.\n\nLeave out `model`, `transcriber` and `voice` to get your organization's\ndefaults, which always work. To pick one, use the LLM, STT or TTS provider\nlist: it shows only the models your organization can use. Any other model is\nrefused, and the error names the default to use.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -1234,8 +1204,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -1587,7 +1557,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2188,137 +2158,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "createWorkflow",
-        "description": "Create a workflow. Create a workflow with a draft.\n\nWithout `graph`, the draft holds one `trigger` node, ready for\n`editWorkflow` ops. Pass `graph` only to start from a complete graph. The\nresponse carries the `revision` you need to edit.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "A non-empty name."
-                },
-                "graph": {
-                    "type": "object",
-                    "description": "A complete graph to start a workflow from, in the same shape `getWorkflow`\nreturns under `draft`. A workflow you read can be sent back as a new one.\nIt is built with the same checks as `editWorkflow` ops. Most callers skip it\nand build with `editWorkflow` instead.\n",
-                    "required": [
-                        "nodes",
-                        "edges"
-                    ],
-                    "properties": {
-                        "nodes": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "required": [
-                                    "id",
-                                    "type"
-                                ],
-                                "properties": {
-                                    "id": {
-                                        "type": "string",
-                                        "description": "Lowercase letters, digits and underscores, starting with a letter. Later nodes read this node's output as `{{ context.<id>.<field> }}`."
-                                    },
-                                    "type": {
-                                        "type": "string",
-                                        "description": "A node type from `listWorkflowNodeTypes`."
-                                    },
-                                    "label": {
-                                        "type": "string"
-                                    },
-                                    "position": {
-                                        "type": "object",
-                                        "properties": {
-                                            "x": {
-                                                "type": "number"
-                                            },
-                                            "y": {
-                                                "type": "number"
-                                            }
-                                        }
-                                    },
-                                    "config": {
-                                        "type": "object",
-                                        "additionalProperties": true,
-                                        "description": "The node's settings. The fields come from `getWorkflowNodeType`."
-                                    }
-                                }
-                            }
-                        },
-                        "edges": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "required": [
-                                    "from",
-                                    "to"
-                                ],
-                                "properties": {
-                                    "from": {
-                                        "type": "string",
-                                        "description": "Id of the node the edge starts at."
-                                    },
-                                    "to": {
-                                        "type": "string",
-                                        "description": "Id of the node the edge ends at."
-                                    },
-                                    "handle": {
-                                        "type": "string",
-                                        "description": "The output of the `from` node. Omit it, or send `default`, for a plain node's only output."
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "required": [
-                "name"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows",
-        "path_params": [],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Create workflow",
-            "readOnlyHint": false,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "deactivateWorkflow",
-        "description": "Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`activateWorkflow` to turn it back on.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/deactivate",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Turn workflow off",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "deleteAgent",
         "description": "Delete agent. Permanently delete an agent.",
         "input_schema": {
@@ -2445,7 +2284,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "deleteWorkflow",
-        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `deactivateWorkflow`.",
+        "description": "Delete a workflow. Delete a workflow and stop its published version.\n\nThis cannot be undone, so confirm with the user first. To stop it without\ndeleting, use `workflowActions` with `action` `deactivate`.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2599,114 +2438,6 @@ _TOOLS_JSON = r"""[
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": true
-        }
-    },
-    {
-        "name": "editWorkflow",
-        "description": "Edit a workflow draft. Change the draft with a list of `ops`.\n\nOps add, update, move or delete nodes, and connect or disconnect them. They\napply all together or not at all. Send the `revision` from your last read.\nOn `409 revision_conflict`, read the workflow again and retry.\n\nSecrets read back as `********`. Send them back unchanged to keep the stored\nvalue. This edits the draft only. Use `publishWorkflow` to make it live.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                },
-                "revision": {
-                    "type": "string",
-                    "description": "The `draft.revision` from your last `getWorkflow` or edit."
-                },
-                "ops": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "description": "One edit to the draft. Set `op` and the fields that op uses.\n\n| `op` | Fields | Effect |\n|---|---|---|\n| `add_node` | `id`, `type`, `label?`, `config?`, `after?`, `handle?`, `position?` | Adds a node. With `after`, it also connects it to that node (on output `handle`). |\n| `update_node` | `id`, `config?`, `label?` | Merges `config` keys into the node. A `null` value removes a key. |\n| `move_node` | `id`, `position` | Moves a node on the canvas. |\n| `delete_node` | `id` | Deletes a node and its edges. |\n| `connect` | `from`, `to`, `handle?` | Adds an edge. |\n| `disconnect` | `from`, `to`, `handle?` | Removes an edge. |\n",
-                        "required": [
-                            "op"
-                        ],
-                        "properties": {
-                            "op": {
-                                "type": "string",
-                                "enum": [
-                                    "add_node",
-                                    "update_node",
-                                    "move_node",
-                                    "delete_node",
-                                    "connect",
-                                    "disconnect"
-                                ]
-                            },
-                            "id": {
-                                "type": "string",
-                                "description": "Node id. For `add_node`, lowercase letters, digits and underscores, starting with a letter. It must be new."
-                            },
-                            "type": {
-                                "type": "string",
-                                "description": "`add_node`: a node type from `listWorkflowNodeTypes`."
-                            },
-                            "label": {
-                                "type": "string",
-                                "description": "`add_node`, `update_node`: the name shown on the canvas."
-                            },
-                            "config": {
-                                "type": "object",
-                                "additionalProperties": true,
-                                "description": "`add_node`, `update_node`: the node's settings. The fields come from\n`getWorkflowNodeType`. Send a secret back as `********` to keep the\nstored value.\n"
-                            },
-                            "after": {
-                                "type": "string",
-                                "description": "`add_node`: id of the node to connect the new node to."
-                            },
-                            "handle": {
-                                "type": "string",
-                                "description": "`add_node`, `connect`, `disconnect`: the output of the source node. Omit for the default output."
-                            },
-                            "position": {
-                                "type": "object",
-                                "description": "`add_node`, `move_node`: canvas position. `add_node` places the node for you if you omit it.",
-                                "properties": {
-                                    "x": {
-                                        "type": "number"
-                                    },
-                                    "y": {
-                                        "type": "number"
-                                    }
-                                }
-                            },
-                            "from": {
-                                "type": "string",
-                                "description": "`connect`, `disconnect`: id of the node the edge starts at."
-                            },
-                            "to": {
-                                "type": "string",
-                                "description": "`connect`, `disconnect`: id of the node the edge ends at."
-                            }
-                        }
-                    }
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Rename the workflow."
-                }
-            },
-            "required": [
-                "ops",
-                "revision",
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "PATCH",
-        "path": "/workflows/{workflow_id}",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Edit workflow draft",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": false
         }
     },
     {
@@ -3177,124 +2908,6 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Get WhatsApp number",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "getWorkflow",
-        "description": "Get a workflow. Get one workflow with its draft, status and `revision`.\n\nCall it before every edit to get the current `revision`. Use\n`view=structure` to see nodes and edges without config on a large workflow.\nSecrets read back as `********`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                },
-                "view": {
-                    "type": "string",
-                    "enum": [
-                        "structure",
-                        "full"
-                    ],
-                    "default": "full",
-                    "description": "`structure` leaves node `config` out."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflows/{workflow_id}",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [
-            "view"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "Get workflow",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "getWorkflowExecution",
-        "description": "Get a workflow run. Get one workflow run with the result of each step.\n\nUse it to read the outcome of `testWorkflow`. The run is finished when\n`state` is `completed`, `failed` or `cancelled`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                },
-                "execution_id": {
-                    "type": "integer",
-                    "description": "The `execution_id` from `testWorkflow` or `listWorkflowExecutions`."
-                }
-            },
-            "required": [
-                "execution_id",
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflows/{workflow_id}/executions/{execution_id}",
-        "path_params": [
-            "workflow_id",
-            "execution_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Get workflow run",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "getWorkflowNodeType",
-        "description": "Get a workflow node type. Get the settings one node type reads.\n\nCall it before you add or edit a node. Its `fields` are the keys of the\nnode's `config`. Use `detail=full` only when you need help text and\nexamples.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "node_type": {
-                    "type": "string",
-                    "description": "A node type from `listWorkflowNodeTypes`, such as `whatsapp`."
-                },
-                "detail": {
-                    "type": "string",
-                    "enum": [
-                        "minimal",
-                        "full"
-                    ],
-                    "default": "minimal",
-                    "description": "`full` adds descriptions, examples and `output_example`."
-                }
-            },
-            "required": [
-                "node_type"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflow-node-types/{node_type}",
-        "path_params": [
-            "node_type"
-        ],
-        "query_params": [
-            "detail"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "Get workflow node type",
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
@@ -4078,7 +3691,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listVoices",
-        "description": "List voices. List the voices your organization can use, with filters and pagination.\n\nUse `provider=featured` for OmniDimension voices in the order the dashboard\nshows them.\n\nEach voice keeps its own `service`: save it as the agent's voice provider. A\nprovider your organization cannot use returns a 400. Cartesia and ElevenLabs\nsupport filtering by name, language, accent and gender. Other providers\nsupport pagination only.",
+        "description": "List voices. List the voices your organization can use, with filters and pagination.\n\nUse `provider=featured` for OmniDimension voices in the order the dashboard\nshows them. They are the recommended start. Cartesia voices are next.\n\nEach voice keeps its own `service`: save it as the agent's voice provider. A\nprovider your organization cannot use returns a 400. Cartesia and ElevenLabs\nsupport filtering by name, language, accent and gender. Other providers\nsupport pagination only.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4517,180 +4130,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "listWorkflowExecutions",
-        "description": "List workflow runs. List recent runs of a workflow, newest first, with the step that failed.\n\nUse it to find the run behind \"my workflow didn't run after the call\":\nfilter by `state=failed`, or by the `call_sid` of the call that should\nhave started it. Read one run's steps with `getWorkflowExecution`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                },
-                "state": {
-                    "type": "string",
-                    "enum": [
-                        "running",
-                        "waiting",
-                        "completed",
-                        "failed",
-                        "cancelled"
-                    ],
-                    "description": "Only runs in this state."
-                },
-                "call_sid": {
-                    "type": "string",
-                    "description": "Only runs started by this call."
-                },
-                "limit": {
-                    "type": "integer",
-                    "default": 20,
-                    "minimum": 1,
-                    "maximum": 100,
-                    "description": "How many runs to return."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflows/{workflow_id}/executions",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [
-            "state",
-            "call_sid",
-            "limit"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "List workflow runs",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "listWorkflowFieldOptions",
-        "description": "List choices for a node field. List the choices for one `ref` field of a node type.\n\nExamples are the phone numbers, agents or integrations in your account. Call\nit for every `ref` field and never guess an id. If it returns `400\nno_options`, the field is not a list choice, so ask the user for the value.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "node_type": {
-                    "type": "string",
-                    "description": "A node type from `listWorkflowNodeTypes`, such as `whatsapp`."
-                },
-                "field": {
-                    "type": "string",
-                    "description": "A field name from `getWorkflowNodeType`."
-                },
-                "depends": {
-                    "type": "integer",
-                    "description": "The value of the field this one depends on (`depends_on` in the node type), such as the chosen phone number id."
-                }
-            },
-            "required": [
-                "field",
-                "node_type"
-            ],
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflow-node-types/{node_type}/options/{field}",
-        "path_params": [
-            "node_type",
-            "field"
-        ],
-        "query_params": [
-            "depends"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "List choices for a workflow field",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "listWorkflowNodeTypes",
-        "description": "List workflow node types. Search the node types a workflow can use.\n\nExamples are `whatsapp`, `voice_ai` and `conditional`. Call it first when\nyou do not know which node to add. Then call `getWorkflowNodeType` for one\ntype's settings.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "q": {
-                    "type": "string",
-                    "description": "Words to match against the type, label and description, such as `whatsapp`."
-                },
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "triggers",
-                        "messaging",
-                        "calls",
-                        "flow",
-                        "ai",
-                        "crm",
-                        "integrations"
-                    ],
-                    "description": "Only types in this category."
-                }
-            },
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflow-node-types",
-        "path_params": [],
-        "query_params": [
-            "q",
-            "category"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "List workflow node types",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "listWorkflows",
-        "description": "List workflows. List your workflows, oldest first, one cursor page at a time.\n\nUse it to find a workflow id. Pass back `next_cursor` until it is `null`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer",
-                    "default": 20,
-                    "minimum": 1,
-                    "maximum": 100,
-                    "description": "Rows per page."
-                },
-                "cursor": {
-                    "type": "string",
-                    "description": "The `next_cursor` from the previous page. Omit it on the first request. Pass it back unchanged."
-                }
-            },
-            "additionalProperties": true
-        },
-        "method": "GET",
-        "path": "/workflows",
-        "path_params": [],
-        "query_params": [
-            "limit",
-            "cursor"
-        ],
-        "header_params": [],
-        "annotations": {
-            "title": "List workflows",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "phoneNumberAgentActions",
         "description": "Attach a phone number to an agent, or detach it from its agent.\n\nSet `action` to pick what to do.\n\n`attach`: Attach phone number to agent. Attach a phone number to an existing agent.\n\nWithout `user_id`, use any number and agent your key can manage. With\n`user_id`, both must belong to that client.\n\n`detach`: Detach phone number. Detach a phone number from its agent.\n\nWithout `user_id`, use any number your key can manage. With `user_id`, the\nnumber must belong to that client.",
         "input_schema": {
@@ -4793,36 +4232,6 @@ _TOOLS_JSON = r"""[
             "title": "Preview WhatsApp numbers to import",
             "readOnlyHint": true,
             "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
-        "name": "publishWorkflow",
-        "description": "Publish a workflow. Make the draft the live version.\n\nReal events then run it, unless the workflow is paused. Publish is refused\nwhile the draft has errors, so run `validateWorkflow` first. Ask the user\nbefore you publish.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/publish",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Publish workflow",
-            "readOnlyHint": false,
-            "destructiveHint": true,
             "openWorldHint": false
         }
     },
@@ -5453,43 +4862,8 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "testWorkflow",
-        "description": "Test a workflow. Run the draft once with `payload` as the trigger data.\n\nEvery node runs for real: WhatsApp messages, SMS, emails and calls go out,\nand CRM records change. Ask the user first, and use their own phone number\nor email in the payload.\n\nIt returns an `execution_id` at once. Poll `getWorkflowExecution` for the\nresult.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                },
-                "payload": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "description": "The trigger data. Nodes read it as `{{ context.<trigger id>.<field> }}`. See `output_example` of the trigger node type for its shape."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/test",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Test workflow (runs for real)",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "openWorldHint": true
-        }
-    },
-    {
         "name": "updateAgent",
-        "description": "Update agent. Update an agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only if you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when you send their key. Other actions are kept. If a sent action gives a variable key a new prompt, kept actions with the same key take that prompt too. To change one action alone, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is turned on per account.** If it is off for yours, ask OmniDimension support to turn it on before you configure the `voicemail` object.",
+        "description": "Update agent. Update an agent. Send only the fields you want to change.\n\n`post_call_actions` replaces the agent's email, webhook, Omni CRM, Cloud WhatsApp and workflow actions as one set, but only if you send at least one of those types. Google Sheets, Slack, Salesforce, HubSpot and Zoho Bigin actions are replaced only when you send their key. Other actions are kept. If a sent action gives a variable key a new prompt, kept actions with the same key take that prompt too. To change one action alone, use `/agents/{agent_id}/post-call-actions`.\n\n> **Voicemail detection is access-gated** and turned on per account. If it is off for yours, [request access](https://omnidim.io/contact-us?reason=product&lock=1) before you configure the `voicemail` object.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -5691,8 +5065,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -6243,36 +5617,6 @@ _TOOLS_JSON = r"""[
         }
     },
     {
-        "name": "validateWorkflow",
-        "description": "Validate a workflow draft. Check the draft and list what blocks publish.\n\nIt changes nothing. Call it after your edits and fix every error before\n`publishWorkflow`.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "workflow_id": {
-                    "type": "integer",
-                    "description": "Id of the workflow."
-                }
-            },
-            "required": [
-                "workflow_id"
-            ],
-            "additionalProperties": true
-        },
-        "method": "POST",
-        "path": "/workflows/{workflow_id}/validate",
-        "path_params": [
-            "workflow_id"
-        ],
-        "query_params": [],
-        "header_params": [],
-        "annotations": {
-            "title": "Validate workflow",
-            "readOnlyHint": true,
-            "destructiveHint": false,
-            "openWorldHint": false
-        }
-    },
-    {
         "name": "whatsappCampaignActions",
         "description": "Launch, pause, resume or cancel a WhatsApp campaign.\n\nSet `action` to pick what to do.\n\n`launch`: Launch a campaign. Start a draft campaign and queue every pending contact once.\n\nIt needs at least one contact, unless `data_source` is `webhook`. Launch\nchecks the plan's monthly broadcast allowance and the wallet balance.\n`Idempotency-Key` is required, so a retry does not start it twice.\n\n`pause`: Pause a campaign. Stop sending until you resume.\n\nOnly a running campaign can be paused. A pause you make by hand is never\nresumed automatically.\n\n`resume`: Resume a campaign. Resume a paused campaign.\n\nPending contacts are sent. A contact already sent is never sent again.\nResume checks the wallet and allowance again, so it can answer `402`.\n\n`cancel`: Cancel a campaign. Stop a campaign for good. Contacts not yet sent are not sent. A completed\nor already-canceled campaign cannot be canceled.",
         "input_schema": {
@@ -6450,6 +5794,581 @@ _TOOLS_JSON = r"""[
                 ],
                 "required": [
                     "conversation_id"
+                ],
+                "sends_field": false
+            }
+        }
+    },
+    {
+        "name": "workflow",
+        "description": "Read workflows and their runs: list workflows, get one, validate a draft, list\na workflow's runs and read one, and look up node types and field choices.\n\nSet `action` to pick what to do.\n\n`node_types`: List workflow node types. Search the node types a workflow can use.\n\nExamples are `whatsapp`, `voice_ai` and `conditional`. Call it first when\nyou do not know which node to add. Then call `workflow` with `action` `node_type` for one\ntype's settings.\n\n`node_type`: Get a workflow node type. Get the settings one node type reads.\n\nCall it before you add or edit a node. Its `fields` are the keys of the\nnode's `config`. Use `detail=full` only when you need help text and\nexamples.\n\n`field_options`: List choices for a node field. List the choices for one `ref` field of a node type.\n\nExamples are the phone numbers, agents or integrations in your account. Call\nit for every `ref` field and never guess an id. If it returns `400\nno_options`, the field is not a list choice, so ask the user for the value.\n\n`list`: List workflows. List your workflows, oldest first, one cursor page at a time.\n\nUse it to find a workflow id. Pass back `next_cursor` until it is `null`.\n\n`get`: Get a workflow. Get one workflow with its draft, status and `revision`.\n\nCall it before every edit to get the current `revision`. Use\n`view=structure` to see nodes and edges without config on a large workflow.\nSecrets read back as `********`.\n\n`validate`: Validate a workflow draft. Check the draft and list what blocks publish.\n\nIt changes nothing. Call it after your edits and fix every error before\n`workflowActions` with `action` `publish`.\n\n`runs`: List workflow runs. List recent runs of a workflow, newest first, with the step that failed.\n\nUse it to find the run behind \"my workflow didn't run after the call\":\nfilter by `state=failed`, or by the `call_sid` of the call that should\nhave started it. Read one run's steps with `workflow` with `action` `run`.\n\n`run`: Get a workflow run. Get one workflow run with the result of each step.\n\nUse it to read the outcome of `workflowActions` with `action` `test`. The run is finished when\n`state` is `completed`, `failed` or `cancelled`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "node_types",
+                        "node_type",
+                        "field_options",
+                        "list",
+                        "get",
+                        "validate",
+                        "runs",
+                        "run"
+                    ],
+                    "description": "What to do: node_types, node_type, field_options, list, get, validate, runs, run."
+                },
+                "q": {
+                    "type": "string",
+                    "description": "Only for `node_types`. Words to match against the type, label and description, such as `whatsapp`."
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "triggers",
+                        "messaging",
+                        "calls",
+                        "flow",
+                        "ai",
+                        "crm",
+                        "integrations"
+                    ],
+                    "description": "Only for `node_types`. Only types in this category."
+                },
+                "node_type": {
+                    "type": "string",
+                    "description": "Only for `node_type`, `field_options`. A node type from `listWorkflowNodeTypes`, such as `whatsapp`."
+                },
+                "detail": {
+                    "type": "string",
+                    "enum": [
+                        "minimal",
+                        "full"
+                    ],
+                    "default": "minimal",
+                    "description": "Only for `node_type`. `full` adds descriptions, examples and `output_example`."
+                },
+                "field": {
+                    "type": "string",
+                    "description": "Only for `field_options`. A field name from `getWorkflowNodeType`."
+                },
+                "depends": {
+                    "type": "integer",
+                    "description": "Only for `field_options`. The value of the field this one depends on (`depends_on` in the node type), such as the chosen phone number id."
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Only for `list`, `runs`. Rows per page."
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Only for `list`. The `next_cursor` from the previous page. Omit it on the first request. Pass it back unchanged."
+                },
+                "workflow_id": {
+                    "type": "integer",
+                    "description": "Only for `get`, `validate`, `runs`, `run`. Id of the workflow."
+                },
+                "view": {
+                    "type": "string",
+                    "enum": [
+                        "structure",
+                        "full"
+                    ],
+                    "default": "full",
+                    "description": "Only for `get`. `structure` leaves node `config` out."
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "running",
+                        "waiting",
+                        "completed",
+                        "failed",
+                        "cancelled"
+                    ],
+                    "description": "Only for `runs`. Only runs in this state."
+                },
+                "call_sid": {
+                    "type": "string",
+                    "description": "Only for `runs`. Only runs started by this call."
+                },
+                "execution_id": {
+                    "type": "integer",
+                    "description": "Only for `run`. The `execution_id` from `testWorkflow` or `listWorkflowExecutions`."
+                }
+            },
+            "required": [
+                "action"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Read workflows",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        },
+        "field": "action",
+        "actions": {
+            "node_types": {
+                "operation": "listWorkflowNodeTypes",
+                "method": "GET",
+                "path": "/workflow-node-types",
+                "path_params": [],
+                "query_params": [
+                    "q",
+                    "category"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "q",
+                    "category"
+                ],
+                "required": [],
+                "sends_field": false
+            },
+            "node_type": {
+                "operation": "getWorkflowNodeType",
+                "method": "GET",
+                "path": "/workflow-node-types/{node_type}",
+                "path_params": [
+                    "node_type"
+                ],
+                "query_params": [
+                    "detail"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "node_type",
+                    "detail"
+                ],
+                "required": [
+                    "node_type"
+                ],
+                "sends_field": false
+            },
+            "field_options": {
+                "operation": "listWorkflowFieldOptions",
+                "method": "GET",
+                "path": "/workflow-node-types/{node_type}/options/{field}",
+                "path_params": [
+                    "node_type",
+                    "field"
+                ],
+                "query_params": [
+                    "depends"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "node_type",
+                    "field",
+                    "depends"
+                ],
+                "required": [
+                    "field",
+                    "node_type"
+                ],
+                "sends_field": false
+            },
+            "list": {
+                "operation": "listWorkflows",
+                "method": "GET",
+                "path": "/workflows",
+                "path_params": [],
+                "query_params": [
+                    "limit",
+                    "cursor"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "limit",
+                    "cursor"
+                ],
+                "required": [],
+                "sends_field": false
+            },
+            "get": {
+                "operation": "getWorkflow",
+                "method": "GET",
+                "path": "/workflows/{workflow_id}",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [
+                    "view"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id",
+                    "view"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "validate": {
+                "operation": "validateWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/validate",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "runs": {
+                "operation": "listWorkflowExecutions",
+                "method": "GET",
+                "path": "/workflows/{workflow_id}/executions",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [
+                    "state",
+                    "call_sid",
+                    "limit"
+                ],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id",
+                    "state",
+                    "call_sid",
+                    "limit"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "run": {
+                "operation": "getWorkflowExecution",
+                "method": "GET",
+                "path": "/workflows/{workflow_id}/executions/{execution_id}",
+                "path_params": [
+                    "workflow_id",
+                    "execution_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id",
+                    "execution_id"
+                ],
+                "required": [
+                    "execution_id",
+                    "workflow_id"
+                ],
+                "sends_field": false
+            }
+        }
+    },
+    {
+        "name": "workflowActions",
+        "description": "Create a workflow, edit its draft, publish it, test it, or turn it on or off.\nDeleting a workflow is its own tool, deleteWorkflow.\n\nSet `action` to pick what to do.\n\n`create`: Create a workflow. Create a workflow with a draft.\n\nWithout `graph`, the draft holds one `trigger` node, ready for\n`workflowActions` with `action` `edit` ops. Pass `graph` only to start from a complete graph. The\nresponse carries the `revision` you need to edit.\n\n`edit`: Edit a workflow draft. Change the draft with a list of `ops`.\n\nOps add, update, move or delete nodes, and connect or disconnect them. They\napply all together or not at all. Send the `revision` from your last read.\nOn `409 revision_conflict`, read the workflow again and retry.\n\nSecrets read back as `********`. Send them back unchanged to keep the stored\nvalue. This edits the draft only. Use `workflowActions` with `action` `publish` to make it live.\n\n`publish`: Publish a workflow. Make the draft the live version.\n\nReal events then run it, unless the workflow is paused. Publish is refused\nwhile the draft has errors, so run `workflow` with `action` `validate` first. Ask the user\nbefore you publish.\n\n`activate`: Activate a workflow. Turn the published workflow on, so real events run it. Use it to resume a workflow you paused with `workflowActions` with `action` `deactivate`.\n\n`deactivate`: Deactivate a workflow. Turn the published workflow off.\n\nReal events stop running it. The workflow and its draft stay. Use\n`workflowActions` with `action` `activate` to turn it back on.\n\n`test`: Test a workflow. Run the draft once with `payload` as the trigger data.\n\nEvery node runs for real: WhatsApp messages, SMS, emails and calls go out,\nand CRM records change. Ask the user first, and use their own phone number\nor email in the payload.\n\nIt returns an `execution_id` at once. Poll `workflow` with `action` `run` for the\nresult.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "create",
+                        "edit",
+                        "publish",
+                        "activate",
+                        "deactivate",
+                        "test"
+                    ],
+                    "description": "What to do: create, edit, publish, activate, deactivate, test."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Only for `create`, `edit`. A non-empty name."
+                },
+                "graph": {
+                    "type": "object",
+                    "description": "Only for `create`. A complete graph to start a workflow from, in the same shape `getWorkflow`\nreturns under `draft`. A workflow you read can be sent back as a new one.\nIt is built with the same checks as `editWorkflow` ops. Most callers skip it\nand build with `editWorkflow` instead.",
+                    "required": [
+                        "nodes",
+                        "edges"
+                    ],
+                    "properties": {
+                        "nodes": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "type"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Lowercase letters, digits and underscores, starting with a letter. Later nodes read this node's output as `{{ context.<id>.<field> }}`."
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "A node type from `listWorkflowNodeTypes`."
+                                    },
+                                    "label": {
+                                        "type": "string"
+                                    },
+                                    "position": {
+                                        "type": "object",
+                                        "properties": {
+                                            "x": {
+                                                "type": "number"
+                                            },
+                                            "y": {
+                                                "type": "number"
+                                            }
+                                        }
+                                    },
+                                    "config": {
+                                        "type": "object",
+                                        "additionalProperties": true,
+                                        "description": "The node's settings. The fields come from `getWorkflowNodeType`."
+                                    }
+                                }
+                            }
+                        },
+                        "edges": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "from",
+                                    "to"
+                                ],
+                                "properties": {
+                                    "from": {
+                                        "type": "string",
+                                        "description": "Id of the node the edge starts at."
+                                    },
+                                    "to": {
+                                        "type": "string",
+                                        "description": "Id of the node the edge ends at."
+                                    },
+                                    "handle": {
+                                        "type": "string",
+                                        "description": "The output of the `from` node. Omit it, or send `default`, for a plain node's only output."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "workflow_id": {
+                    "type": "integer",
+                    "description": "Only for `edit`, `publish`, `activate`, `deactivate`, `test`. Id of the workflow."
+                },
+                "revision": {
+                    "type": "string",
+                    "description": "Only for `edit`. The `draft.revision` from your last `getWorkflow` or edit."
+                },
+                "ops": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "One edit to the draft. Set `op` and the fields that op uses.\n\n| `op` | Fields | Effect |\n|---|---|---|\n| `add_node` | `id`, `type`, `label?`, `config?`, `after?`, `handle?`, `position?` | Adds a node. With `after`, it also connects it to that node (on output `handle`). |\n| `update_node` | `id`, `config?`, `label?` | Merges `config` keys into the node. A `null` value removes a key. |\n| `move_node` | `id`, `position` | Moves a node on the canvas. |\n| `delete_node` | `id` | Deletes a node and its edges. |\n| `connect` | `from`, `to`, `handle?` | Adds an edge. |\n| `disconnect` | `from`, `to`, `handle?` | Removes an edge. |\n",
+                        "required": [
+                            "op"
+                        ],
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": [
+                                    "add_node",
+                                    "update_node",
+                                    "move_node",
+                                    "delete_node",
+                                    "connect",
+                                    "disconnect"
+                                ]
+                            },
+                            "id": {
+                                "type": "string",
+                                "description": "Node id. For `add_node`, lowercase letters, digits and underscores, starting with a letter. It must be new."
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "`add_node`: a node type from `listWorkflowNodeTypes`."
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "`add_node`, `update_node`: the name shown on the canvas."
+                            },
+                            "config": {
+                                "type": "object",
+                                "additionalProperties": true,
+                                "description": "`add_node`, `update_node`: the node's settings. The fields come from\n`getWorkflowNodeType`. Send a secret back as `********` to keep the\nstored value.\n"
+                            },
+                            "after": {
+                                "type": "string",
+                                "description": "`add_node`: id of the node to connect the new node to."
+                            },
+                            "handle": {
+                                "type": "string",
+                                "description": "`add_node`, `connect`, `disconnect`: the output of the source node. Omit for the default output."
+                            },
+                            "position": {
+                                "type": "object",
+                                "description": "`add_node`, `move_node`: canvas position. `add_node` places the node for you if you omit it.",
+                                "properties": {
+                                    "x": {
+                                        "type": "number"
+                                    },
+                                    "y": {
+                                        "type": "number"
+                                    }
+                                }
+                            },
+                            "from": {
+                                "type": "string",
+                                "description": "`connect`, `disconnect`: id of the node the edge starts at."
+                            },
+                            "to": {
+                                "type": "string",
+                                "description": "`connect`, `disconnect`: id of the node the edge ends at."
+                            }
+                        }
+                    },
+                    "description": "Only for `edit`."
+                },
+                "payload": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Only for `test`. The trigger data. Nodes read it as `{{ context.<trigger id>.<field> }}`. See `output_example` of the trigger node type for its shape."
+                }
+            },
+            "required": [
+                "action"
+            ],
+            "additionalProperties": true
+        },
+        "annotations": {
+            "title": "Change workflows",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": true
+        },
+        "field": "action",
+        "actions": {
+            "create": {
+                "operation": "createWorkflow",
+                "method": "POST",
+                "path": "/workflows",
+                "path_params": [],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "name",
+                    "graph"
+                ],
+                "required": [
+                    "name"
+                ],
+                "sends_field": false
+            },
+            "edit": {
+                "operation": "editWorkflow",
+                "method": "PATCH",
+                "path": "/workflows/{workflow_id}",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id",
+                    "revision",
+                    "ops",
+                    "name"
+                ],
+                "required": [
+                    "ops",
+                    "revision",
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "publish": {
+                "operation": "publishWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/publish",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "activate": {
+                "operation": "activateWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/activate",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "deactivate": {
+                "operation": "deactivateWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/deactivate",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id"
+                ],
+                "required": [
+                    "workflow_id"
+                ],
+                "sends_field": false
+            },
+            "test": {
+                "operation": "testWorkflow",
+                "method": "POST",
+                "path": "/workflows/{workflow_id}/test",
+                "path_params": [
+                    "workflow_id"
+                ],
+                "query_params": [],
+                "header_params": [],
+                "inputs": [
+                    "workflow_id",
+                    "payload"
+                ],
+                "required": [
+                    "workflow_id"
                 ],
                 "sends_field": false
             }

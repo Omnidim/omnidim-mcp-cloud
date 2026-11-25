@@ -1,5 +1,6 @@
-openapi_spec: omnidim.yaml
-openapi_spec_sha256: e1a922afda5f6d60444ea49f4403a361f46396674285c6fc56d1a560e5764f38
+openapi_spec: openapi.yaml
+openapi_spec_url: https://docs.omnidim.io/openapi.yaml
+openapi_spec_sha256: 1b01ce5fd33f2a625bb6084e5c3931378962adb38c121ebe341dd2c1d6055f2f
 internal_spec: internal-openapi.yaml
 internal_spec_sha256: aea39ad671f3b7f21a67d2a935cc5b156314345c2d207432fd6b6e88b5d45eb9
-tool_count: 101
+tool_count: 89
