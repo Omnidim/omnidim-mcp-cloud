@@ -27,7 +27,7 @@ async def _tools(client: AsyncClient) -> dict[str, dict]:
 async def test_only_show_workflow_opens_the_canvas(client: AsyncClient) -> None:
     tools = await _tools(client)
     assert tools["showWorkflow"]["_meta"] == {"ui": {"resourceUri": WORKFLOW_CANVAS_URI}}
-    for name in ("workflow", "workflowActions", "deleteWorkflow", "dispatchCall"):
+    for name in ("getWorkflow", "editWorkflow", "deleteWorkflow", "dispatchCall"):
         assert "_meta" not in tools[name], name
 
 

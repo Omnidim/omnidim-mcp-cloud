@@ -689,9 +689,6 @@ def main() -> int:
 
 Run `./.venv/bin/python scripts/regen.py` after the upstream OpenAPI spec
 changes.
-
-Source spec:   {spec_name}   sha256={spec_hash[:12]}
-Internal spec: {INTERNAL_SPEC_PATH.name}   sha256={internal_hash[:12]}
 """
 from __future__ import annotations
 

@@ -311,7 +311,7 @@ def test_workflow_prompt_asks_before_a_real_test_run():
     assert "Follow up interested leads on WhatsApp" in text
     assert "omnidim://guide/workflows" in text
     assert "for real" in text  # test runs send real messages; the model must ask first
-    assert "Only call `workflowActions` (`action: test`) after the" in text
+    assert "Only call `testWorkflow` after the" in text
     assert "user says yes" in text
 
 
@@ -468,7 +468,7 @@ def test_no_playbook_acts_without_the_users_yes() -> None:
     assert "use it only after step 8's go-ahead" in campaign
     assert "restore only on their yes" in _text("restore_agent_version")
     assert "restore only on their yes" in _text("omnidim://guide/agent-versioning")
-    assert "get a yes, then `workflowActions` (`action: publish`)" in _text("omnidim://guide/workflows")
+    assert "get a yes, then `publishWorkflow`" in _text("omnidim://guide/workflows")
     assert "release only after the user confirms" in _text("omnidim://guide/routing")
     assert "`build_outbound_campaign` playbook" in _text("omnidim://guide/routing")
 
@@ -508,7 +508,7 @@ def test_restore_preview_states_the_diff_direction() -> None:
 
 def test_workflow_example_keeps_secrets_out_of_config() -> None:
     assert "slack_webhook_url: \"<from the user>\"" not in _text("omnidim://guide/workflows")
-    assert "integration_id: <from workflow action field_options>" in _text("omnidim://guide/workflows")
+    assert "integration_id: <from listWorkflowFieldOptions>" in _text("omnidim://guide/workflows")
 
 
 def test_call_log_scans_use_a_page_that_fits_the_size_cap() -> None:

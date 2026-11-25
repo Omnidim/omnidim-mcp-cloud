@@ -10,45 +10,45 @@ edges. It runs on OmniDimension's servers each time its trigger fires.
 
 ## The tools, in the order you use them
 
-1. `workflow` (`action: node_types`) (with `q`, e.g. "whatsapp") to find node types.
-2. `workflow` (`action: node_type`) (`detail: minimal`) for the fields one type needs.
+1. `listWorkflowNodeTypes` (with `q`, e.g. "whatsapp") to find node types.
+2. `getWorkflowNodeType` (`detail: minimal`) for the fields one type needs.
    Ask for `detail: full` only when you need the examples.
-3. `workflow` (`action: field_options`) for any field of type `ref` (a number, an
+3. `listWorkflowFieldOptions` for any field of type `ref` (a number, an
    integration, a template, an agent). Never guess an id. If it returns
    `no_options`, ask the user for the value.
-4. `workflowActions` (`action: create`) with a `name`. It starts with one node, `trigger`. You may
-   pass a complete first `graph` instead, in the same shape `workflow` (`action: get`)
+4. `createWorkflow` with a `name`. It starts with one node, `trigger`. You may
+   pass a complete first `graph` instead, in the same shape `getWorkflow`
    returns under `draft` (node `config`, edges with `from`, `to`, `handle`).
-5. `workflowActions` (`action: edit`) with the `revision` from the last read and a list of `ops`.
-6. `workflow` (`action: validate`), then fix what it reports with another `workflowActions` (`action: edit`).
-7. `workflowActions` (`action: test`) only after the user agrees (see "Test runs are real").
-8. Show the user the flow and get a yes, then `workflowActions` (`action: publish`). The workflow is live at once: real events run it. Do not call `workflowActions` with `action: "activate"` after it.
+5. `editWorkflow` with the `revision` from the last read and a list of `ops`.
+6. `validateWorkflow`, then fix what it reports with another `editWorkflow`.
+7. `testWorkflow` only after the user agrees (see "Test runs are real").
+8. Show the user the flow and get a yes, then `publishWorkflow`. The workflow is live at once: real events run it. Do not call `activateWorkflow` after it.
 
-`workflow` (`action: get`) with `view: structure` shows nodes and edges without config.
+`getWorkflow` with `view: structure` shows nodes and edges without config.
 Use it to orient in a large workflow. Use `view: full` before you edit config.
 
 ## Lifecycle
 
 - You always edit the **draft**. A published workflow is never changed in place.
-- `workflowActions` (`action: publish`) copies the draft to the live version and leaves a fresh draft
-  for the next round of edits. It refuses while `workflow` (`action: validate`) has errors.
-- `workflowActions` with `action: "deactivate"` pauses a published workflow, and `action: "activate"`
+- `publishWorkflow` copies the draft to the live version and leaves a fresh draft
+  for the next round of edits. It refuses while `validateWorkflow` has errors.
+- `deactivateWorkflow` pauses a published workflow, and `activateWorkflow`
   resumes a paused one. Neither is needed to go live.
 - Every edit needs the current `revision`. On `409 revision_conflict`, someone
-  (often the user in the dashboard) saved first. Call `workflow` (`action: get`) and retry.
+  (often the user in the dashboard) saved first. Call `getWorkflow` and retry.
 
 ## Do not break a workflow that is already running
 
 Most harm comes from changing a workflow the user did not ask you to touch.
 
 - Default to creating a NEW workflow. Edit an existing one only when the user names it.
-- Call `workflow` (`action: get`) first and read what it does before any edit. Keep its `revision`.
+- Call `getWorkflow` first and read what it does before any edit. Keep its `revision`.
 - Your edits land on the draft and change nothing live until you publish, except
   `webhook_enabled` on the trigger: it switches the live webhook URL at once. Ask
   before you change it on an existing workflow.
-- `workflowActions` (`action: publish`) overwrites the live version that real events run. Publishing a
-  paused workflow turns it back on. `workflowActions`
-  with `action: "deactivate"` pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
+- `publishWorkflow` overwrites the live version that real events run. Publishing a
+  paused workflow turns it back on. `deactivateWorkflow`
+  pauses automation the user depends on. `deleteWorkflow` stops it for good. Before any of
   these on an existing workflow, tell the user exactly what will change and get a yes.
 - Never publish, activate, deactivate, delete or test a workflow as a side effect of another task.
 
@@ -59,13 +59,13 @@ which later nodes read as `{{ context.<trigger id>.<field> }}`.
 
 | Trigger type | Fires when | How it is attached |
 |---|---|---|
-| `trigger` | After a call (post-call), or on a POST to the webhook URL | Post-call: the agent's post-call actions point at this workflow. Webhook: `update_node` the trigger with `config: { webhook_enabled: true }`, then `workflow` (`action: get`) returns `webhook_url` |
+| `trigger` | After a call (post-call), or on a POST to the webhook URL | Post-call: the agent's post-call actions point at this workflow. Webhook: `update_node` the trigger with `config: { webhook_enabled: true }`, then `getWorkflow` returns `webhook_url` |
 | `whatsapp_inbound` | A media message (image, video, document, audio) arrives. Text still goes to the agent. Publishing moves the number off any other inbound workflow, so check with the user first | Its `phone_number_id` |
 | `twilio_sms_inbound` | An SMS arrives | Its Twilio integration |
 | `email_event_trigger` | A sent email is opened, clicked, replied to, or bounces | The source workflow |
 | `omnidim_crm_trigger`, `leadsquared_trigger`, `shopify_trigger`, `instantly_event_trigger` | An event in that system | Its integration |
 
-`workflow` (`action: node_type`) shows each trigger's `output_example`. The post-call
+`getWorkflowNodeType` shows each trigger's `output_example`. The post-call
 trigger carries `customer_number`, `call_status`, `summary`, `sentiment`,
 `extracted_variables` and the transcript.
 
@@ -73,7 +73,7 @@ trigger carries `customer_number`, `call_status`, `summary`, `sentiment`,
 
 An edge runs from one node's **output** to the next node. Plain nodes have one
 output, `default`. Branching nodes have named outputs, and you must say which.
-`workflow` (`action: node_type`) lists each type's outputs; this table is a summary:
+`getWorkflowNodeType` lists each type's outputs; this table is a summary:
 
 | Node | Outputs |
 |---|---|
@@ -102,7 +102,7 @@ fails with "Target workflow has no published version".
 `{{ context.<node id>.<field> }}` reads an earlier node's output. The engine
 also provides `{{ context.webhook }}` (the trigger payload) and
 `{{ context.execution_link }}`. Only nodes that run earlier have output. A
-reference to a later node renders empty, and `workflow` (`action: validate`) warns about it.
+reference to a later node renders empty, and `validateWorkflow` warns about it.
 
 Node ids appear in these references, so pick readable ones: `check_interest`,
 `wa_followup`, `notify_sales`. Use lowercase letters, digits and underscores.
@@ -142,18 +142,18 @@ A batch applies completely or not at all. A failing op returns
 ## Credentials
 
 Never put secrets in config when an integration exists. Pick integrations,
-numbers and templates from `workflow` (`action: field_options`). Secret fields (a Slack
+numbers and templates from `listWorkflowFieldOptions`. Secret fields (a Slack
 webhook URL, API headers) read back as `********`. Send `********` back
 unchanged and the stored value is kept. If the user has no matching
 integration, tell them to connect one in the dashboard first.
 
 ## Test runs are real
 
-`workflowActions` (`action: test`) runs the draft once with your `payload` as the trigger data.
+`testWorkflow` runs the draft once with your `payload` as the trigger data.
 **Every node runs for real**: WhatsApp messages, SMS, emails and calls go out,
 and CRM records change. Before you call it, tell the user what will happen and
 get a yes. Use their own phone number or email in the payload. The call returns `202` with an
-`execution_id` at once. Check `workflow` (`action: run`) up to 10 times, a few seconds apart,
+`execution_id` at once. Check `getWorkflowExecution` up to 10 times, a few seconds apart,
 until `state` is `completed`, `failed` or `cancelled`, then read each node's status, output
 and error. A run that reaches a wait, call or email step can stay `waiting` for hours: then
 report the steps so far and stop.
@@ -162,25 +162,25 @@ report the steps so far and stop.
 
 | Error | Meaning | What to do |
 |---|---|---|
-| `422 validation_failed` with `not_found` | An id is not in this workspace | Pick from `workflow` (`action: field_options`) |
+| `422 validation_failed` with `not_found` | An id is not in this workspace | Pick from `listWorkflowFieldOptions` |
 | `422 validation_failed` on publish | Missing fields, an unconnected node, a bad handle | Fix each one, then publish again |
 | `422 invalid_op` | An op is malformed | Fix the op at `op_index` |
-| `409 revision_conflict` | The draft changed since you read it | `workflow` (`action: get`), then retry |
+| `409 revision_conflict` | The draft changed since you read it | `getWorkflow`, then retry |
 | `409 no_draft` | There is no draft to edit, validate or publish | No tool can make a draft. Tell the user and stop |
 | `400 no_options` | The field holds an id from another system | Ask the user for the value |
-| `422` with `templated_ref` | An id field holds a `{{ }}` template | Put a literal id from `workflow` (`action: field_options`) |
+| `422` with `templated_ref` | An id field holds a `{{ }}` template | Put a literal id from `listWorkflowFieldOptions` |
 
 ## Worked example
 
 "After a call, if the lead is interested, send our follow-up WhatsApp template
 and tell #sales in Slack."
 
-1. `workflowActions { action: "create", name: "Interested lead follow-up" }` gives you `trigger`
+1. `createWorkflow { name: "Interested lead follow-up" }` gives you `trigger`
    and a `revision`.
-2. `workflow` (`action: field_options`) for `whatsapp.phone_number_id`, then for
+2. `listWorkflowFieldOptions` for `whatsapp.phone_number_id`, then for
    `whatsapp.template_id` with `depends` set to that number. Confirm both with
    the user.
-3. One `workflowActions` (`action: edit`) batch:
+3. One `editWorkflow` batch:
    - `add_node { id: "check_interest", type: "conditional", after: "trigger",
      config: { conditions: [{ variable: "{{ context.trigger.extracted_variables.interested }}",
      operator: "==", value: "yes" }] } }`
@@ -188,10 +188,10 @@ and tell #sales in Slack."
      handle: "True", config: { phone_number_id: <id>, message_type: "template",
      template_id: <id>, to_number: "{{ context.trigger.customer_number }}" } }`
    - `add_node { id: "notify_sales", type: "slack", after: "wa_followup",
-     config: { integration_id: <from workflow action field_options>, channel: "<channel id the user confirms>",
+     config: { integration_id: <from listWorkflowFieldOptions>, channel: "<channel id the user confirms>",
      message: "Follow-up sent to {{ context.trigger.customer_number }}" } }`
    - `add_node { id: "about", type: "notes", config: { note_text: "Follows up
      interested leads after a call." } }`
-4. `workflow` (`action: validate`) and fix anything reported. Show the user the flow and get a
-   yes, then `workflowActions` (`action: publish`).
+4. `validateWorkflow` and fix anything reported. Show the user the flow and get a
+   yes, then `publishWorkflow`.
 5. Tell the user to point the agent's post-call action at this workflow.
