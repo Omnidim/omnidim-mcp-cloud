@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     loki_push_url: str = ""
     loki_labels: str = "service=omni-mcp-server"
 
+    openai_apps_challenge: str = ""
+
     @field_validator("public_base_url")
     @classmethod
     def _issuer_shape(cls, value: str) -> str:

@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import PlainTextResponse
 
 from app.config import Settings, get_settings
 from app.scopes import SUPPORTED_SCOPES
@@ -57,6 +58,15 @@ async def protected_resource_metadata(
         "bearer_methods_supported": ["header"],
         "resource_documentation": "https://docs.omnidim.io/docs/get-started/authentication",
     }
+
+
+@router.get("/.well-known/openai-apps-challenge", response_class=PlainTextResponse)
+async def openai_apps_challenge(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PlainTextResponse:
+    if not settings.openai_apps_challenge:
+        raise HTTPException(status_code=404)
+    return PlainTextResponse(settings.openai_apps_challenge, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/.well-known/mcp/server-card.json")
