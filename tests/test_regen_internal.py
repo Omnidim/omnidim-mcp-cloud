@@ -95,7 +95,8 @@ def test_committed_internal_spec_builds() -> None:
     import yaml
 
     internal = yaml.safe_load((Path(__file__).parent.parent / "internal-openapi.yaml").read_text())
-    assert set(internal["x-extra-parameters"]) == {"listCallLogs"}
+    # listCallLogs date_from/date_to moved to the public spec (omnidim-docs #244).
+    assert not internal.get("x-extra-parameters")
     ops = {
         op["operationId"] for item in internal["paths"].values() for op in item.values()
     }
