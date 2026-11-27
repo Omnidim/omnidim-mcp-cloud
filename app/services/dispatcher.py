@@ -63,7 +63,6 @@ def unfold(name: str, arguments: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     return tool, {**arguments, field: action}
 
 
-
 def _default_client_factory() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=TIMEOUT_SECONDS)
 
@@ -97,9 +96,17 @@ class ToolResult:
 
 # Credential-bearing keys are redacted from tool output.
 _SENSITIVE_KEY_RE = re.compile(
-    r"api_key|api_token|access_token|refresh_token|password|secret", re.IGNORECASE
+    r"api_key|api_token|access_token|access_key|private_key|refresh_token|password|secret"
+    r"|authorization|signature"
+    r"|(^|_)token$",
+    re.IGNORECASE,
 )
-_SECRET_QUERY_RE = re.compile(r"(secret=)[^&\s\"]+")
+# Webhook URLs carry their key in the query string (CASE-2026-001640: `?secret=`).
+_SECRET_QUERY_RE = re.compile(
+    r"([?&](?:secret|token|key|api_?key|access_token|sig|signature|auth|password)=)[^&\s\"]+",
+    re.IGNORECASE,
+)
+_BEARER_RE = re.compile(r"(Bearer\s+)[A-Za-z0-9._~+/=-]+", re.IGNORECASE)
 
 
 def _redact(value: Any) -> Any:
@@ -115,7 +122,7 @@ def _redact(value: Any) -> Any:
             for k, v in value.items()
         }
     if isinstance(value, str):
-        return _SECRET_QUERY_RE.sub(r"\1[redacted]", value)
+        return _BEARER_RE.sub(r"\1[redacted]", _SECRET_QUERY_RE.sub(r"\1[redacted]", value))
     return value
 
 
@@ -362,9 +369,7 @@ async def dispatch_tool(
     if "user_id" not in tool["input_schema"].get("properties", {}):
         arguments = {k: v for k, v in arguments.items() if k != "user_id"}
     arguments = _coerce_args(arguments, tool["input_schema"])
-    path = _substitute_path(
-        route["path"], arguments, route["path_params"], tool["input_schema"]
-    )
+    path = _substitute_path(route["path"], arguments, route["path_params"], tool["input_schema"])
     query, spec_headers, body = _split_args(
         arguments, route["path_params"], route["query_params"], route["header_params"]
     )
