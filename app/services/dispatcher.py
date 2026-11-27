@@ -96,7 +96,8 @@ class ToolResult:
 
 # Credential-bearing keys are redacted from tool output.
 _SENSITIVE_KEY_RE = re.compile(
-    r"api_key|api_token|access_token|refresh_token|password|secret|authorization|signature"
+    r"api_key|api_token|access_token|access_key|private_key|refresh_token|password|secret"
+    r"|authorization|signature"
     r"|(^|_)token$",
     re.IGNORECASE,
 )
@@ -105,7 +106,7 @@ _SECRET_QUERY_RE = re.compile(
     r"([?&](?:secret|token|key|api_?key|access_token|sig|signature|auth|password)=)[^&\s\"]+",
     re.IGNORECASE,
 )
-_BEARER_RE = re.compile(r"(Bearer\s+)[A-Za-z0-9._~+/=-]+")
+_BEARER_RE = re.compile(r"(Bearer\s+)[A-Za-z0-9._~+/=-]+", re.IGNORECASE)
 
 
 def _redact(value: Any) -> Any:

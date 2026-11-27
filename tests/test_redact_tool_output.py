@@ -33,10 +33,20 @@ def test_secret_query_values_are_masked(name: str) -> None:
 
 def test_bearer_values_are_masked() -> None:
     assert _redact(f"Authorization: Bearer {HEX}") == "Authorization: Bearer [redacted]"
+    assert _redact(f"bearer {HEX}") == "bearer [redacted]"
 
 
 @pytest.mark.parametrize(
-    "key", ["authorization", "Authorization", "token", "signature", "webhook_secret"]
+    "key",
+    [
+        "authorization",
+        "Authorization",
+        "token",
+        "signature",
+        "webhook_secret",
+        "lead_square_access_key",
+        "private_key",
+    ],
 )
 def test_secret_keys_are_masked(key: str) -> None:
     assert _redact({key: HEX}) == {key: "[redacted]"}
