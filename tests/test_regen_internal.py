@@ -79,7 +79,7 @@ def test_internal_operations_are_operator_only_and_ref_params_resolve() -> None:
 @pytest.mark.parametrize(
     "internal",
     [
-        {"paths": {"/calls/logs": {}}},
+        {"paths": {"/calls/logs": {"get": {"operationId": "x"}}}},
         {"components": {"schemas": {"Agent": {}}}},
         {"x-extra-parameters": {"listCallLogs": [{"name": "pageno", "in": "query"}]}},
         {"x-extra-parameters": {"listCallLogs": [{"name": "user_id", "in": "query"}]}},
@@ -91,6 +91,12 @@ def test_overlaps_with_the_public_spec_stop_the_regen(internal: dict[str, Any]) 
         _build(internal)
 
 
+def test_same_path_other_method_merges() -> None:
+    tools = _build({"paths": {"/calls/logs": {"post": {"operationId": "op", "x-mcp": READ}}}})
+    assert tools["op"]["operator_only"] is True
+    assert "operator_only" not in tools["listCallLogs"]
+
+
 def test_committed_internal_spec_builds() -> None:
     import yaml
 
@@ -100,6 +106,5 @@ def test_committed_internal_spec_builds() -> None:
     ops = {
         op["operationId"] for item in internal["paths"].values() for op in item.values()
     }
-    assert ops == {
-        "getCallEvents", "getPlanAndAddons", "createSupportCase", "getSupportCase", "addCaseMessage"
-    }
+    # getCallEvents, getPlanAndAddons and getSupportCase are public now (omnidim-docs #255, #256).
+    assert ops == {"createSupportCase", "addCaseMessage"}
