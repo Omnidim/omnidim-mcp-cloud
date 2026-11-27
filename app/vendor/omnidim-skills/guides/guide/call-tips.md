@@ -5,9 +5,8 @@ description: "What the best agents do on real calls: a short name-check greeting
 
 # Tips from real calls: what the best agents do
 
-Where this comes from: answered calls in the 30 days to 20 November 2026, from
-200 agents in 86 accounts (165 outbound agents in 79 accounts, 35 inbound
-agents in 17), each with at least 100 answered calls. For each agent we took
+Where this comes from: a month of answered calls on OmniDimension, from agents
+with at least 100 answered calls each, outbound and inbound. For each agent we took
 two shares of its answered calls:
 
 - **Early drop**: the person hung up within 15 seconds.
@@ -27,13 +26,13 @@ on a few calls before you roll it out.
 | 16 to 25 words | 49% | 15% |
 | More than 25 words | 46% | 8% |
 
-In 11 accounts that run outbound agents with both a short greeting (15 words
-or fewer) and a longer one, the short one had fewer early drops in 10. A good
+In accounts that run outbound agents with both a short greeting (15 words or
+fewer) and a longer one, the short one had fewer early drops almost every time. A good
 first line asks only for the person: "Hi, am I speaking with [name]?" Say who
 you are and why on the next turn, after they answer.
 
 Inbound is different: the caller chose to call. Inbound agents with a greeting
-of 16 to 25 words had a median early drop of 19% (26 agents in 12 accounts).
+of 16 to 25 words had a median early drop of 19%.
 Greet, say who they reached, and ask how you can help.
 
 ## 2. Outbound: on the second turn, say who, why, and ask for a minute
@@ -61,8 +60,8 @@ placeholder, so the line sounds broken ("Hi, am I speaking with ?").
 ## 5. Outbound: keep the temperature low for scripted calls
 
 Outbound agents with `model.temperature` 0.3 or lower had a median early drop
-of 37% and natural end of 21% (52 agents in 21 accounts), against 45% and 14%
-above 0.3 up to 0.7 (105 agents in 62 accounts). There were too few inbound agents
+of 37% and natural end of 21%, against 45% and 14% above 0.3 up to 0.7. There
+were too few inbound agents
 to tell.
 
 ## 6. One short question per turn
