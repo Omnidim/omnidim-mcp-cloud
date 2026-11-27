@@ -24,6 +24,7 @@ REACH: dict[str, Reach] = {
     "omnidim-onboard-client": Reach.NOT_SERVED,
     "omnidim-run-campaign": Reach.FULL_ENDPOINT_ONLY,
     "omnidim-connect": Reach.NOT_SERVED,
+    "omnidim-troubleshoot": Reach.EVERY_ENDPOINT,
 }
 
 
