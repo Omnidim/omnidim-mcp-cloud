@@ -54,6 +54,7 @@ These do not bend without an explicit decision:
 - After each merge, release-please updates one open release PR. Merging it is the prod deploy approval: the `release` job tags `vX.Y.Z`, `publish` pushes the image to `ghcr.io/omnidim/omnidim-mcp-cloud`, and `start-deploy` runs `deploy.yml` on the new tag, which asks the host (through a cloud role that can run only that one command) to pull, migrate, restart, check readiness, and roll back on failure. Only the maintainers team (Ryu, Kevin) approves release PRs.
 - The `production` environment accepts only `v*` tags. To redeploy a version from v0.14.1 on, run `deploy.yml` by hand on its tag (`gh workflow run deploy.yml --ref vX.Y.Z`). Older tags have no `deploy.yml`.
 - The only version source is `pyproject.toml`. `app.__version__` reads it from the installed package for serverInfo, the API version and the upstream User-Agent.
+- Staging: a push to `staging` tests and deploys to the staging box (`deploy-staging.yml`, skill `staging-deploy`).
 - Never deploy from a laptop. Database migrations are forward-compatible: an old app version must run against the new schema for the rolling-deploy window.
 
 ## Code hygiene
