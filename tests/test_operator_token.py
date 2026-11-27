@@ -323,7 +323,7 @@ SUPPORT_TOOLS = {
 def test_support_tools_exist_with_read_only_flags() -> None:
     by_name = {t["name"]: t for t in TOOLS}
     assert {n: by_name[n]["annotations"]["readOnlyHint"] for n in SUPPORT_TOOLS} == SUPPORT_TOOLS
-    # The reads are public now (omnidim-docs #255, #256); only the writes stay operator-only.
+    # The reads are public now (omnidim-docs #263); only the writes stay operator-only.
     assert {n for n, read in SUPPORT_TOOLS.items() if not read} == OPERATOR_ONLY
     assert by_name["getCallEvents"]["path_params"] == ["call_log_id"]
     assert "user_id" not in by_name["getCallEvents"]["input_schema"]["properties"]

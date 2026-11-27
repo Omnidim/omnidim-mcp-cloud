@@ -1234,8 +1234,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
@@ -1587,7 +1587,7 @@ _TOOLS_JSON = r"""[
                         },
                         "health_threshold": {
                             "type": "number",
-                            "default": 30.0,
+                            "default": 30,
                             "description": "Health score below which a number is rotated away from.\nUsed by `cpr_threshold` and `both`.\n"
                         },
                         "fallback": {
@@ -2945,6 +2945,58 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "getBalanceHistory",
+        "description": "Get balance history. Every change to your organization's balance, newest first: each call\ncharge, recharge, phone number purchase or renewal, subscription\ncredit, reward and adjustment, with the signed amount and the balance\nright after it.\n\nUse it to find out where credit went, or when a top-up landed. The\ndashboard's usage statement shows the same entries as totals per day\nand per kind.\n\nDays are in your account's time zone. Without dates you get the last 31\ndays; a range covers at most 31 days. The API key's user needs Billing\naccess in your organization.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "date_from": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-11-01",
+                    "description": "First day (`YYYY-MM-DD`). Defaults to 30 days before `date_to`."
+                },
+                "date_to": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-11-27",
+                    "description": "Last day (`YYYY-MM-DD`), included. Defaults to today."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Entries per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/balance/history",
+        "path_params": [],
+        "query_params": [
+            "date_from",
+            "date_to",
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Get balance history",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
         "name": "getBulkCall",
         "description": "Bulk call details. Get detailed information about a bulk-call campaign.",
         "input_schema": {
@@ -3109,6 +3161,26 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Get plan and add-ons",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "getReferrals",
+        "description": "Get referrals. Your referral link, how many people joined through it, how many\nrewards you earned, and your most recent referrals with the status of\neach reward. A reward on hold says so in `status_text`.\n\n`program_available` is `false` when referral rewards are not offered\nto your account.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/referrals",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get referrals",
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
@@ -4109,6 +4181,44 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "listPayments",
+        "description": "List payments. The payments you made, newest first: balance top-ups and subscription\npayments, what each was for, the amount and currency, its status, the\nsubscription period, and why a failed one was refused.\n\nUse it to answer \"did my payment go through?\" or \"why was my card\ndeclined?\". It lists the payments the API key's user made, as the\nbilling page shows them. Card details are never included.\n\nThe API key's user needs Billing access in your organization.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Payments per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/payments",
+        "path_params": [],
+        "query_params": [
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List payments",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
         "name": "listPhoneNumbers",
         "description": "List phone numbers. Retrieve the phone numbers on your account, whether you bought them\nfrom the OmniDimension number shop or imported your own.",
         "input_schema": {
@@ -4247,6 +4357,52 @@ _TOOLS_JSON = r"""[
                 "required": [],
                 "sends_field": false
             }
+        }
+    },
+    {
+        "name": "listReleasedPhoneNumbers",
+        "description": "List released phone numbers. Phone numbers your organization lost in the last days, newest first,\nand why: the renewal failed because your balance did not cover it,\nauto renew was off when the paid period ended, or it was released on\nrequest. Use it when a number is missing from List phone numbers.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer",
+                    "default": 90,
+                    "minimum": 1,
+                    "maximum": 90,
+                    "description": "How many days back to look."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Numbers per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/phone_number/released",
+        "path_params": [],
+        "query_params": [
+            "days",
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List released phone numbers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
         }
     },
     {
@@ -5902,8 +6058,8 @@ _TOOLS_JSON = r"""[
                         "speech_speed": {
                             "type": "number",
                             "minimum": 0.5,
-                            "maximum": 2.0,
-                            "default": 1.0,
+                            "maximum": 2,
+                            "default": 1,
                             "description": "Playback speed multiplier for the agent's voice. 1.0 is normal speed."
                         }
                     }
