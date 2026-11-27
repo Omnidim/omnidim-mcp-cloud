@@ -13,7 +13,8 @@ wrapper; see the routing guide). The fields:
 - `context_breakdown` -- a list of `{ title, body }` sections that form the
   agent's instructions.
 - `call_type` -- "Incoming" or "Outgoing".
-- `model` -- `{ model, temperature? }`, e.g. `{ "model": "gpt-4.1-mini" }`.
+- `model` -- `{ model?, temperature? }`, e.g. `{ "temperature": 0.3 }`. Leave
+  `model` out to keep the organization's default model.
 - `voice` -- `{ provider, voice_id, speech_speed? }`. `speech_speed` is a playback
   multiplier (default `1.0`); leave it out unless the user asks for faster or
   slower speech. If you do set it, stay within **0.7-1.2**, or some voices go
@@ -54,7 +55,7 @@ a field was not saved: fix it and send it again.
     { "title": "Role", "body": "You are a friendly customer-support agent. Answer questions, and if you cannot help, offer to connect the caller to a human." }
   ],
   "call_type": "Incoming",
-  "model": { "model": "gpt-4.1-mini", "temperature": 0.3 },
+  "model": { "temperature": 0.3 },
   "voice": { "provider": "cartesia", "voice_id": "b521b304-7672-4cf9-9a34-b4eb1df1bde0" },
   "transcriber": { "provider": "soniox" }
 }
@@ -68,7 +69,7 @@ a field was not saved: fix it and send it again.
     { "title": "Role", "body": "You remind customers about an upcoming appointment and confirm whether they can attend. Speak naturally in the caller's language, Hindi or English." }
   ],
   "call_type": "Outgoing",
-  "model": { "model": "gpt-4.1-mini", "temperature": 0.3 },
+  "model": { "temperature": 0.3 },
   "voice": { "provider": "cartesia", "voice_id": "<a Hindi voice from listVoices provider=featured>" },
   "transcriber": { "provider": "soniox" }
 }

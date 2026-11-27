@@ -43,8 +43,10 @@ def test_the_npm_export_carries_each_served_skill_byte_for_byte() -> None:
         "omnidim-build-agent",
         "omnidim-build-workflow",
         "omnidim-run-campaign",
+        "omnidim-troubleshoot",
     }
-    assert [n for n, s in skills.items() if s["readOnly"]] == ["omnidim-audit-calls"]
+    read_only = [n for n, s in skills.items() if s["readOnly"]]
+    assert read_only == ["omnidim-audit-calls", "omnidim-troubleshoot"]
     for name, skill in skills.items():
         on_disk = {p.name: p.read_text() for p in (vendor / name).iterdir()}
         assert {f["path"]: f["text"] for f in skill["files"]} == on_disk

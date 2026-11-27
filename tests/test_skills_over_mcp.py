@@ -16,6 +16,7 @@ FULL_SKILLS = {
     "omnidim-build-agent",
     "omnidim-build-workflow",
     "omnidim-run-campaign",
+    "omnidim-troubleshoot",
 }
 
 
@@ -118,7 +119,7 @@ async def test_unserved_skill_files_cannot_be_read(client: AsyncClient) -> None:
     assert body["error"]["code"] == -32602
 
 
-async def test_readonly_serves_only_the_review_skill(client: AsyncClient) -> None:
+async def test_readonly_serves_only_the_read_only_skills(client: AsyncClient) -> None:
     token = await _mint_access_token(client)
 
     skills = (await _rpc(client, token, "/mcp/readonly", "skills/list"))["result"]["skills"]
@@ -131,7 +132,8 @@ async def test_readonly_serves_only_the_review_skill(client: AsyncClient) -> Non
         {"uri": "skill://omnidim-build-agent/design-agent.md"},
     )
 
-    assert [s["frontmatter"]["name"] for s in skills] == ["omnidim-audit-calls"]
+    names = [s["frontmatter"]["name"] for s in skills]
+    assert names == ["omnidim-audit-calls", "omnidim-troubleshoot"]
     assert get["error"]["code"] == -32602
     assert read["error"]["code"] == -32602
 

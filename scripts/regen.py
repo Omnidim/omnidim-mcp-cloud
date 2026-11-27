@@ -108,14 +108,19 @@ def merge_internal(spec: dict[str, Any], internal: dict[str, Any]) -> set[str]:
             (internal.get("components") or {}).get("schemas") or {},
         ),
     )
-    for target, extra in sections:
-        if clash := sorted(set(target) & set(extra)):
-            raise SystemExit(f"internal spec overlaps the public spec: {', '.join(clash)}")
+    paths, schemas = sections
+    # A path both specs list may differ by method (public GET, operator-only POST).
+    shared = set(paths[0]) & set(paths[1])
+    clash = sorted(f"{m} {p}" for p in shared for m in set(paths[0][p]) & set(paths[1][p]))
+    clash += sorted(set(schemas[0]) & set(schemas[1]))
+    if clash:
+        raise SystemExit(f"internal spec overlaps the public spec: {', '.join(clash)}")
     operator_only = {
-        str(op.get("operationId")) for _, op, _ in _operations({"paths": sections[0][1]})
+        str(op.get("operationId")) for _, op, _ in _operations({"paths": paths[1]})
     }
-    for target, extra in sections:
-        target.update(extra)
+    for path, item in paths[1].items():
+        paths[0][path] = {**paths[0].get(path, {}), **item}
+    schemas[0].update(schemas[1])
 
     by_id = {op.get("operationId"): (op, item) for _, op, item in _operations(spec)}
     for op_id, params in (internal.get("x-extra-parameters") or {}).items():

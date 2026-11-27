@@ -48,8 +48,8 @@ give it a **phone number** and optionally a **knowledge base**, then place
    back as `false` on an API-created agent; that is normal. The call handler
    uses `voice_external_id` + `voice_provider`.
 4. **Use the platform defaults:** transcriber `soniox`, one of the
-   OmniDimension voices, model `gpt-4.1-mini`. Pick another provider only when
-   the user names one. OmniDimension voices are our most recommended voices:
+   OmniDimension voices, and the organization's default model (leave
+   `model.model` out). Pick another provider only when the user names one. OmniDimension voices are our most recommended voices:
    picked by our team for each language and tested on real calls. List them
    with `listVoices` `provider=featured`, and save one as
    `voice.provider` = its `service` with its `name` as `voice_id`. A Cartesia `search` does not find them. If none fits the
