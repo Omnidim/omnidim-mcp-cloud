@@ -2,6 +2,20 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.28.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.27.0...v0.28.0) (2026-11-27)
+
+
+### Added
+
+* regenerate tools (EXPOSURE CHANGE: +7 -0) ([#178](https://github.com/Omnidim/omnidim-mcp-cloud/issues/178)) ([0f4f34d](https://github.com/Omnidim/omnidim-mcp-cloud/commit/0f4f34ddf2a3e2f644efb2e63fb3260bdc626a8e))
+
+## [0.27.0](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.26.2...v0.27.0) (2026-11-27)
+
+
+### Added
+
+* redact more credentials, serve the troubleshoot skill, staging deploy, public support reads ([#177](https://github.com/Omnidim/omnidim-mcp-cloud/issues/177)) ([550d38b](https://github.com/Omnidim/omnidim-mcp-cloud/commit/550d38ba45a657489af105141548006a8bcdbe3f))
+
 ## [0.26.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.26.1...v0.26.2) (2026-11-25)
 
 
