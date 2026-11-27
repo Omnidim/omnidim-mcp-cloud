@@ -2188,6 +2188,115 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "createWhatsappTemplate",
+        "description": "Create a template. Create a message template on a direct Meta number and send it to WhatsApp\nfor review.\n\nIt answers the new template with status `pending`. WhatsApp usually\nreviews it within minutes. Run `syncWhatsappTemplates` later to see the\nresult. Only an `approved` template can be sent.\n\nThe number must list `template_create` in its capabilities.\n\nFor an image or document header, upload the file with\n`POST /whatsapp/media` first and pass its `media_id` in `header_media`.\nAI assistants connected through MCP can't upload files, so they create\ntext headers only. Create a video header, an authentication template, or\na link that changes per message in the dashboard.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "name": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]{1,512}$",
+                    "description": "Lower-case letters, digits and underscores, such as `order_update`. It must not be on the number already, in any language."
+                },
+                "language": {
+                    "type": "string",
+                    "pattern": "^[a-z]{2,3}(_[A-Z]{2})?$",
+                    "description": "WhatsApp language code, such as `en`, `en_US` or `hi`."
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "marketing",
+                        "utility"
+                    ],
+                    "description": "`utility` is for an update the customer expects, such as an order or\nappointment. `marketing` is for anything else. WhatsApp can change the\ncategory when it reviews the template.\n"
+                },
+                "header": {
+                    "type": "string",
+                    "description": "Optional header text. It can hold one placeholder, `{{1}}`. Send `header` or `header_media`, not both."
+                },
+                "header_example": {
+                    "type": "string",
+                    "description": "Sample value for the header's `{{1}}`. Required when the header has one."
+                },
+                "body": {
+                    "type": "string",
+                    "description": "The message text. Placeholders are numbered from `{{1}}` with no\ngaps, such as `Hi {{1}}, your order {{2}} has shipped.`\n"
+                },
+                "body_examples": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "One sample value per body placeholder, in order. Required when the body has placeholders."
+                },
+                "footer": {
+                    "type": "string",
+                    "description": "Optional footer text, with no placeholders."
+                },
+                "buttons": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "type",
+                            "text"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "quick_reply",
+                                    "url",
+                                    "phone_number"
+                                ]
+                            },
+                            "text": {
+                                "type": "string",
+                                "description": "The button label."
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "Required for `url`. A fixed link, with no placeholder."
+                            },
+                            "phone_number": {
+                                "type": "string",
+                                "description": "Required for `phone_number`, in international format, such as `+919876543210`."
+                            }
+                        }
+                    }
+                }
+            },
+            "required": [
+                "body",
+                "category",
+                "language",
+                "name",
+                "number_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "POST",
+        "path": "/whatsapp/numbers/{number_id}/templates",
+        "path_params": [
+            "number_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Create WhatsApp template",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
         "name": "createWorkflow",
         "description": "Create a workflow. Create a workflow with a draft.\n\nWithout `graph`, the draft holds one `trigger` node, ready for\n`editWorkflow` ops. Pass `graph` only to start from a complete graph. The\nresponse carries the `revision` you need to edit.",
         "input_schema": {
@@ -2438,6 +2547,42 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "Delete a post-call action",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "deleteWhatsappTemplate",
+        "description": "Delete a template. Delete one template from WhatsApp and from your list.\n\nIt deletes only that language of the template. A post-call action that\nuses it stops sending it. A template that a campaign uses is not deleted:\ndelete the campaign first. This cannot be undone, so confirm with the user\nfirst.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "number_id": {
+                    "type": "integer",
+                    "description": "Id of a WhatsApp number in your workspace, from\n[listWhatsappNumbers](/docs/api-reference/whatsapp/listWhatsappNumbers).\nA number in another workspace answers `404`.\n"
+                },
+                "template_id": {
+                    "type": "integer",
+                    "description": "The template's `id` from `listWhatsappTemplates`."
+                }
+            },
+            "required": [
+                "number_id",
+                "template_id"
+            ],
+            "additionalProperties": true
+        },
+        "method": "DELETE",
+        "path": "/whatsapp/numbers/{number_id}/templates/{template_id}",
+        "path_params": [
+            "number_id",
+            "template_id"
+        ],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Delete WhatsApp template",
             "readOnlyHint": false,
             "destructiveHint": true,
             "openWorldHint": false
@@ -2800,6 +2945,58 @@ _TOOLS_JSON = r"""[
         }
     },
     {
+        "name": "getBalanceHistory",
+        "description": "Get balance history. Every change to your organization's balance, newest first: each call\ncharge, recharge, phone number purchase or renewal, subscription\ncredit, reward and adjustment, with the signed amount and the balance\nright after it.\n\nUse it to find out where credit went, or when a top-up landed. The\ndashboard's usage statement shows the same entries as totals per day\nand per kind.\n\nDays are in your account's time zone. Without dates you get the last 31\ndays; a range covers at most 31 days. The API key's user needs Billing\naccess in your organization.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "date_from": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-11-01",
+                    "description": "First day (`YYYY-MM-DD`). Defaults to 30 days before `date_to`."
+                },
+                "date_to": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-11-27",
+                    "description": "Last day (`YYYY-MM-DD`), included. Defaults to today."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Entries per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/balance/history",
+        "path_params": [],
+        "query_params": [
+            "date_from",
+            "date_to",
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "Get balance history",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
         "name": "getBulkCall",
         "description": "Bulk call details. Get detailed information about a bulk-call campaign.",
         "input_schema": {
@@ -2887,12 +3084,11 @@ _TOOLS_JSON = r"""[
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
-        },
-        "operator_only": true
+        }
     },
     {
         "name": "getCallLog",
-        "description": "Get call log. Detailed information about a specific call (duration, status, transcript, sentiment, extracted variables).",
+        "description": "Get call log. Detailed information about a specific call (duration, status, transcript, sentiment, extracted variables, and `post_call_override`: the post-call actions it was dialed with, which replace the agent's own for that call).",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -2952,7 +3148,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "getPlanAndAddons",
-        "description": "Get plan and add-ons. Read your organization's plan: its status and renewal or expiry date,\nyour concurrency add-ons, your concurrency limit, which plan features\nyou have, and the phone numbers that renew in the next 14 days with\nwhether your balance covers each renewal.\n\nYour balance and rates are on Get account balance.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization; when it is not, contact support.",
+        "description": "Get plan and add-ons. Read your organization's plan: its status and renewal or expiry date,\nyour concurrency add-ons, your concurrency limit, which plan features\nyou have, and the phone numbers that renew in the next 14 days with\nwhether your balance covers each renewal. It also says when your\norganization was created, whether it is paid, and how many calls it\nmade in the last 7 and 30 days.\n\nYour balance and rates are on Get account balance.\n\nThe API key's user needs Billing access in your organization. If\nyou get a `403`, an administrator can grant it when Billing is\nenabled for your organization. When it is not, contact support.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -2968,18 +3164,37 @@ _TOOLS_JSON = r"""[
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
+        }
+    },
+    {
+        "name": "getReferrals",
+        "description": "Get referrals. Your referral link, how many people joined through it, how many\nrewards you earned, and your most recent referrals with the status of\neach reward. A reward on hold says so in `status_text`.\n\n`program_available` is `false` when referral rewards are not offered\nto your account.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
         },
-        "operator_only": true
+        "method": "GET",
+        "path": "/referrals",
+        "path_params": [],
+        "query_params": [],
+        "header_params": [],
+        "annotations": {
+            "title": "Get referrals",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
     },
     {
         "name": "getSupportCase",
-        "description": "Get support case. A support case of this customer, with its public thread. Internal notes are never included.",
+        "description": "Get support case. One support case you filed, with its public thread: the messages you\nand support exchanged, as your ticket page shows them. Internal notes\nare never included. A case you didn't file returns `404`, and so does\nany case for a white-label account. `user_id` is not accepted (`400`).",
         "input_schema": {
             "type": "object",
             "properties": {
                 "case_number": {
                     "type": "string",
-                    "description": "The case number, as returned when the case was created."
+                    "description": "The case number, as List support cases returns it."
                 }
             },
             "required": [
@@ -2999,8 +3214,7 @@ _TOOLS_JSON = r"""[
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
-        },
-        "operator_only": true
+        }
     },
     {
         "name": "getVoice",
@@ -3789,7 +4003,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "listCallLogs",
-        "description": "List call logs. Retrieve call logs with pagination and optional filtering.",
+        "description": "List call logs. Retrieve call logs with pagination and optional filtering.\n\nWith `summary=day`, returns per-day counts for one agent instead of\ncall rows: how calls were started, how many were dialed with their own\npost-call actions, and what each delivery channel did. Use it to\ncompare a good day with a bad day before reading single calls.\n`agentid`, `date_from` and `date_to` are required, for at most 31 days\nand 20,000 calls. A range that is too large or too slow returns `400`\nasking for fewer days.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -3852,6 +4066,13 @@ _TOOLS_JSON = r"""[
                     ],
                     "description": "Only inbound or only outbound calls."
                 },
+                "summary": {
+                    "type": "string",
+                    "enum": [
+                        "day"
+                    ],
+                    "description": "Set to `day` for per-day counts for one agent instead of call rows. Needs `agentid`, `date_from` and `date_to` (at most 31 days and 20,000 calls). Other filters and pagination don't apply."
+                },
                 "include_details": {
                     "type": "boolean",
                     "default": true,
@@ -3874,6 +4095,7 @@ _TOOLS_JSON = r"""[
             "to_number",
             "from_number",
             "call_direction",
+            "summary",
             "include_details"
         ],
         "header_params": [],
@@ -3953,6 +4175,44 @@ _TOOLS_JSON = r"""[
         "header_params": [],
         "annotations": {
             "title": "List knowledge base files",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listPayments",
+        "description": "List payments. The payments you made, newest first: balance top-ups and subscription\npayments, what each was for, the amount and currency, its status, the\nsubscription period, and why a failed one was refused.\n\nUse it to answer \"did my payment go through?\" or \"why was my card\ndeclined?\". It lists the payments the API key's user made, as the\nbilling page shows them. Card details are never included.\n\nThe API key's user needs Billing access in your organization.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Payments per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/account/payments",
+        "path_params": [],
+        "query_params": [
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List payments",
             "readOnlyHint": true,
             "destructiveHint": false,
             "openWorldHint": false
@@ -4097,6 +4357,90 @@ _TOOLS_JSON = r"""[
                 "required": [],
                 "sends_field": false
             }
+        }
+    },
+    {
+        "name": "listReleasedPhoneNumbers",
+        "description": "List released phone numbers. Phone numbers your organization lost in the last days, newest first,\nand why: the renewal failed because your balance did not cover it,\nauto renew was off when the paid period ended, or it was released on\nrequest. Use it when a number is missing from List phone numbers.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer",
+                    "default": 90,
+                    "minimum": 1,
+                    "maximum": 90,
+                    "description": "How many days back to look."
+                },
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Numbers per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/phone_number/released",
+        "path_params": [],
+        "query_params": [
+            "days",
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List released phone numbers",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
+        }
+    },
+    {
+        "name": "listSupportCases",
+        "description": "List support cases. The support cases you filed, newest first, as your ticket page lists\nthem: case number, title, type, status, when it was created and\nresolved, and when the last public message was posted. Read one\ncase's messages with Get support case.\n\nCases belong to the person who filed them, so you see your own cases,\nnot your colleagues'. There is no `user_id` parameter: sending one\nreturns `400`, and a reseller reads a client's cases with the client's\nown API key. A white-label account gets an empty list.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pageno": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Page number."
+                },
+                "pagesize": {
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 1,
+                    "maximum": 150,
+                    "description": "Cases per page."
+                }
+            },
+            "additionalProperties": true
+        },
+        "method": "GET",
+        "path": "/support/cases",
+        "path_params": [],
+        "query_params": [
+            "pageno",
+            "pagesize"
+        ],
+        "header_params": [],
+        "annotations": {
+            "title": "List support cases",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false
         }
     },
     {
@@ -5447,7 +5791,7 @@ _TOOLS_JSON = r"""[
     },
     {
         "name": "syncWhatsappTemplates",
-        "description": "Sync templates. Pull the number's templates and review statuses from WhatsApp into your\nlist.\n\nRun it after you create or edit a template in Meta. It runs at most once a\nminute per number. A second call inside that minute answers `429`.",
+        "description": "Sync templates. Pull the number's templates and review statuses from WhatsApp into your\nlist.\n\nRun it after you create or edit a template. It runs at most once a\nminute per number. A second call inside that minute answers `429`.",
         "input_schema": {
             "type": "object",
             "properties": {
