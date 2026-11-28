@@ -35,7 +35,7 @@ Follow these steps in order. Write tools take flat top-level arguments (no `requ
      "languages": ["<primary language>"],
      "model": { "temperature": 0.3 },
      "voice": { "provider": "<its service>", "voice_id": "<name from listVoices provider=featured>" },
-     "transcriber": { "provider": "soniox", "should_apply_noise_reduction": true, "interruption_min_words": 1, "first_ideal_message": "<silence nudge>", "is_first_ideal_message_dynamic": false, "second_ideal_message": "<second nudge>", "is_second_ideal_message_dynamic": false },
+     "transcriber": { "provider": "soniox", "should_apply_noise_reduction": true, "noise_reduction_mode": "advanced", "interruption_min_words": 3, "first_ideal_message": "<silence nudge>", "is_first_ideal_message_dynamic": false, "second_ideal_message": "<second nudge>", "is_second_ideal_message_dynamic": false },
      "end_call": { "enabled": true, "condition": "<when the call may end>", "message_type": "prompt", "message_prompt": "<a closing line for each outcome>" },
      "voicemail": { "enabled": true, "message": "<the voicemail line>" }
    }
