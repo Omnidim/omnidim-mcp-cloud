@@ -2,6 +2,14 @@
 
 All notable changes to this project. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.28.2](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.28.1...v0.28.2) (2026-11-28)
+
+
+### Fixed
+
+* refresh playbooks and guides from Omnidim/skills ([#184](https://github.com/Omnidim/omnidim-mcp-cloud/issues/184)) ([5fd6485](https://github.com/Omnidim/omnidim-mcp-cloud/commit/5fd64850561ae3ba552ccab0c4813f2d6c45b7b8))
+* refresh tool descriptions from the updated API spec ([#183](https://github.com/Omnidim/omnidim-mcp-cloud/issues/183)) ([0706a35](https://github.com/Omnidim/omnidim-mcp-cloud/commit/0706a35cffad0c0d56945a70b2ce7b45be047e7e))
+
 ## [0.28.1](https://github.com/Omnidim/omnidim-mcp-cloud/compare/v0.28.0...v0.28.1) (2026-11-27)
 
 
