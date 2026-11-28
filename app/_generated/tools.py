@@ -1148,11 +1148,20 @@ _TOOLS_JSON = r"""[
                             "type": "boolean",
                             "description": "Reduce background noise on the inbound audio stream before transcription."
                         },
+                        "noise_reduction_mode": {
+                            "type": "string",
+                            "enum": [
+                                "standard",
+                                "advanced"
+                            ],
+                            "description": "How noise reduction works when it is on. `standard` removes background noise and keeps every voice on the call. `advanced` also removes other voices to focus on one primary speaker, which helps in noisy places but can cut out some words. New agents start on `standard`.",
+                            "example": "advanced"
+                        },
                         "interruption_min_words": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "Minimum number of words the caller must say before their speech is treated as an interruption.",
-                            "example": 2
+                            "description": "Minimum number of words the caller must say before their speech is treated as an interruption. New agents start at 3.",
+                            "example": 3
                         },
                         "max_call_duration_in_sec": {
                             "type": "integer",
@@ -5972,11 +5981,20 @@ _TOOLS_JSON = r"""[
                             "type": "boolean",
                             "description": "Reduce background noise on the inbound audio stream before transcription."
                         },
+                        "noise_reduction_mode": {
+                            "type": "string",
+                            "enum": [
+                                "standard",
+                                "advanced"
+                            ],
+                            "description": "How noise reduction works when it is on. `standard` removes background noise and keeps every voice on the call. `advanced` also removes other voices to focus on one primary speaker, which helps in noisy places but can cut out some words. New agents start on `standard`.",
+                            "example": "advanced"
+                        },
                         "interruption_min_words": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "Minimum number of words the caller must say before their speech is treated as an interruption.",
-                            "example": 2
+                            "description": "Minimum number of words the caller must say before their speech is treated as an interruption. New agents start at 3.",
+                            "example": 3
                         },
                         "max_call_duration_in_sec": {
                             "type": "integer",
